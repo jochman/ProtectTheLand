@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Sparkles, Flame } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
@@ -17,6 +17,16 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
   const isPanic = lordOfHosts.isPanicMashMode;
   const isCracked = lordOfHosts.isCracked;
 
+  // Auto-dismiss pious toast speech bubble after 3 seconds
+  useEffect(() => {
+    if (lordOfHosts.piousToast) {
+      const timer = setTimeout(() => {
+        dispatch({ type: 'DISMISS_TOAST' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [lordOfHosts.piousToast, dispatch]);
+
   const handleClick = () => {
     if (isCracked) return;
     if (isPanic) {
@@ -34,7 +44,8 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
       {lordOfHosts.piousToast && (
         <div
           onClick={() => dispatch({ type: 'DISMISS_TOAST' })}
-          className="absolute -top-14 z-30 px-3 py-1.5 bg-amber-50 border-2 border-amber-400 text-amber-950 text-xs font-bold rounded-xl shadow-xl animate-bounce cursor-pointer flex items-center gap-1.5 max-w-[280px] text-center font-heebo"
+          title={state.locale === 'he' ? 'לחץ לסגירה' : 'Tap to dismiss'}
+          className="absolute -top-14 z-30 px-3 py-1.5 bg-amber-50 border-2 border-amber-400 text-amber-950 text-xs font-bold rounded-xl shadow-xl cursor-pointer flex items-center gap-1.5 max-w-[280px] text-center font-heebo"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
           <span>{lordOfHosts.piousToast}</span>

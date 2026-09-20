@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, AlertCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 
 interface FloatingEmergencyAlertProps {
@@ -16,36 +16,32 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
   const isHe = state.locale === 'he';
   const hasActiveAttacks = (state.greenSideAttacks || []).length > 0;
 
-  // Whenever a new urgent news item arrives, display the floating alert
+  // ONLY display the floating alert for active hostile raids (drastically reduces popup spam!)
   useEffect(() => {
     if (!currentNews) return;
 
-    if (isUrgent && currentNews.id !== dismissedNewsId) {
+    if (hasActiveAttacks && isUrgent && currentNews.id !== dismissedNewsId) {
       setIsVisible(true);
 
-      // Give player 14 seconds for attack alerts (so they can calmly read and react) and 7s for other alerts
-      const autoDismissMs = hasActiveAttacks ? 14000 : 7000;
+      // Auto-dismiss after 6 seconds so it never lingers on screen
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, autoDismissMs);
+      }, 6000);
 
       return () => clearTimeout(timer);
-    } else if (!isUrgent) {
+    } else if (!hasActiveAttacks || !isUrgent) {
       setIsVisible(false);
     }
   }, [currentNews?.id, isUrgent, dismissedNewsId, hasActiveAttacks]);
 
-  if (!isVisible || !currentNews || !isUrgent) return null;
+  if (!isVisible || !currentNews || !hasActiveAttacks) return null;
 
-  const handleDismiss = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDismiss = () => {
     setDismissedNewsId(currentNews.id);
     setIsVisible(false);
   };
 
-  const handleOpenFeed = () => {
-    dispatch({ type: 'OPEN_NEWS_MODAL' });
-  };
+  const firstAttack = (state.greenSideAttacks || [])[0];
 
   return (
     <div
@@ -53,15 +49,17 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
       aria-live="assertive"
       className="absolute top-[138px] inset-x-3 z-40 pointer-events-auto transition-all duration-300 ease-out animate-in fade-in slide-in-from-top-3"
     >
+      {/* Tapping anywhere on the popup card IMMEDIATELY dismisses it! */}
       <div
-        onClick={handleOpenFeed}
-        className="group relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-r from-red-950/95 via-red-900/95 to-red-950/95 border-2 border-red-500 shadow-2xl backdrop-blur-md p-3 text-white transition-all hover:border-amber-400 active:scale-[0.99]"
+        onClick={handleDismiss}
+        title={isHe ? 'לחץ לסגירה' : 'Tap to dismiss'}
+        className="group relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-r from-red-950/95 via-red-900/95 to-red-950/95 border-2 border-red-500 shadow-2xl backdrop-blur-md p-2.5 sm:p-3 text-white transition-all hover:border-amber-400 active:scale-[0.99]"
       >
         {/* Subtle pulsing background glow */}
         <div className="absolute inset-0 bg-red-600/15 animate-pulse pointer-events-none" />
 
         {/* Top Header Row */}
-        <div className="relative flex items-center justify-between gap-2 border-b border-red-700/60 pb-1.5 mb-2">
+        <div className="relative flex items-center justify-between gap-2 border-b border-red-700/60 pb-1 mb-1.5">
           <div className="flex items-center gap-1.5">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -69,61 +67,59 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
             </span>
             <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
             <span className="text-[11px] font-black text-amber-300 tracking-wider uppercase font-rubik">
-              {isHe ? 'התרעת חירום מבצעית' : 'OPERATIONAL EMERGENCY'}
+              {isHe ? 'התרעת חדירה פעילה!' : 'ACTIVE INFILTRATION!'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-red-800/90 text-amber-200 px-2 py-0.5 rounded-md font-black border border-red-600/50">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] bg-red-800/90 text-amber-200 px-2 py-0.5 rounded-md font-black border border-red-600/50">
               {isHe ? (currentNews.sourceHe || currentNews.source) : (currentNews.sourceEn || currentNews.source)}
             </span>
             <button
-              onClick={handleDismiss}
-              className="p-1 rounded-full text-red-300 hover:text-white hover:bg-white/20 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="p-1 rounded-full text-red-300 hover:text-white hover:bg-white/20 transition-colors text-xs font-bold"
               title={isHe ? 'סגור התרעה' : 'Dismiss'}
               aria-label="Close"
             >
-              <X className="w-3.5 h-3.5" />
+              ✕
             </button>
           </div>
         </div>
 
-        {/* Full Headline Text - Zero Truncation Needed Here! */}
-        <p className="relative text-xs sm:text-sm font-black text-white leading-relaxed font-heebo">
+        {/* Full Headline Text */}
+        <p className="relative text-xs font-bold text-white leading-tight font-heebo">
           {isHe ? (currentNews.headlineHe || currentNews.headline) : (currentNews.headlineEn || currentNews.headline)}
         </p>
 
-        {/* Direct Action Button when Infiltration is Active */}
-        {hasActiveAttacks && (
+        {/* Direct Action Button to Intercept (Stops propagation from dismissal) */}
+        {firstAttack && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              const atk = state.greenSideAttacks[0];
-              dispatch({ type: 'SELECT_INFILTRATION', id: atk.id });
+              dispatch({ type: 'SELECT_INFILTRATION', id: firstAttack.id });
+              handleDismiss();
             }}
-            className="mt-2 w-full py-1.5 px-3 bg-red-600 hover:bg-red-500 active:scale-98 border border-red-300 rounded-xl font-black text-xs text-white shadow-lg flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
+            className="mt-2 w-full py-1.5 px-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-98 border border-amber-300 rounded-xl font-black text-xs text-white shadow-lg flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
           >
-            <span>🛡️</span>
-            <span>{isHe ? 'לחץ כאן לבלימת החדירה!' : 'Click Here to Intercept!'}</span>
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-200" />
+            <span>{isHe ? 'לחץ כאן לבלימת החדירה!' : 'Tap Here to Intercept!'}</span>
           </button>
         )}
 
-        {/* Footer info: Defense Level + Click hint */}
-        <div className="relative flex items-center justify-between gap-2 mt-2 pt-1 text-[11px] border-t border-red-800/40">
-          <span className="flex items-center gap-1 font-bold text-red-200">
-            <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+        {/* Footer info: Tap anywhere hint */}
+        <div className="relative flex items-center justify-between gap-2 mt-1.5 pt-1 text-[10px] border-t border-red-800/40 text-red-300">
+          <span className="flex items-center gap-1 font-bold">
+            <AlertCircle className="w-3 h-3 text-red-400" />
             <span>
-              {isHe ? `הגנה בגבול: ${state.defenseScore}%` : `Border Defense: ${state.defenseScore}%`}
+              {isHe ? `הגנה בגבול: ${state.defenseScore}%` : `Border: ${state.defenseScore}%`}
             </span>
           </span>
 
-          <span className="font-extrabold text-amber-300 group-hover:text-amber-200 flex items-center gap-1 text-[10.5px]">
-            <span>{isHe ? 'לדיווח המלא' : 'View Full Feed'}</span>
-            {isHe ? (
-              <ChevronLeft className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform" />
-            ) : (
-              <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-            )}
+          <span className="text-[10px] text-amber-300/90 font-medium">
+            {isHe ? '👆 לחץ בכל מקום לסגירה' : '👆 Tap anywhere to close'}
           </span>
         </div>
       </div>

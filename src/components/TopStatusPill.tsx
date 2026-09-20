@@ -98,27 +98,11 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
   }
 
   return (
-    <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 px-3 sm:px-4 z-20 flex-shrink-0">
+    // This stacking context must sit above the ticker so the explanatory
+    // popover is never obscured by the news bar.
+    <div className="relative flex flex-col items-center gap-1 sm:gap-1.5 px-3 sm:px-4 z-30 flex-shrink-0">
       {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
       <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-lg border border-amber-100/60">
-        {/* Floating Settlement Penalty Popup */}
-        {state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600) && (
-          <div className="absolute -top-7 right-2 sm:right-4 z-30 pointer-events-none whitespace-nowrap bg-red-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-red-400 flex items-center gap-1 font-heebo">
-            <span>💸</span>
-            <span>-{state.latestPenalty.amount}₪</span>
-            <span className="text-red-200 font-bold hidden xs:inline">({state.latestPenalty.reason})</span>
-          </div>
-        )}
-
-        {/* Floating Coalition Deployment Grant Popup */}
-        {state.latestGrant && (Date.now() - state.latestGrant.timestamp < 3600) && (
-          <div className="absolute -top-7 left-2 sm:left-4 z-30 pointer-events-none whitespace-nowrap bg-emerald-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-emerald-300 flex items-center gap-1 font-heebo animate-bounce">
-            <span>💰</span>
-            <span>+{state.latestGrant.amount}₪</span>
-            <span className="text-emerald-100 font-bold hidden xs:inline">({state.latestGrant.reason})</span>
-          </div>
-        )}
-        
         {/* Soldiers Counter (Tap for Info) */}
         <div
           onClick={() => triggerInfo('soldiers')}

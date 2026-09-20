@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 16:14:21 UTC (Branch: `main`, Iteration #41)
+> **Last Synchronized:** 2026-09-20 16:25:38 UTC (Branch: `main`, Iteration #42)
 
 ---
 
@@ -500,7 +500,8 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 8. **Tap-to-Explain Stat Popovers (`TopStatusPill.tsx`):**
    - Tapping any stat (Soldiers, Settlements, Budget, Land HP, Border Readiness) triggers a floating informational speech bubble (`SHOW_INFO_POPOVER`) with concise bilingual explanations.
    - Auto-dismisses after 4.5 seconds or immediately upon tapping `✕` / popover body (`CLEAR_INFO_POPOVER`).
-   - Floats absolutely (`absolute top-full mt-1.5`) with 0px layout height to preserve zero-scroll mobile geometry.
+   - Floats absolutely (`absolute top-full mt-1.5`) with 0px layout height to preserve zero-scroll mobile geometry, in a stacking context above the news ticker so it remains fully readable.
+   - Redundant penalty/grant floating pills are intentionally omitted; the budget counter and news wire remain the single, quieter feedback channel for those changes.
 9. **3-Step Guided Onboarding Quests (`BottomActionDeck.tsx`):**
    - Built directly into the Tactical Situation Advisor bar during early play:
      - **Quest 1/3:** `🎯 משימה 1/3: הקם מאחז ראשון בגבעות (לחץ 'בניית יישוב')` (shown when `settlementsCount === 0`).
@@ -553,6 +554,13 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
    - Dedicated direct WhatsApp share button (`https://api.whatsapp.com/send?text=...`) enabling immediate viral civic discourse.
 3. **Responsive Modal Container:**
    - Scoped with `max-h-[94dvh] overflow-y-auto` to guarantee full readability on every mobile screen size.
+   - Terminal defeat state always clears screen shake before the game loop stops; the post-mortem stays motionless and readable. Panic mode retains a glow cue but no continuously rocking button.
+
+## 12.1. Low-Interruption Notification Behavior
+
+- Transient alerts are tap-to-dismiss across their card surface; the explicit `✕` remains an optional affordance.
+- Emergency alerts are limited to active infiltration events and auto-dismiss after six seconds. Interception confirmation and devotional toast cards can also be dismissed with one tap.
+- Financial penalty and grant feedback does not add a separate visual popup.
 
 ---
 

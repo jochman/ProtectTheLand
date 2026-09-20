@@ -88,7 +88,8 @@ html, body {
 }
 
 .messianic-btn.panic-mash {
-  animation: panic-glow 0.3s infinite alternate, shake 0.2s infinite;
+  /* Keep the warning visible without continually moving the control. */
+  animation: panic-glow 0.7s infinite alternate;
   background: linear-gradient(135deg, #ffd700 0%, #ff4500 100%);
   border-color: #fff;
   color: #fff;
@@ -101,7 +102,7 @@ html, body {
 
 /* Screen shake effect */
 .screen-shaking {
-  animation: shake 0.2s ease-in-out infinite;
+  animation: shake 0.2s ease-in-out 2;
 }
 
 /* Floating pill */

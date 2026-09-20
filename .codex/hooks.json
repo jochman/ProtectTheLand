@@ -1,0 +1,17 @@
+{
+  "description": "Keep the project specification metadata synchronized when Codex finishes a turn.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ./scripts/update-spec-version.sh",
+            "timeout": 10,
+            "statusMessage": "Synchronizing spec.md metadata"
+          }
+        ]
+      }
+    ]
+  }
+}

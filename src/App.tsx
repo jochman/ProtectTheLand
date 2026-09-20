@@ -48,6 +48,16 @@ export default function App() {
     state.selectedInfiltrationId,
   ]);
 
+  // Auto-dismiss intercepted toast after 3 seconds
+  useEffect(() => {
+    if (state.interceptedToast) {
+      const timer = setTimeout(() => {
+        dispatch({ type: 'CLEAR_INTERCEPTED_TOAST' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.interceptedToast]);
+
   return (
     <MobileFrame isShaking={state.isScreenShaking}>
       {/* Floating Game Paused Indicator */}
@@ -83,6 +93,7 @@ export default function App() {
       {state.interceptedToast && (
         <div
           onClick={() => dispatch({ type: 'CLEAR_INTERCEPTED_TOAST' })}
+          title={state.locale === 'he' ? 'לחץ לסגירה' : 'Tap to dismiss'}
           className="absolute top-[138px] inset-x-4 z-40 cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/95 via-emerald-800/95 to-emerald-950/95 border-2 border-emerald-400 shadow-2xl backdrop-blur-md p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 flex items-center justify-between pointer-events-auto"
         >
           <div className="flex items-center gap-2">
@@ -92,7 +103,7 @@ export default function App() {
                 {state.locale === 'he' ? state.interceptedToast.textHe : state.interceptedToast.textEn}
               </span>
               <span className="text-[10px] text-emerald-300 font-heebo">
-                {state.locale === 'he' ? 'כוחות הביטחון יירטו את החוליה וביצרו את הגבול!' : 'Forces neutralized hostile infiltrators & fortified the line!'}
+                {state.locale === 'he' ? 'כוחות הביטחון יירטו את החוליה וביצרו את הגבול! (לחץ לסגירה)' : 'Forces neutralized hostile infiltrators & fortified the line! (tap to close)'}
               </span>
             </div>
           </div>

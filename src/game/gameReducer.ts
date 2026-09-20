@@ -1285,7 +1285,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           budget: newBudget,
           defenseScore: 0,
           tiles: updatedTiles,
-          isScreenShaking: true,
+          // The game loop stops at catastrophe.  Do not leave the frame in a
+          // perpetual shake state behind the post-mortem, or its text becomes
+          // impossible to read.
+          isScreenShaking: false,
           gameStatus: 'catastrophe',
           ...withNews(state, {
             id: `catastrophe-collapse-${now}`,
