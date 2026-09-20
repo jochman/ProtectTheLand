@@ -1,0 +1,10 @@
+{
+  "spec-updater": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "./scripts/update-spec-version.sh"
+      }
+    ]
+  }
+}

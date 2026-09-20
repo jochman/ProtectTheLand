@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -e
+
+# scripts/hooks/pre-commit
+# Git pre-commit hook to automatically synchronize spec.md on each code iteration.
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+# Check which files are staged for commit
+STAGED_FILES=$(git diff --cached --name-only)
+
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+# Detect whether application code, components, audio, logic or configs changed
+CODE_CHANGED=$(echo "$STAGED_FILES" | grep -E '^(src/|public/|package\.json|index\.html|vite\.config|tailwind\.config)' || true)
+
+if [ -n "$CODE_CHANGED" ]; then
+  echo "[hook:pre-commit] Application changes detected in current iteration."
+  
+  if [ -f "$REPO_ROOT/scripts/update-spec-version.sh" ]; then
+    bash "$REPO_ROOT/scripts/update-spec-version.sh"
+    git add "$REPO_ROOT/spec.md"
+    echo "[hook:pre-commit] spec.md synchronized and added to commit."
+  fi
+fi
+
+exit 0

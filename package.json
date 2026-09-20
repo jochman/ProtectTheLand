@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "update-spec": "bash scripts/update-spec-version.sh"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
