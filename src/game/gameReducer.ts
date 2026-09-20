@@ -66,6 +66,7 @@ export const INITIAL_STATE: GameState = {
   lastPenaltyTick: 0,
   greenSideAttacks: [],
   lastGreenAttackTick: 0,
+  selectedInfiltrationId: null,
 };
 
 export const BORDER_TO_GREEN_CITY: Record<string, { cityId: string; nameHe: string; nameEn: string }> = {
@@ -202,10 +203,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!coin) return state;
 
       sounds.playCoinCollect();
+
+      // Spawn burst of 3 golden particles traveling to budget counter
+      const newSparks = [...(state.sparks || [])];
+      for (let i = 0; i < 3; i++) {
+        newSparks.push({
+          id: `coin-spark-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+          startX: coin.x + (i - 1) * 6,
+          startY: coin.y,
+          targetX: 100,
+          targetY: 80,
+          createdAt: Date.now(),
+        });
+      }
+
       return {
         ...state,
         budget: Math.min(state.maxBudget, state.budget + coin.amount),
         collectibleCoins: state.collectibleCoins.filter(c => c.id !== action.id),
+        sparks: newSparks,
       };
     }
 

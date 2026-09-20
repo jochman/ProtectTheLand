@@ -599,7 +599,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           );
         })}
 
-        {/* 6. COLLECTIBLE COINS FLOATING OVER ISRAEL CITIES */}
+        {/* 6. COLLECTIBLE COINS FLOATING OVER ISRAEL COAST */}
         {state.collectibleCoins.map(coin => (
           <g
             key={coin.id}
@@ -608,17 +608,65 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               e.stopPropagation();
               dispatch({ type: 'COLLECT_COIN', id: coin.id });
             }}
-            className="cursor-pointer animate-bounce"
+            className="cursor-pointer group"
+            style={{ cursor: 'pointer' }}
           >
-            <circle cx="0" cy="0" r="20" fill="transparent" />
-            <circle cx="0" cy="0" r="11" fill="url(#coinGrad)" stroke="#a16207" strokeWidth="1.5" filter="url(#dropShadow)" />
-            <circle cx="0" cy="0" r="8.5" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.6" />
-            <text x="0" y="4" textAnchor="middle" fill="#713f12" fontSize="9" fontWeight="900" className="font-rubik">
-              ₪
-            </text>
-            <text x="0" y="-14" textAnchor="middle" fill="#facc15" fontSize="8" fontWeight="bold" className="drop-shadow-sm font-heebo">
-              +{coin.amount || 30}
-            </text>
+            {/* Inner bobbing animation group that does not clobber SVG translate */}
+            <g>
+              <animateTransform
+                attributeName="transform"
+                type="translate"
+                values="0,0; 0,-7; 0,0"
+                dur="1.6s"
+                repeatCount="indefinite"
+              />
+
+              {/* Generous Hitbox with pointerEvents="all" for effortless clicking */}
+              <circle cx="0" cy="0" r="30" fill="rgba(0,0,0,0.001)" pointerEvents="all" />
+
+              {/* Golden Outer Radiant Halo */}
+              <circle cx="0" cy="0" r="18" fill="rgba(250, 204, 21, 0.3)" />
+              <circle cx="0" cy="0" r="14" fill="rgba(253, 224, 71, 0.45)" />
+
+              {/* 3D Shiny Gold Shekel Coin */}
+              <circle
+                cx="0"
+                cy="0"
+                r="13"
+                fill="url(#coinGrad)"
+                stroke="#b45309"
+                strokeWidth="2"
+                filter="url(#dropShadow)"
+              />
+              <circle cx="0" cy="0" r="10.5" fill="none" stroke="#fef08a" strokeWidth="1.2" opacity="0.85" />
+              <text
+                x="0"
+                y="4.5"
+                textAnchor="middle"
+                fill="#713f12"
+                fontSize="11"
+                fontWeight="900"
+                className="font-rubik select-none pointer-events-none"
+              >
+                ₪
+              </text>
+
+              {/* Amount Badge Above Coin */}
+              <g transform="translate(0, -17)" filter="url(#dropShadow)">
+                <rect x="-18" y="-6" width="36" height="12" rx="4" fill="rgba(15, 23, 42, 0.95)" stroke="#facc15" strokeWidth="1" />
+                <text
+                  x="0"
+                  y="2.8"
+                  textAnchor="middle"
+                  fill="#facc15"
+                  fontSize="7.5"
+                  fontWeight="900"
+                  className="font-rubik select-none pointer-events-none"
+                >
+                  +{coin.amount || 30}₪
+                </text>
+              </g>
+            </g>
           </g>
         ))}
 
