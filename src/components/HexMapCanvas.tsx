@@ -1,5 +1,6 @@
 import { translate } from '../locales/translate';
 import React from 'react';
+import { List } from 'lucide-react';
 import { GameState, GameAction, HexTile } from '../types';
 import { haptics } from '../utils/haptics';
 import { simulationNow } from '../game/rules';
@@ -12,6 +13,12 @@ interface HexMapCanvasProps {
 }
 
 export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) => {
+  const [focusedTile, setFocusedTile] = React.useState<string | null>(null);
+  const selected = focusedTile ? state.tiles[focusedTile] : null;
+  const markTarget = (event: React.SyntheticEvent) => {
+    const id = (event.target as Element).closest('[data-map-id]')?.getAttribute('data-map-id');
+    if (id) setFocusedTile(id);
+  };
   const tiles = Object.values(state.tiles).map(tile => state.locale === 'he' ? tile : {
     ...tile, label: tile.label ? tileName(tile, 'en') : undefined,
     settlementName: tile.settlementName ? tileName(tile, 'en') : undefined,
@@ -44,7 +51,8 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
   }, [state.movingTroops, dispatch]);
 
   return (
-    <div data-testid="game-map" className="relative w-full flex-1 min-h-[220px] max-h-full overflow-hidden flex items-center justify-center my-0 select-none">
+    <div data-testid="game-map" className="relative w-full flex-1 min-h-[220px] max-h-full overflow-hidden flex items-center justify-center my-0 select-none" onClickCapture={markTarget} onFocusCapture={markTarget}>
+      <button className="map-locations absolute top-0 right-1 z-10 grid h-11 w-11 place-items-center rounded-xl border border-amber-300 bg-amber-50/95 text-amber-950 shadow-sm" aria-label={translate(state.locale, 'map.locations')} title={translate(state.locale, 'map.locations')} onClick={() => dispatch({ type: 'OPEN_MAP_LIST' })}><List className="h-5 w-5" /></button>
       <svg
         viewBox="0 0 460 565"
         className="w-full h-full drop-shadow-xl"
@@ -147,6 +155,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           return (
             <g
               key={tile.id}
+              data-map-id={tile.id}
               role={isCandidateForBuild ? 'button' : undefined}
               tabIndex={isCandidateForBuild ? 0 : undefined}
               aria-label={isCandidateForBuild ? (translate(state.locale, 'components.HexMapCanvas.151', [tile.id])) : undefined}
@@ -468,6 +477,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   filter="url(#dropShadow)"
                   className="cursor-pointer group"
                   role="button"
+                  data-map-id={cp.id}
                   tabIndex={0}
                   aria-label={translate(state.locale, 'components.HexMapCanvas.471', [cp.id])}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id }); } }}
@@ -477,7 +487,8 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                     dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id });
                   }}
                 >
-                  <circle r="28" fill="transparent" stroke="#b91c1c" strokeWidth="2" strokeDasharray="4 3" />
+                  <circle r="36" fill="transparent" pointerEvents="all" />
+                  <circle r="28" fill="none" stroke="#b91c1c" strokeWidth="2" strokeDasharray="4 3" />
                   {/* Empty post ground footprint */}
                   <ellipse cx="0" cy="6" rx="14" ry="7" fill="rgba(239, 68, 68, 0.18)" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3 2" className="animate-pulse" />
                   
@@ -520,7 +531,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               <line x1="-10" y1="8" x2="10" y2="-8" stroke="#78350f" strokeWidth="1" />
               <rect x="-18" y="14" width="36" height="11" rx="3" fill="#1e293b" />
               <text x="0" y="22" textAnchor="middle" fill="#fef08a" fontSize="7" fontWeight="bold">
-                {c.progress}% בבנייה
+                {translate(state.locale, 'map.construction', [c.progress])}
               </text>
             </g>
           );
@@ -533,6 +544,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           return (
             <g
               key={`settlement-group-${s.id}`}
+              data-map-id={s.id}
               transform={`translate(${s.x}, ${s.y})`}
               className="cursor-pointer group"
               role="button"
@@ -546,7 +558,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               }}
             >
               {/* Generous Transparent Hit-Area Circle (ensures clicks never misfire!) */}
-              <circle cx="0" cy="0" r="32" fill="transparent" pointerEvents="all" />
+              <circle cx="0" cy="0" r="36" fill="transparent" pointerEvents="all" />
               {(state.isDeployMode || state.tutorialStep === 'deploy') && !isGuarded && <circle r="30" fill="none" stroke="#92400e" strokeWidth="4" strokeDasharray="6 3" pointerEvents="none" />}
 
               {/* Incoming Reinforcement Target Ping */}
@@ -1079,6 +1091,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
         >
           {translate(state.locale, 'components.HexMapCanvas.1079', [])}
         </text>
+        {selected && <circle data-testid="map-selection" cx={selected.x} cy={selected.y} r="35" fill="none" stroke="#2563eb" strokeWidth="3" vectorEffect="non-scaling-stroke" pointerEvents="none" />}
       </svg>
     </div>
   );

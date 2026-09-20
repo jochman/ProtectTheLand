@@ -18,6 +18,8 @@ import { EntranceInstructionModal } from './components/EntranceInstructionModal'
 import { StrategyToolkitModal } from './components/StrategyToolkitModal';
 import { isGamePaused } from './game/rules';
 import { ThreatCommand, ThreatStatus } from './components/ThreatCommand';
+import { ModalAccessibility } from './components/ModalAccessibility';
+import { MapLocationList } from './components/MapLocationList';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -46,6 +48,7 @@ export default function App() {
     state.selectedInfiltrationId,
     state.selectedThreatId,
     state.isToolkitOpen,
+    state.isMapListOpen,
     state.infoPopover,
   ]);
 
@@ -63,7 +66,7 @@ export default function App() {
     <MobileFrame isShaking={state.isScreenShaking} reduceMotion={state.reduceMotion}>
       {/* Floating Game Paused Indicator */}
       {state.isPaused && (
-        <div
+        <button type="button"
           onClick={() => dispatch({ type: 'TOGGLE_PAUSE' })}
           className="absolute top-[138px] inset-x-6 z-40 cursor-pointer overflow-hidden rounded-2xl bg-amber-950/95 border-2 border-amber-400 shadow-2xl backdrop-blur-md py-2 px-3 text-amber-200 transition-all animate-in fade-in flex items-center justify-between pointer-events-auto"
         >
@@ -76,7 +79,7 @@ export default function App() {
           <span className="text-[10px] font-bold text-amber-300 underline font-heebo">
             {translate(state.locale, 'App.76', [])}
           </span>
-        </div>
+        </button>
       )}
       {/* Top Header Controls (Language, Sound, Restart) */}
       <HeaderBar state={state} dispatch={dispatch} />
@@ -144,6 +147,8 @@ export default function App() {
       <NewsFeedModal state={state} dispatch={dispatch} />
       <EntranceInstructionModal state={state} dispatch={dispatch} />
       <StrategyToolkitModal state={state} dispatch={dispatch} />
+      <MapLocationList state={state} dispatch={dispatch} />
+      <ModalAccessibility state={state} dispatch={dispatch} />
     </MobileFrame>
   );
 }

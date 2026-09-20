@@ -68,16 +68,6 @@ const STAT_INFO = {
 export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch }) => {
   const strings = state.locale === 'he' ? he : en;
 
-  // Auto-dismiss info popover after 4.5 seconds
-  React.useEffect(() => {
-    if (state.infoPopover && dispatch) {
-      const timer = setTimeout(() => {
-        dispatch({ type: 'CLEAR_INFO_POPOVER' });
-      }, 4500);
-      return () => clearTimeout(timer);
-    }
-  }, [state.infoPopover, dispatch]);
-
   const triggerInfo = (key: keyof typeof STAT_INFO) => {
     haptics.light();
     if (dispatch) {
@@ -106,7 +96,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
       {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
       <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-lg border border-amber-100/60">
         {/* Soldiers Counter (Tap for Info) */}
-        <div
+        <button type="button"
           onClick={() => triggerInfo('soldiers')}
           className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
           title={`${strings.stats.soldiers} (${translate(state.locale, 'components.TopStatusPill.111', [])})`}
@@ -121,12 +111,12 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
             {state.soldiersAtBorder + state.soldiersAtSettlements}
           </span>
           <span className="text-[10px] font-bold text-emerald-800" data-testid="available-troops">{availableTroops(state)} {translate(state.locale, 'components.TopStatusPill.122', [])}</span>
-        </div>
+        </button>
 
         <div className="w-px h-5 bg-slate-200" />
 
         {/* Settlements Counter (Tap for Info) */}
-        <div
+        <button type="button"
           onClick={() => triggerInfo('settlements')}
           className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
           title={`${strings.stats.settlements} (${translate(state.locale, 'components.TopStatusPill.131', [])})`}
@@ -140,12 +130,12 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
           <span className="text-xl font-black text-slate-800 tracking-tight font-rubik">
             {state.settlementsCount}
           </span>
-        </div>
+        </button>
 
         <div className="w-px h-5 bg-slate-200" />
 
         {/* Coalition Budget ₪ Counter & Income Rate (Tap for Info) */}
-        <div
+        <button type="button"
           onClick={() => triggerInfo('budget')}
           className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
           title={`${strings.stats.budget} (${translate(state.locale, 'components.TopStatusPill.150', [])})`}
@@ -182,14 +172,14 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
                 : `+${state.incomeRate ?? 4}₪/${translate(state.locale, 'components.TopStatusPill.181', [])}`}
             </span>
           </div>
-        </div>
+        </button>
 
       </div>
 
       {/* Lower Pill: Land HP Bar & Border Readiness */}
       <div className="status-pill flex items-center justify-between w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60 font-heebo">
         {/* Land HP Section (Tap for Info) */}
-        <div
+        <button type="button"
           onClick={() => triggerInfo('landHp')}
           className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
           title={`${strings.stats.landHp} (${translate(state.locale, 'components.TopStatusPill.194', [])})`}
@@ -214,12 +204,12 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
               -{(state.activeBreaches.length * 0.4).toFixed(1)}/{translate(state.locale, 'components.TopStatusPill.213', [])}
             </span>
           )}
-        </div>
+        </button>
 
         <div className="w-px h-4 bg-slate-200 flex-shrink-0" />
 
         {/* Border Readiness Section (Tap for Info) */}
-        <div
+        <button type="button"
           onClick={() => triggerInfo('border')}
           className="flex items-center gap-1 text-slate-700 flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
           title={`${strings.stats.borderReadiness} (${translate(state.locale, 'components.TopStatusPill.224', [])})`}
@@ -241,12 +231,13 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
               ({state.defenseScore}%)
             </span>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Floating Tap-to-Explain Info Popover Bubble (0px layout footprint) */}
       {state.infoPopover && (
         <div
+          role="dialog" aria-modal="true" aria-label={state.infoPopover.title}
           onClick={(e) => {
             e.stopPropagation();
             dispatch?.({ type: 'CLEAR_INFO_POPOVER' });
@@ -263,7 +254,8 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
                 e.stopPropagation();
                 dispatch?.({ type: 'CLEAR_INFO_POPOVER' });
               }}
-              className="text-slate-400 hover:text-white text-xs font-bold px-1"
+              aria-label={translate(state.locale, 'components.ThreatCommand.63')}
+              className="min-h-11 min-w-11 text-slate-400 hover:text-white text-xs font-bold px-1"
             >
               ✕
             </button>

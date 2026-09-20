@@ -34,6 +34,56 @@ try {
       await page.close();
     }
   }
+  // New controls must remain usable with keyboard, touch and either locale.
+  for (const locale of ['en', 'he']) {
+    const check = await browser.newPage({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
+    check.on('pageerror', error => failures.push(error.message));
+    await check.clock.install({ time: new Date('2026-09-21T12:00:00Z') });
+    await check.clock.pauseAt(new Date('2026-09-21T12:00:01Z'));
+    await check.goto('http://127.0.0.1:4178');
+    await check.waitForFunction(() => document.activeElement?.getAttribute('role') === 'dialog');
+    await check.keyboard.press('Escape');
+    await check.getByRole('dialog').waitFor({ state: 'detached' });
+    if (locale === 'en') await check.getByTitle('החלף שפה').click();
+    const stats = check.locator('.status-pill button').first();
+    await stats.click();
+    const help = check.getByRole('dialog');
+    const helpText = await help.innerText();
+    await check.clock.runFor(10000);
+    assert.equal(await help.innerText(), helpText, 'help stays open until dismissed');
+    await check.keyboard.press('Tab');
+    assert.equal(await help.evaluate(el => el.contains(document.activeElement)), true);
+    await check.screenshot({ path: `/tmp/octgame-help-${locale}.png` });
+    await check.keyboard.press('Escape');
+    assert.equal(await stats.evaluate(el => el === document.activeElement), true);
+    await check.getByRole('button', { name: locale === 'en' ? /Build outpost/ : /בניית מאחז/ }).click();
+    await check.getByRole('button', { name: locale === 'en' ? 'Choose location' : 'בחירת מיקום' }).click();
+    const locations = check.getByRole('dialog');
+    const sizes = await locations.locator('button').evaluateAll(buttons => buttons.map(b => b.getBoundingClientRect().height));
+    assert.ok(sizes.every(height => height >= 44));
+    await check.screenshot({ path: `/tmp/octgame-locations-${locale}.png` });
+    await locations.getByRole('button', { name: locale === 'en' ? /Build outpost/ : /בניית מאחז/ }).first().click();
+    await check.clock.runFor(1000);
+    assert.match(await check.locator('.action-deck').innerText(), locale === 'en' ? /Construction \d+%/ : /בנייה בתהליך \d+%/);
+    await check.clock.runFor(7000);
+    await check.getByRole('button', { name: locale === 'en' ? /Call reserves/ : /גיוס מילואים/ }).click();
+    assert.match(await check.getByTestId('victory-progress').innerText(), /1\/3.*8\/8.*0\/3/);
+    await check.clock.runFor(21000);
+    await check.getByTestId('threat-status').click();
+    const summary = check.getByRole('dialog').locator('summary');
+    await summary.focus();
+    await check.keyboard.press('Shift+Tab');
+    assert.match(await check.evaluate(() => document.activeElement.textContent), locale === 'en' ? /Send available troop/ : /שלח חייל זמין/);
+    await check.keyboard.press('Tab');
+    assert.equal(await summary.evaluate(el => el === document.activeElement), true);
+    await check.keyboard.press('Enter');
+    await check.keyboard.press('Tab');
+    assert.equal(await check.getByRole('dialog').locator('details button').first().evaluate(el => el === document.activeElement), true);
+    await check.keyboard.press('Escape');
+    assert.equal(await check.getByTestId('threat-status').evaluate(el => el === document.activeElement), true);
+    await check.close();
+    console.log(`Recovery, construction feedback, location targets, persistent help and disclosure keyboard focus passed: ${locale}`);
+  }
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', error => failures.push(error.message));
   await page.clock.install({ time: new Date('2026-09-20T12:00:00Z') });

@@ -20,7 +20,7 @@ export const incomeFor = (state: GameState) => Math.max(1, RULES.civilianIncome 
   + Object.values(state.tiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length * RULES.guardedIncome;
 export const availableTroops = (state: GameState) => Math.max(0, state.soldiersTotal
   - Object.values(state.tiles).reduce((sum, t) => sum + t.garrisonCount, 0) - state.reinforcements.length);
-export const isGamePaused = (state: GameState) => state.isPaused || state.isIntroModalOpen || state.isToolkitOpen
+export const isGamePaused = (state: GameState) => state.isPaused || state.isIntroModalOpen || state.isToolkitOpen || state.isMapListOpen
   || state.isNewsModalOpen || !!state.selectedSettlementId || !!state.selectedInfiltrationId || !!state.selectedThreatId || !!state.infoPopover;
 
 // A separate stream for each event family keeps cosmetic actions out of threat generation.

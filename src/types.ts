@@ -141,6 +141,7 @@ export interface GameState {
   peakSettlementsCount: number;
   /** Consecutive tactical attacks repelled while maintaining the expanded defensive line. */
   defenseStreak: number;
+  defenseResetReason: 'battle' | 'outposts' | 'border' | 'guard' | 'raid' | 'resilience' | null;
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;
@@ -226,6 +227,7 @@ export interface GameState {
   isPaused: boolean;
   infoPopover: { title: string; text: string } | null;
   isToolkitOpen: boolean;
+  isMapListOpen: boolean;
   reduceMotion: boolean;
   actionHistory: { id: string; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate'; timestamp: number }[];
 }
@@ -257,6 +259,8 @@ export type GameAction =
   | { type: 'TOGGLE_SOUND' }
   | { type: 'TOGGLE_REDUCE_MOTION' }
   | { type: 'OPEN_TOOLKIT' }
+  | { type: 'OPEN_MAP_LIST' }
+  | { type: 'CLOSE_MAP_LIST' }
   | { type: 'CLOSE_TOOLKIT' }
   | { type: 'RESTART_GAME' }
   | { type: 'TICK_TIMER' }

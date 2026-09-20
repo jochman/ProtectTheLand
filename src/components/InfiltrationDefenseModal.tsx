@@ -48,6 +48,7 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
       className="absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
     >
       <div
+        role="dialog" aria-modal="true" aria-label={translate(state.locale, 'components.InfiltrationDefenseModal.60')}
         onClick={(e) => e.stopPropagation()}
         className="modal-panel bg-slate-900 border-2 border-red-500 w-full max-w-sm rounded-3xl p-5 shadow-2xl text-white flex flex-col gap-4 cursor-default"
       >

@@ -114,6 +114,31 @@ const completionActions = [
   { type: 'EVACUATE_SETTLEMENT', tileId: outposts[0] },
 ];
 
+test('tutorial recovers from evacuation and accepts reserve or available-pool staffing', () => {
+  let s = reduce(built(), { type: 'EVACUATE_SETTLEMENT', tileId: outposts[0] });
+  assert.equal(s.tutorialStep, 'build');
+  assert.equal(s.isDeployMode, false);
+  s = reduce(built(), { type: 'CALL_RESERVES' });
+  assert.equal(s.tutorialStep, 'done');
+  assert.equal(s.nextThreatAt, s.elapsedSeconds + 20);
+  assert.equal(s.gameStatus, 'playing');
+  s = tick(reduce(reduce(start(), { type: 'CALL_RESERVES' }), { type: 'BUILD_SETTLEMENT' }), 9);
+  assert.equal(s.tutorialStep, 'deploy');
+  s = reduce(s, { type: 'DEPLOY_TROOP', settlementId: outposts[0], borderId: 'available' });
+  assert.equal(s.tutorialStep, 'done');
+  assert.equal(s.activeBreaches.length, 0);
+  assert.equal(s.nextThreatAt, s.elapsedSeconds + 20);
+});
+
+test('location picker pauses the simulation and closing it preserves manual pause', () => {
+  let s = reduce(deployed(), { type: 'OPEN_MAP_LIST' });
+  assert.strictEqual(tick(s, 30), s);
+  s = reduce(s, { type: 'TOGGLE_PAUSE' });
+  s = reduce(s, { type: 'CLOSE_MAP_LIST' });
+  assert.equal(s.isPaused, true);
+  assert.strictEqual(tick(s), s);
+});
+
 for (const action of completionActions) {
   test(`tutorial completion via ${action.type} keeps the game running`, () => {
     const before = deployed();
@@ -481,15 +506,19 @@ test('evacuation, missing guards, failed battles and destruction reset the defen
   const ready = () => ({ ...tactical(3), defenseStreak: 2 });
   let s = reduce(ready(), { type: 'EVACUATE_SETTLEMENT', tileId: outposts[0] });
   assert.equal(s.defenseStreak, 0);
+  assert.equal(s.defenseResetReason, 'outposts');
+  assert.match(s.currentNews.headlineEn, /fewer than three/);
   assert.equal(s.gameStatus, 'playing');
   for (const border of [false, true]) {
     s = ready();
     const source = border ? 'bdr-1' : outposts.slice(0, 3).find(id => id !== s.threats[0].tileId);
     s = sendSupport(s, s.threats[0], source);
     assert.equal(s.defenseStreak, 0);
+    assert.equal(s.defenseResetReason, border ? 'border' : 'guard');
   }
   s = tick(ready(), 24);
   assert.equal(s.defenseStreak, 0);
+  assert.equal(s.defenseResetReason, 'battle');
   assert.equal(s.gameStatus, 'playing');
   s = ready();
   s.tiles[s.threats[0].tileId].hp = 15;

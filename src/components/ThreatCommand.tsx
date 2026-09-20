@@ -1,5 +1,5 @@
 import { selectLocale, translate } from '../locales/translate';
-import { useEffect, useRef, type Dispatch } from 'react';
+import { type Dispatch } from 'react';
 import { TriangleAlert, X } from 'lucide-react';
 import type { GameAction, GameState } from '../types';
 import { availableTroops, objective, RULES } from '../game/rules';
@@ -17,7 +17,7 @@ export function ThreatStatus({ state, dispatch }: Props) {
       onClick={() => dispatch({ type: 'SELECT_THREAT', id: threat.id })}>
       <span className="flex justify-between gap-2"><span className="flex min-w-0 items-center gap-1"><TriangleAlert className="h-3 w-3 shrink-0" /><span className="truncate">{tileName(state.tiles[threat.tileId], state.locale)}</span></span>
         <span className="shrink-0 tabular-nums">{threatDefense(state, threat)}/{threat.required} · {Math.max(0, threat.deadline - state.elapsedSeconds)}{translate(state.locale, 'components.ThreatCommand.19', [])}</span></span>
-      <span className="block text-[10px]">{translate(state.locale, 'components.ThreatCommand.20', [])}{state.threats.length > 1 ? (translate(state.locale, 'components.ThreatCommand.20', [])) : ''}</span>
+      <span className="block text-[10px]">{translate(state.locale, 'threat.count', [state.threats.length])}</span>
     </button> : <button className="min-h-9 w-full truncate rounded-lg px-1 text-center text-[10px] font-bold text-slate-800"
       title={feedback ? selectLocale(state.locale, feedback.textHe, feedback.textEn) : objective(state)}
       onClick={() => dispatch(feedback ? { type: 'OPEN_NEWS_MODAL' } : { type: 'OPEN_TOOLKIT' })}>
@@ -27,14 +27,7 @@ export function ThreatStatus({ state, dispatch }: Props) {
 }
 
 export function ThreatCommand({ state, dispatch }: Props) {
-  const panel = useRef<HTMLElement>(null);
   const threat = state.threats.find(t => t.id === state.selectedThreatId);
-  useEffect(() => {
-    if (!threat) return;
-    const previous = document.activeElement as HTMLElement | null;
-    panel.current?.focus();
-    return () => previous?.focus();
-  }, [threat?.id]);
   if (!threat) return null;
   const tile = state.tiles[threat.tileId];
   const ready = threatDefense(state, threat);
@@ -46,17 +39,9 @@ export function ThreatCommand({ state, dispatch }: Props) {
   const send = (sourceId: string) => dispatch({ type: 'REINFORCE_THREAT', threatId: threat.id, sourceId });
   const close = () => dispatch({ type: 'SELECT_THREAT', id: null });
   return <div className="absolute inset-0 z-50 grid place-items-center bg-black/75 p-3" onClick={close}>
-    <section ref={panel} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="threat-title"
+    <section tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="threat-title"
       className="modal-panel w-full max-w-sm rounded-3xl border-2 border-amber-500 bg-amber-50 p-4 text-slate-900 shadow-2xl outline-none"
-      onClick={e => e.stopPropagation()} onKeyDown={e => {
-        if (e.key === 'Escape') { e.stopPropagation(); close(); }
-        if (e.key === 'Tab') {
-          const buttons = [...panel.current!.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')];
-          const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
-          if (e.shiftKey && index <= 0) { e.preventDefault(); buttons.at(-1)?.focus(); }
-          else if (!e.shiftKey && (index < 0 || index === buttons.length - 1)) { e.preventDefault(); buttons[0]?.focus(); }
-        }
-      }}>
+      onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between gap-2"><h2 id="threat-title" className="text-lg font-black">{translate(state.locale, 'components.ThreatCommand.62', [])}</h2>
         <button className="grid min-h-11 min-w-11 place-items-center" onClick={close} aria-label={translate(state.locale, 'components.ThreatCommand.63', [])}><X className="h-5 w-5" /></button></div>
       {state.threats.length > 1 && <div className="mb-3 flex gap-2">{state.threats.map(t => <button key={t.id} aria-pressed={t.id === threat.id}

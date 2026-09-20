@@ -21,12 +21,12 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
       <p className="mt-3 text-xs leading-relaxed text-slate-600">{translate(state.locale, 'components.StrategyToolkitModal.20', [])}</p>
       <a href="https://x.com/YoniHaimovich/status/2101197799173873977" target="_blank" rel="noreferrer" className="mt-1.5 block text-[11px] font-bold text-blue-700 underline">{translate(state.locale, 'components.StrategyToolkitModal.21', [])}</a>
       <div className="mt-3 overflow-hidden rounded-2xl border border-amber-200 text-[11px]">
-        <div className="grid grid-cols-3 bg-amber-100 p-2 font-black"><span>{translate(state.locale, 'components.StrategyToolkitModal.23', [])}</span><span>{translate(state.locale, 'components.StrategyToolkitModal.23', [])}</span><span>{translate(state.locale, 'components.StrategyToolkitModal.23', [])}</span></div>
+        <div className="grid grid-cols-3 bg-amber-100 p-2 font-black"><span>{translate(state.locale, 'toolkit.action')}</span><span>{translate(state.locale, 'toolkit.benefit')}</span><span>{translate(state.locale, 'components.StrategyToolkitModal.23', [])}</span></div>
         {rows.map(row => <div key={row[0]} className="grid grid-cols-3 border-t border-amber-100 p-2"><span className="font-bold">{row[0]}</span><span>{row[1]}</span><span className="text-red-700">{row[2]}</span></div>)}
       </div>
       <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-100 p-2.5 text-xs">
         <span className="flex items-center gap-1.5 font-bold"><Eye className="w-4 h-4" />{translate(state.locale, 'components.StrategyToolkitModal.27', [])}</span>
-        <button onClick={() => dispatch({ type: 'TOGGLE_REDUCE_MOTION' })} className={`rounded-lg px-2 py-1 font-black ${state.reduceMotion ? 'bg-emerald-600 text-white' : 'bg-slate-300'}`}>{state.reduceMotion ? <Check className="w-4 h-4" /> : translate(state.locale, 'components.StrategyToolkitModal.28', [])}</button>
+        <button aria-label={translate(state.locale, 'components.StrategyToolkitModal.27')} aria-pressed={state.reduceMotion} onClick={() => dispatch({ type: 'TOGGLE_REDUCE_MOTION' })} className={`min-h-11 min-w-11 grid place-items-center rounded-lg px-2 py-1 font-black ${state.reduceMotion ? 'bg-emerald-600 text-white' : 'bg-slate-300'}`}>{state.reduceMotion ? <Check className="w-4 h-4" /> : translate(state.locale, 'components.StrategyToolkitModal.28', [])}</button>
       </div>
       <h3 className="mt-4 text-sm font-black">{translate(state.locale, 'components.StrategyToolkitModal.30', [])}</h3>
       <p className="mt-3 text-xs leading-relaxed">{translate(state.locale, 'components.StrategyToolkitModal.31', [])}</p>

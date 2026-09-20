@@ -35,6 +35,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
       className="absolute inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 cursor-pointer animate-in fade-in duration-200"
     >
       <div
+        role="dialog" aria-modal="true" aria-label={isHe ? 'חדשות' : 'News'}
         onClick={(e) => e.stopPropagation()}
         className="bg-amber-50/98 border-2 border-amber-300/80 w-full max-w-sm rounded-3xl p-4 sm:p-5 shadow-2xl text-slate-800 flex flex-col gap-3.5 max-h-[88vh] cursor-default animate-in zoom-in-95 duration-200"
       >

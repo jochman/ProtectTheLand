@@ -11,7 +11,7 @@ import { pruneThreats, reinforceThreat, tickThreats } from './threats';
 export const INITIAL_STATE: GameState = {
   threats: [], reinforcements: [], nextThreatAt: null, threatSequence: 0,
   selectedThreatId: null, threatFeedback: null,
-  elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, seed: 7102023,
+  elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, defenseResetReason: null, seed: 7102023,
   tutorialStep: 'build', isDeployMode: false, pendingBorderId: null,
   metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, threatDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
   timeline: [],
@@ -32,6 +32,7 @@ export const INITIAL_STATE: GameState = {
   isPaused: false,
   infoPopover: null,
   isToolkitOpen: false,
+  isMapListOpen: false,
   reduceMotion: false,
   actionHistory: [],
   isBuildMode: false,
@@ -227,18 +228,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   next.budget = Math.min(next.budget, next.maxBudget);
   if (action.type !== 'TICK_TIMER') next.greenSideAttacks = next.greenSideAttacks.filter(a => next.tiles[a.breachId]?.garrisonCount === 0);
   const secure = !activeBreaches.length && !next.greenSideAttacks.length;
-  const completedTutorial = state.tutorialStep === 'observe' && secure;
+  const staffedOutpost = Object.values(next.tiles).some(t => t.hasSettlement && t.garrisonCount > 0);
+  const completedTutorial = state.tutorialStep !== 'done' && secure
+    && (state.tutorialStep === 'observe' || staffedOutpost);
   if (completedTutorial) {
     next.tutorialStep = 'done';
     next.nextThreatAt = next.elapsedSeconds + RULES.threatGrace;
   }
   // Only expansion in the main game qualifies for victory, never the guided opening.
   if (state.tutorialStep === 'done') next.peakSettlementsCount = Math.max(state.peakSettlementsCount, next.settlementsCount);
-  if (state.tutorialStep === 'build' && next.settlementsCount > 0) next.tutorialStep = 'deploy';
+  if (state.tutorialStep !== 'done' && !completedTutorial) {
+    next.tutorialStep = !secure ? 'observe' : next.settlementsCount === 0 ? 'build' : 'deploy';
+    if (next.tutorialStep === 'build') { next.isDeployMode = false; next.pendingBorderId = null; }
+  }
   if (action.type === 'DEPLOY_TROOP' && next.tiles[action.settlementId]?.garrisonCount > state.tiles[action.settlementId]?.garrisonCount) {
     next.isDeployMode = false;
     next.pendingBorderId = null;
-    if (state.tutorialStep !== 'done') next.tutorialStep = 'observe';
+    if (state.tutorialStep !== 'done' && !completedTutorial) next.tutorialStep = 'observe';
   }
   const interventions: Partial<Record<GameAction['type'], GameState['timeline'][number]['kind']>> = {
     SELECT_TILE_TO_BUILD: 'build', BUILD_SETTLEMENT: 'build', DEPLOY_TROOP: 'deploy',
@@ -259,6 +265,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
   if (!holdsExpandedLine(next)) next.defenseStreak = 0;
+  if (state.defenseStreak > 0 && next.defenseStreak === 0) {
+    const reason = next.metrics.threatDamage > state.metrics.threatDamage ? 'battle'
+      : next.settlementsCount < RULES.victoryOutposts ? 'outposts'
+      : activeBreaches.length ? 'border'
+      : Object.values(next.tiles).some(t => t.hasSettlement && t.garrisonCount === 0) ? 'guard'
+      : next.greenSideAttacks.length ? 'raid' : 'resilience';
+    next.defenseResetReason = reason;
+    next = { ...next, ...withNews(next, { id: `streak-reset-${next.elapsedSeconds}-${next.timeline.length}`,
+      headline: translate(next.locale, `progress.reset.${reason}`),
+      headlineHe: translate('he', `progress.reset.${reason}`), headlineEn: translate('en', `progress.reset.${reason}`),
+      source: translate(next.locale, 'progress.title'), sourceHe: translate('he', 'progress.title'), sourceEn: translate('en', 'progress.title'),
+      timestamp: `${next.elapsedSeconds}s`, category: 'military' }) };
+  } else if (next.defenseStreak > 0) next.defenseResetReason = null;
   if (next.gameStatus === 'playing' && !completedTutorial && hasWon(next)) {
     next = { ...next, gameStatus: 'rational_victory', selectedSettlementId: null, selectedInfiltrationId: null };
     sounds.playVictory();
@@ -312,6 +331,10 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
     case 'OPEN_TOOLKIT':
       return { ...state, isToolkitOpen: true };
+    case 'OPEN_MAP_LIST':
+      return { ...state, isMapListOpen: true };
+    case 'CLOSE_MAP_LIST':
+      return { ...state, isMapListOpen: false };
 
     case 'CLOSE_TOOLKIT':
       return { ...state, isToolkitOpen: false };
