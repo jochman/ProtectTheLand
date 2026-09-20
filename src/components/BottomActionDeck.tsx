@@ -42,13 +42,22 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         <button
           onClick={() => dispatch({ type: 'CALL_RESERVES' })}
           disabled={state.reservesBatchesLeft <= 0 || state.gameStatus !== 'playing'}
-          className="clay-btn py-3 px-1 text-center"
+          className={`clay-btn py-3 px-1 text-center transition-all ${
+            (state.greenSideAttacks || []).length > 0
+              ? 'ring-4 ring-red-500 bg-red-100/95 animate-pulse text-red-950 font-black shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+              : ''
+          }`}
         >
-          <span className="text-xs sm:text-sm font-black leading-tight">
-            {strings.actions.callReserves}
+          <span className="text-xs sm:text-sm font-black leading-tight flex items-center justify-center gap-1">
+            {(state.greenSideAttacks || []).length > 0 && <span>🚨</span>}
+            {(state.greenSideAttacks || []).length > 0
+              ? (isHe ? 'בלום חדירה!' : 'Intercept!')
+              : strings.actions.callReserves}
           </span>
           <span className="text-[10px] font-semibold text-amber-900/80 mt-0.5">
-            ({state.reservesBatchesLeft} {isHe ? 'נותרו' : 'left'})
+            {(state.greenSideAttacks || []).length > 0
+              ? (isHe ? `מילואים (${state.reservesBatchesLeft})` : `Reserves (${state.reservesBatchesLeft})`)
+              : `(${state.reservesBatchesLeft} ${isHe ? 'נותרו' : 'left'})`}
           </span>
         </button>
 

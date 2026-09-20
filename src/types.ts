@@ -163,6 +163,7 @@ export interface GameState {
   lastPenaltyTick: number;
   greenSideAttacks: GreenSideAttack[];
   lastGreenAttackTick: number;
+  selectedInfiltrationId: string | null;
 }
 
 export type GameAction =
@@ -175,6 +176,7 @@ export type GameAction =
   | { type: 'CLICK_LORD_OF_HOSTS' }
   | { type: 'MASH_LORD_OF_HOSTS' }
   | { type: 'SELECT_TILE'; tileId: string | null }
+  | { type: 'SELECT_INFILTRATION'; id: string | null }
   | { type: 'EVACUATE_SETTLEMENT'; tileId: string }
   | { type: 'DISMISS_TOAST' }
   | { type: 'SET_LOCALE'; locale: 'he' | 'en' }

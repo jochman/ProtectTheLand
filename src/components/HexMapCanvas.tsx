@@ -280,17 +280,31 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               {tile.label && !tile.isLocalCity && !isCandidateForBuild && (
                 <g>
                   {/* Alert ring when attacked or under threat */}
-                  {(tile.hasAlert || (state.greenSideAttacks || []).some(a => a.targetCityId === tile.id)) && (
-                    <g transform={`translate(${tile.x}, ${tile.y})`}>
-                      <circle cx="0" cy="0" r="24" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" className="animate-pulse" />
-                      <g transform="translate(0, -18)">
-                        <rect x="-26" y="-5.5" width="52" height="11" rx="3" fill="#dc2626" stroke="#fca5a5" strokeWidth="0.8" />
-                        <text x="0" y="2.5" textAnchor="middle" fill="#fff" fontSize="6.5" fontWeight="900" className="font-rubik">
-                          🚨 סכנת חדירה!
-                        </text>
+                  {(tile.hasAlert || (state.greenSideAttacks || []).some(a => a.targetCityId === tile.id)) && (() => {
+                    const relatedAttack = (state.greenSideAttacks || []).find(a => a.targetCityId === tile.id);
+                    return (
+                      <g
+                        transform={`translate(${tile.x}, ${tile.y})`}
+                        className="cursor-pointer group"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (relatedAttack) {
+                            dispatch({ type: 'SELECT_INFILTRATION', id: relatedAttack.id });
+                          } else if ((state.greenSideAttacks || []).length > 0) {
+                            dispatch({ type: 'SELECT_INFILTRATION', id: state.greenSideAttacks[0].id });
+                          }
+                        }}
+                      >
+                        <circle cx="0" cy="0" r="24" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" className="animate-pulse" />
+                        <g transform="translate(0, -18)" filter="url(#dropShadow)">
+                          <rect x="-34" y="-6.5" width="68" height="13" rx="4" fill="#dc2626" stroke="#fca5a5" strokeWidth="1" />
+                          <text x="0" y="2.5" textAnchor="middle" fill="#fff" fontSize="6.5" fontWeight="900" className="font-rubik">
+                            🚨 חדירה! (לחץ לבלימה)
+                          </text>
+                        </g>
                       </g>
-                    </g>
-                  )}
+                    );
+                  })()}
                   {tile.label.includes(' / ') ? (
                     <text
                       x={tile.x}
@@ -404,10 +418,24 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <line x1="3" y1="-14" x2="4" y2="-17" stroke="#1e293b" strokeWidth="1" strokeLinecap="round" />
                 </g>
               ) : (
-                // Tactical unmanned checkpoint: roadblock barrier with open boom gate (clean, calm, no bouncing)
-                <g filter="url(#dropShadow)">
+                // Tactical unmanned checkpoint: roadblock barrier with open boom gate (clickable to seal breach!)
+                <g
+                  filter="url(#dropShadow)"
+                  className="cursor-pointer group"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const relatedAttack = (state.greenSideAttacks || []).find(a => a.breachId === cp.id);
+                    if (relatedAttack) {
+                      dispatch({ type: 'SELECT_INFILTRATION', id: relatedAttack.id });
+                    } else if ((state.greenSideAttacks || []).length > 0) {
+                      dispatch({ type: 'SELECT_INFILTRATION', id: state.greenSideAttacks[0].id });
+                    } else if (state.reservesBatchesLeft > 0) {
+                      dispatch({ type: 'CALL_RESERVES' });
+                    }
+                  }}
+                >
                   {/* Empty post ground footprint */}
-                  <ellipse cx="0" cy="6" rx="13" ry="6.5" fill="rgba(239, 68, 68, 0.08)" stroke="#f87171" strokeWidth="1" strokeDasharray="3 2" />
+                  <ellipse cx="0" cy="6" rx="13" ry="6.5" fill="rgba(239, 68, 68, 0.15)" stroke="#f87171" strokeWidth="1.2" strokeDasharray="3 2" className="animate-pulse" />
                   
                   {/* Road concrete barrier */}
                   <rect x="-9" y="1" width="18" height="5.5" rx="1.5" fill="#475569" stroke="#334155" strokeWidth="0.8" />
@@ -419,8 +447,16 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <rect x="-8" y="-7" width="3" height="9" rx="0.8" fill="#334155" />
                   <line x1="-6.5" y1="-5" x2="8" y2="-12" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 2" />
 
-                  {/* Calm soft indicator dot */}
-                  <circle cx="0" cy="-5" r="2.5" fill="#ef4444" opacity="0.85" />
+                  {/* Indicator dot */}
+                  <circle cx="0" cy="-5" r="3" fill="#ef4444" opacity="0.9" />
+
+                  {/* Tooltip prompt on breach */}
+                  <g transform="translate(0, -18)">
+                    <rect x="-24" y="-5.5" width="48" height="11" rx="3" fill="rgba(15, 23, 42, 0.95)" stroke="#ef4444" strokeWidth="0.8" />
+                    <text x="0" y="2.2" textAnchor="middle" fill="#fca5a5" fontSize="5.5" fontWeight="900" className="font-rubik">
+                      ⚠️ פרצה (לחץ לבלימה)
+                    </text>
+                  </g>
                 </g>
               )}
             </g>
@@ -606,7 +642,15 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               />
 
               {/* Moving Hostile Raider Vehicle with Flag and Dust Trail */}
-              <g transform={`translate(${currentX}, ${currentY})`} filter="url(#dropShadow)">
+              <g
+                transform={`translate(${currentX}, ${currentY})`}
+                filter="url(#dropShadow)"
+                className="cursor-pointer group"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch({ type: 'SELECT_INFILTRATION', id: attack.id });
+                }}
+              >
                 <circle cx="10" cy="3" r="5" fill="rgba(217, 119, 6, 0.4)" />
                 <circle cx="18" cy="4" r="3" fill="rgba(217, 119, 6, 0.25)" />
                 <rect x="-11" y="-5" width="22" height="10" fill="#1e293b" rx="2" stroke="#dc2626" strokeWidth="1" />
@@ -619,10 +663,10 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 <circle cx="6" cy="6" r="2.5" fill="#020617" />
 
                 {/* Target City Label Badge */}
-                <g transform="translate(0, -16)">
-                  <rect x="-26" y="-6" width="52" height="12" rx="3" fill="rgba(153, 27, 27, 0.95)" stroke="#fca5a5" strokeWidth="0.8" />
-                  <text x="0" y="2.5" textAnchor="middle" fill="#ffffff" fontSize="6.5" fontWeight="900" className="font-rubik select-none">
-                    🎯 חדירה: {attack.targetCityName}
+                <g transform="translate(0, -17)">
+                  <rect x="-30" y="-6.5" width="60" height="13" rx="3.5" fill="rgba(153, 27, 27, 0.95)" stroke="#fca5a5" strokeWidth="0.8" />
+                  <text x="0" y="2.5" textAnchor="middle" fill="#ffffff" fontSize="5.5" fontWeight="900" className="font-rubik select-none">
+                    🎯 חדירה: {attack.targetCityName} (לחץ)
                   </text>
                 </g>
               </g>

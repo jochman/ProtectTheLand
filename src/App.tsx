@@ -12,6 +12,7 @@ import { October7DefeatModal } from './components/October7DefeatModal';
 import { RationalVictoryModal } from './components/RationalVictoryModal';
 import { NewsFeedModal } from './components/NewsFeedModal';
 import { FloatingEmergencyAlert } from './components/FloatingEmergencyAlert';
+import { InfiltrationDefenseModal } from './components/InfiltrationDefenseModal';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -62,6 +63,7 @@ export default function App() {
       <BottomActionDeck state={state} dispatch={dispatch} />
 
       {/* Modals */}
+      <InfiltrationDefenseModal state={state} dispatch={dispatch} />
       <SettlementInspectorModal state={state} dispatch={dispatch} />
       <October7DefeatModal state={state} dispatch={dispatch} />
       <RationalVictoryModal state={state} dispatch={dispatch} />
