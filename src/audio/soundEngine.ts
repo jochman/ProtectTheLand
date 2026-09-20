@@ -135,14 +135,14 @@ class SoundEngine {
     osc2.stop(ctx.currentTime + 0.23);
   }
 
-  public playPanicMashThud() {
+  public playPanicMashThud(tap = 0) {
     const ctx = this.getContext();
     if (!ctx) return;
     // Violent drum thud with screen shake
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(140, ctx.currentTime);
+    osc.frequency.setValueAtTime(140 + tap * 35, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.15);
     gain.gain.setValueAtTime(0.4, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);

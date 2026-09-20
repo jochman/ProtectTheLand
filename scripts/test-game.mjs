@@ -13,6 +13,79 @@ const tick = (state, count = 1) => { for (let i = 0; i < count; i++) state = red
 const built = () => tick(reduce(start(), { type: 'BUILD_SETTLEMENT' }), 7);
 const deployed = () => reduce(built(), { type: 'DEPLOY_TROOP', settlementId: outposts[0], borderId: 'bdr-1' });
 
+const miracleState = (gaps = 6) => {
+  const s = start();
+  for (let i = 1; i <= gaps; i++) s.tiles[`bdr-${i}`].garrisonCount = 0;
+  return reduce(s, { type: 'COLLECT_COIN', coinId: 'missing' });
+};
+
+test('miracle fills with expansion and border pressure, but becomes ready only at 25 defense', () => {
+  assert.ok(built().lordOfHosts.chargePercent > start().lordOfHosts.chargePercent);
+  assert.ok(deployed().lordOfHosts.chargePercent > built().lordOfHosts.chargePercent);
+  assert.equal(miracleState(5).lordOfHosts.isPanicMashMode, false);
+  let s = miracleState();
+  assert.equal(s.defenseScore, 25);
+  assert.equal(s.lordOfHosts.isPanicMashMode, true);
+  assert.equal(s.lordOfHosts.chargePercent, 100);
+  s = reduce(s, { type: 'CALL_RESERVES' });
+  assert.equal(s.lordOfHosts.isPanicMashMode, false);
+  assert.ok(s.lordOfHosts.chargePercent < 100);
+});
+
+test('five miracle taps finish the effect while the first tap protects even critically low HP', () => {
+  let s = { ...miracleState(), landHp: 0.1 };
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  assert.equal(s.lordOfHosts.mashCount, 1);
+  const elapsed = s.elapsedSeconds;
+  s = tick(s, 2);
+  assert.equal(s.landHp, 0.1);
+  assert.equal(s.elapsedSeconds, elapsed);
+  for (let i = 2; i <= 4; i++) {
+    s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+    assert.equal(s.gameStatus, 'playing');
+    assert.equal(s.lordOfHosts.mashCount, i);
+    assert.equal(s.lordOfHosts.graceSecondsRemaining, 6);
+  }
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  assert.equal(s.gameStatus, 'catastrophe');
+  assert.equal(s.lordOfHosts.isCracked, true);
+  assert.equal(s.lordOfHosts.mashCount, 5);
+  assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
+  assert.equal(s.metrics.miracleClicks, 5);
+  assert.equal(s.isScreenShaking, false);
+  const restarted = reduce(s, { type: 'RESTART_GAME' });
+  assert.equal(restarted.lordOfHosts.mashCount, 0);
+  assert.equal(restarted.lordOfHosts.isPanicMashMode, false);
+});
+
+test('miracle grace expires once, freezes threats too, and later taps cannot renew it', () => {
+  let s = miracleState();
+  s.tutorialStep = 'done';
+  s.nextThreatAt = s.elapsedSeconds + 1;
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  const hp = s.landHp;
+  s = tick(s, 8);
+  assert.equal(s.landHp, hp);
+  assert.equal(s.threats.length, 0);
+  assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
+  s = tick(s);
+  assert.ok(s.landHp < hp);
+  assert.equal(s.elapsedSeconds, 1);
+  assert.ok(s.threats.length > 0);
+});
+
+test('normal clicks cannot start grace, and readiness stays latched after the sequence starts', () => {
+  const idle = reduce(start(), { type: 'MASH_LORD_OF_HOSTS' });
+  assert.equal(idle.lordOfHosts.mashCount, 0);
+  assert.equal(idle.lordOfHosts.graceSecondsRemaining, 0);
+  let s = reduce(miracleState(), { type: 'CLICK_LORD_OF_HOSTS' });
+  s = reduce(s, { type: 'CALL_RESERVES' });
+  assert.ok(s.defenseScore > 25);
+  assert.equal(s.lordOfHosts.isPanicMashMode, true);
+});
+
 test('guided construction, preview, deployment and recall complete the tutorial without ending the game', () => {
   let s = built();
   assert.equal(s.tutorialStep, 'deploy');

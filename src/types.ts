@@ -178,13 +178,14 @@ export interface GameState {
 
   // The Satirical "יהוה צבאות" Deception Engine
   lordOfHosts: {
-    chargePercent: number; // 12% -> 99.0% -> 99.9%
+    chargePercent: number; // Internal horizontal fill, 12–96 while charging, 100 when ready
     stage: 1 | 2 | 3 | 4;
     stageGoalText: string;
     countdownSeconds: number | null; // e.g. 30 -> 0
-    isPanicMashMode: boolean; // Triggered when defense collapses to 0
+    isPanicMashMode: boolean; // Ready at <=25 defense; stays ready once tapping starts
     mashCount: number; // How many times mashed
-    isCracked: boolean; // Fractures on 7th mash
+    graceSecondsRemaining: number; // One brief simulation pause beginning on the first tap
+    isCracked: boolean; // Fractures on 5th mash
     piousToast: string | null;
   };
 

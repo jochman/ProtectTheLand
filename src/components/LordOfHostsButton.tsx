@@ -4,6 +4,7 @@ import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { haptics } from '../utils/haptics';
+import { RULES } from '../game/rules';
 
 interface LordOfHostsButtonProps {
   state: GameState;
@@ -16,6 +17,10 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
 
   const isPanic = lordOfHosts.isPanicMashMode;
   const isCracked = lordOfHosts.isCracked;
+  const tapCount = lordOfHosts.mashCount;
+  const feedback = tapCount > 0
+    ? strings.lordOfHosts.tapFeedback[Math.min(tapCount - 1, RULES.miracleTaps - 2)]
+    : strings.lordOfHosts.panicMashPrompt;
 
   // Auto-dismiss pious toast speech bubble after 3 seconds
   useEffect(() => {
@@ -41,7 +46,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
   return (
     <div className="relative w-full flex flex-col items-center">
       {/* Pious Toast Speech Bubble */}
-      {lordOfHosts.piousToast && (
+      {lordOfHosts.piousToast && !isPanic && !isCracked && (
         <div
           onClick={() => dispatch({ type: 'DISMISS_TOAST' })}
           title={state.locale === 'he' ? 'לחץ לסגירה' : 'Tap to dismiss'}
@@ -54,6 +59,8 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
 
       {/* The Messianic Button */}
       <button
+        data-testid="lord-of-hosts"
+        data-ready={isPanic}
         onClick={handleClick}
         disabled={isCracked || state.gameStatus !== 'playing'}
         className={`w-full py-1.5 sm:py-2 px-3 transition-all relative overflow-hidden ${
@@ -64,42 +71,38 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
             : 'messianic-btn'
         }`}
       >
-        {/* Subtle background golden shimmer */}
+        {/* The entire control is the fill; logical inset mirrors it in Hebrew. */}
         {!isCracked && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer pointer-events-none" />
+          <span aria-hidden="true" data-testid="miracle-fill" className="miracle-fill"
+            style={{ width: `${isPanic ? 100 : lordOfHosts.chargePercent}%` }} />
         )}
+        {isPanic && tapCount > 0 && <span key={tapCount} aria-hidden="true" className="miracle-tap-flash" />}
 
-        <div className="flex items-center justify-center gap-1.5">
+        <div className="relative flex items-center justify-center gap-1.5">
           {isPanic ? (
-            <Flame className="w-4 h-4 text-amber-200 animate-pulse" />
+            <Flame className="w-4 h-4 text-orange-800 animate-pulse" />
           ) : (
             <Sparkles className="w-4 h-4 text-amber-800" />
           )}
 
-          <span className="text-sm font-black tracking-wide">
+          <span className="text-sm font-black leading-tight tracking-wide">
             {isCracked ? strings.lordOfHosts.crackedText : strings.actions.lordOfHosts}
           </span>
         </div>
 
-        {/* Subtext with shifting requirement / fake countdown / progress */}
+        {/* Readiness and escalating feedback reveal no numerical unlock condition. */}
         {!isCracked && (
-          <div className="mt-0.5 flex flex-col items-center">
+          <div className="relative mt-0.5 flex flex-col items-center" aria-live="polite" aria-atomic="true">
             {isPanic ? (
-              <span className="text-[10px] font-black text-white bg-black/40 px-2 py-0.5 rounded-full animate-pulse">
-                {strings.lordOfHosts.panicMashPrompt} ({state.locale === 'he' ? `עוד ${7 - lordOfHosts.mashCount} לחיצות` : `${7 - lordOfHosts.mashCount} taps left`})
-              </span>
-            ) : lordOfHosts.countdownSeconds !== null ? (
-              <span className="text-[10px] font-bold text-red-950 bg-white/40 px-2 py-0.5 rounded-full">
-                {strings.lordOfHosts.stage4Countdown} 00:{lordOfHosts.countdownSeconds < 10 ? '0' : ''}
-                {lordOfHosts.countdownSeconds}
-              </span>
-            ) : (
-              <div className="flex items-center gap-1 text-[10px] font-bold text-amber-950/90">
-                <span title={lordOfHosts.stageGoalText}>{state.locale === 'he' ? 'הבטחת גאולה' : 'Promise of redemption'}</span>
-                <span className="bg-white/50 px-1.5 py-0.2 rounded-full font-black text-amber-900">
-                  {lordOfHosts.chargePercent}%
+              <>
+                <span className="text-[10px] font-black leading-tight">{feedback}</span>
+                <span className="miracle-tap-steps" aria-label={`${RULES.miracleTaps - tapCount} ${strings.lordOfHosts.tapsLeft}`}>
+                  {Array.from({ length: RULES.miracleTaps }, (_, i) =>
+                    <span key={i} aria-hidden="true" className={i < tapCount ? 'is-lit' : ''} />)}
                 </span>
-              </div>
+              </>
+            ) : (
+              <span className="text-[10px] font-bold leading-tight">{strings.lordOfHosts.charging}</span>
             )}
           </div>
         )}

@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-20 19:24:03 UTC (Branch: `main`, Iteration #53)
+> **Last Synchronized:** 2026-09-20 21:31:14 UTC (Branch: `main`, Iteration #54)
 
 ---
 
@@ -17,7 +17,7 @@ The game places the player in the role of a policymaker/commander balancing sove
 The game concludes in one of two fundamental narrative endings:
 1. **The October 7 Catastrophe (`gameStatus: 'catastrophe'`):**
    - **Primary Tactical Trigger (Homeland HP Collapse):** Defense gaps left unsealed along the sovereign border continuously drain Homeland HP (`landHp`) by -0.4 HP/s per hole. Hostile infiltrations that penetrate gaps and reach Israeli cities inflict -12 HP and -10₪ damage. When Homeland HP drops to 0%, the nation's defenses collapse completely, sirens wail, and the October 7 defeat screen appears with a comprehensive policy post-mortem.
-   - **Satirical Trigger (Messianic Idol Collapse):** If the border collapses to 0% defense, the false miracle button **"יהוה צבאות"** enters panic mode. Tapping it 7 times shatters the idol (`sounds.playCrackCollapse()`), exposing the tragedy of relying on miracles instead of sovereign strategy.
+   - **Satirical Trigger (Messianic Idol Collapse):** At 25% border defense or below, the false miracle button **"יהוה צבאות"** fills completely and enters its ready state. Five taps shatter the idol (`sounds.playCrackCollapse()`), exposing the tragedy of relying on miracles instead of sovereign strategy. The first tap pauses the simulation for eight ticks (normally eight seconds).
 2. **Rational Victory ("ביטחון בר-קיימא", `gameStatus: 'rational_victory'`):**
    - **Sustained Defense:** The player must experience expansion and actively allocate finite troops to hold both outposts and the sovereign border.
    - **Victory Evaluation:** A shared `hasWon` check runs after every gameplay action. Victory requires at least three completed outposts, every completed outpost and all eight checkpoints permanently staffed, three consecutive successful tactical defenses, positive HP, no active raids or tactical threats, and no unfinished construction.
@@ -110,7 +110,7 @@ Demands Dedicated Troop   (-1₪/s per mobilization)    Golden Spark Burst
             │                                           ▼
             ▼                                  [RATIONAL VICTORY]
  [0% Defense / Infiltration Collapse]          All posts staffed, threats resolved
- 99.9% Panic-Mashing on "יהוה צבאות"            "ביטחון בר-קיימא" Modal
+ Five-Tap Climax on "יהוה צבאות"            "ביטחון בר-קיימא" Modal
  Button shatters ("אין סומכין על הנס")
             │
             ▼
@@ -187,7 +187,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - Deployment sound (`sounds.playDeploy()`) and expenditure thud (`sounds.playPenalty()`).
   - The budget counter changes immediately; the event is recorded in the run timeline.
   - The `DEPLOY_TROOPS` button prominently displays the cost: `-25₪ עלות`.
-- **Messianic Charge Acceleration:** Stationing soldiers at outposts advances the "יהוה צבאות" charge gauge by **+4% per soldier**, enticing the player toward divine miracle illusions.
+- **Messianic Charge Acceleration:** Stationing soldiers at outposts contributes **+4 internal charge units per soldier**, with border exposure also advancing the horizontal button fill. See §7 for the authoritative fill formula and readiness rules. No percentage or numerical unlock condition appears on the button.
 
 ### 5.5 Active City Tax Clicker
 - Players can tap on sovereign Israeli cities (Tel Aviv, Haifa, Sharon, Modi'in, Ashdod, Be'er Sheva):
@@ -271,29 +271,23 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 
 The game’s psychological core relies on subverting messianic rhetoric using mobile idle-game retention patterns.
 
-### 7.1 Living Radiance & Soul Sparks
-- The button is visually dazzling: breathing golden aura, live charge progress bar, and ascending celestial chime audio.
-- Whenever settlements are constructed, glowing golden soul sparks arc across the map into the button.
+### 7.1 Full-Button Progress and Readiness
+- Constructed outposts retain the golden soul-spark animation toward the button and celestial audio feedback.
+- The entire pill-shaped button fills horizontally with gold, from the logical start edge (right in Hebrew, left in English). Its pale unfilled portion, dark text, and 54px minimum height keep progress and the action readable on mobile without scrolling.
+- The button shows its name and “ההבטחה מתעצמת…” / “The promise grows…” while charging. Percentages, numeric unlock requirements, hover requirements, and the old fake countdown are not displayed.
+- Existing construction and deployment charge inputs remain: construction uses `12 + outposts * 6.5` with historical stage boosts at 6 and 11 outposts; deployment adds 4 with a minimum of 30. The historical stage/countdown fields remain internal narrative state, not unlock gates.
+- After every gameplay action, border coverage is recomputed from staffed checkpoints. Pressure charge is `12 + ((100 - defenseScore) / 75) * 88`. While unready, fill is `min(96, round(max(previousCharge, actionCharge, pressureCharge)))`; this preserves visible progress across construction and timer updates. Only readiness fills the button to 100.
+- Readiness occurs at **defenseScore <= 25** (two or fewer of eight border posts staffed), independently of outpost-stage milestones. Before the first tap, restored coverage above 25 exits readiness and caps fill at 96. Once tapping begins, readiness stays latched until the sequence ends or the run ends.
+- Ready presentation: full gold fill, brighter pulsing halo, flame icon, and **“מוכן · לחצו לזימון הנס!” / “Ready · Tap to invoke!”**. This communicates availability without exposing the unlock condition.
 
-### 7.2 Shifting Goalposts Matrix
-
-| Stage | Requirement Text | Displayed Progress | Click Toast Response |
-|---|---|---|---|
-| **Stage 1** | `"דרושים: 6 יישובים לפתיחת שערי שמיים"` | `12% -> 50%` | *"התפילות נשמעות, המשיכו ליישב את הארץ!"* |
-| **Stage 2** | `"נדרשת מסירות: 11 יישובים"` | `50% -> 85%` | *"קרובים למדרגה הבאה! עוד מאמץ התיישבותי."* |
-| **Stage 3** | `"שעת המבחן: 15 יישובים ומסירות נפש"` | `85% -> 99%` | *"הגאולה מתעכבת בשל קטני אמונה בקבינט!"* |
-| **Stage 4** | **`נס בעוד: 00:30`** (Fake Countdown) | `99.0%` | Resets with excuse: *"רפיון רוח! נדרש עוד מאחז אחד!"* |
-
-### 7.3 Panic-Mashing Climax & Mechanical Shatter
-When Defense hits 0%:
-1. Button switches to flashing red-gold: **`לחצו במהירות לנס! (99.9%)`**.
-2. Frantic taps trigger massive orchestral bass thuds and violent screen shaking.
-3. On the **7th/8th tap**:
-   - Metallic shatter sound plays.
-   - Fracture line splits the button.
-   - Golden glow instantly dies into ash gray.
-   - Text permanently locks: **`אין סומכין על הנס`**.
-   - Immediate blackout transition to the October 7 Defeat modal.
+### 7.2 Five-Tap Climax and Feedback
+- Every ready-state tap adds one of five persistent lit marks beneath the action text, flashes the button, triggers warning haptics where supported, and plays a thud with increasing starting pitch (`140 + tap * 35` Hz).
+- The first four taps show distinct bilingual encouragement, ending with “עוד לחיצה אחת!” / “One final tap!”. A polite live region announces feedback and the remaining-tap count; keyboard Enter/Space use the same button action.
+- Motion stays within the established button/screen effects, with reduced-motion support from both the accessibility setting and the system preference. Persistent text and lit marks remain usable without animation.
+- The first tap starts **eight simulation ticks of grace**, normally eight seconds. During grace, `TICK_TIMER` decrements only `graceSecondsRemaining` and clears screen shake: HP, damage, attacks, threat deadlines, income, construction, and simulation time do not advance. Reading/manual pauses also pause grace. Subsequent taps never renew it. After expiry, ordinary simulation and damage resume.
+- The **fifth tap** plays the shatter sound, fractures the button, removes its gold fill/glow, locks it to **“אין סומכין על הנס” / “Miracles don't defend borders”**, clears grace and screen shake, and opens the catastrophe modal. It does not restore HP or troops.
+- Restart clears taps, grace, readiness and cracks. Readiness normalization is centralized in the reducer so deployments, support transfers, reserves and recalls behave consistently. Both click action variants count each tap once in the run report.
+- Verification: reducer coverage includes the 25% boundary, growth, coverage recovery, low-HP completion, finite grace, threat freeze/resumption, invalid early taps, latching and restart. Browser checks reach the effect through real construction/deployment controls in both languages, exercise keyboard input and all five taps, and verify the 320×568 layout; the broader viewport suite retains zero-scroll coverage.
 
 ---
 

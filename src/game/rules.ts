@@ -11,6 +11,7 @@ export const RULES = {
   threatWarning: 24, reinforcementTravel: 4, threatDamagePerMissing: 6,
   outpostDamagePerMissing: 15, outpostRepair: 1,
   victoryOutposts: 3, victoryDefenses: 3,
+  miracleDefenseThreshold: 25, miracleTaps: 5, miracleGraceSeconds: 8,
 } as const;
 
 export const simulationNow = (state: GameState) => state.elapsedSeconds * 1000;

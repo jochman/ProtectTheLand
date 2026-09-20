@@ -74,7 +74,11 @@ html, body {
 
 /* Lord of Hosts Celestial Button */
 .messianic-btn {
-  background: linear-gradient(135deg, #f7e6a4 0%, #dab458 50%, #c29938 100%);
+  --miracle-gold: #f5c94d;
+  --miracle-glow: #ffbd38;
+  background: #ebe1c5;
+  min-height: 54px;
+  padding-block: 4px;
   border-radius: 9999px;
   border: 3.5px solid #fff8d6;
   box-shadow: 
@@ -90,9 +94,45 @@ html, body {
 .messianic-btn.panic-mash {
   /* Keep the warning visible without continually moving the control. */
   animation: panic-glow 0.7s infinite alternate;
-  background: linear-gradient(135deg, #ffd700 0%, #ff4500 100%);
+  background: #ffe08a;
   border-color: #fff;
-  color: #fff;
+  color: #432300;
+}
+
+.miracle-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: linear-gradient(135deg, #fff2b1, var(--miracle-gold));
+  border-inline-end: 2px solid #fff6cd;
+  box-shadow: 3px 0 14px var(--miracle-glow);
+  transition: width 550ms ease-out;
+  pointer-events: none;
+}
+.panic-mash .miracle-fill { background: linear-gradient(135deg, #fff3ba, #ffbd38); }
+.messianic-btn:active { transform: scale(0.985); }
+.messianic-btn:focus-visible { outline: 3px solid #92400e; outline-offset: 3px; }
+.miracle-tap-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff9dc;
+  pointer-events: none;
+  animation: miracle-impact 450ms ease-out forwards;
+}
+.miracle-tap-steps { display: flex; gap: 5px; margin-top: 3px; }
+.miracle-tap-steps > span {
+  width: 15px;
+  height: 4px;
+  border-radius: 999px;
+  background: #fff6d2;
+  border: 1px solid #976319;
+}
+.miracle-tap-steps > .is-lit { background: #633507; box-shadow: 0 0 5px white; }
+@keyframes miracle-impact { from { opacity: 0.95; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .messianic-btn, .messianic-btn *, .miracle-fill { animation: none !important; transition: none !important; }
+  .miracle-tap-flash { display: none; }
+  .messianic-btn:active { transform: none; }
 }
 
 @keyframes panic-glow {

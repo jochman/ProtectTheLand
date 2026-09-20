@@ -170,6 +170,60 @@ try {
   assert.equal(await page.getByRole('button', { name: /Seal gap/ }).count(), 0);
   console.log('Threats: both locales and all viewports; planning pause, dispatch, travel, guard transfer, interception and return to pool passed.');
   console.log('Tutorial continues; dismantling does not win; three defended attacks with three outposts win; defeat and restart passed.');
+  // Reach the miracle through real controls: build first, then divert six guards.
+  for (const locale of ['en', 'he']) {
+    const miracle = await browser.newPage({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
+    miracle.on('pageerror', error => failures.push(error.message));
+    await miracle.clock.install({ time: new Date('2026-09-21T12:00:00Z') });
+    await miracle.clock.pauseAt(new Date('2026-09-21T12:00:01Z'));
+    await miracle.goto('http://127.0.0.1:4178');
+    await miracle.getByRole('button', { name: 'למפה — נלמד תוך כדי משחק' }).click();
+    await miracle.getByTitle('החלף שפה').click();
+    const button = miracle.getByTestId('lord-of-hosts');
+    assert.doesNotMatch(await button.innerText(), /%|25|defense/i);
+    const initialFill = await miracle.getByTestId('miracle-fill').evaluate(el => el.style.width);
+    for (let i = 0; i < 6; i++) {
+      await miracle.getByRole('button', { name: /Build outpost/ }).click();
+      await miracle.getByRole('button', { name: /Build here/ }).first().click();
+      await miracle.clock.runFor(35000);
+    }
+    await miracle.clock.runFor(40000);
+    assert.equal(await miracle.getByRole('button', { name: /Select outpost/ }).count(), 6);
+    assert.ok(parseFloat(await miracle.getByTestId('miracle-fill').evaluate(el => el.style.width)) > parseFloat(initialFill));
+    for (let i = 0; i < 6; i++) {
+      await miracle.getByRole('button', { name: /Select outpost/ }).nth(i).click();
+      await miracle.getByRole('button', { name: new RegExp(`Sector ${i + 1}`) }).click();
+      await miracle.getByRole('button', { name: 'Confirm troop deployment' }).click();
+      assert.equal(await button.getAttribute('data-ready'), i === 5 ? 'true' : 'false');
+    }
+    if (locale === 'he') await miracle.getByTitle('Toggle Language').click();
+    assert.equal(await miracle.getByTestId('miracle-fill').evaluate(el => el.style.width), '100%');
+    assert.match(await button.innerText(), locale === 'he' ? /מוכן/ : /Ready/);
+    assert.doesNotMatch(await button.innerText(), /%/);
+    await miracle.screenshot({ path: `/tmp/octgame-miracle-ready-${locale}.png` });
+    let previous = await button.innerText();
+    for (let tap = 1; tap <= 4; tap++) {
+      if (tap === 2) { await button.focus(); await miracle.keyboard.press('Enter'); }
+      else await button.click();
+      assert.notEqual(await button.innerText(), previous);
+      previous = await button.innerText();
+      assert.equal(await button.locator('.miracle-tap-steps .is-lit').count(), tap);
+      await miracle.clock.runFor(1000);
+      assert.equal(await miracle.getByRole('dialog').count(), 0);
+    }
+    const geometry = await miracle.evaluate(() => ({ scroll: document.documentElement.scrollHeight, height: innerHeight,
+      bottom: document.querySelector('.action-deck').getBoundingClientRect().bottom,
+      parts: [...document.querySelector('main').children].map(el => ({ name: el.className, height: el.getBoundingClientRect().height })) }));
+    await miracle.screenshot({ path: `/tmp/octgame-miracle-tapping-${locale}.png` });
+    assert.equal(geometry.scroll, geometry.height);
+    assert.ok(geometry.bottom <= geometry.height + 1, JSON.stringify(geometry));
+    await button.click();
+    await miracle.getByRole('dialog').waitFor();
+    assert.equal(await button.isDisabled(), true);
+    assert.match(await button.innerText(), locale === 'he' ? /אין סומכין/ : /Miracles don't defend borders/);
+    await miracle.close();
+    console.log(`Miracle ${locale}: real expansion, horizontal fill, ready state, five taps, keyboard input and small-phone layout passed.`);
+  }
   assert.deepEqual(failures, []);
 } finally {
   await browser.close();

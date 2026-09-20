@@ -44,6 +44,7 @@ export const INITIAL_STATE: GameState = {
     countdownSeconds: null,
     isPanicMashMode: false,
     mashCount: 0,
+    graceSecondsRemaining: 0,
     isCracked: false,
     piousToast: null,
   },
@@ -188,6 +189,12 @@ const gameplayActions = new Set<GameAction['type']>([
 export function gameReducer(state: GameState, action: GameAction): GameState {
   if (state.gameStatus !== 'playing' && gameplayActions.has(action.type)) return state;
   if (action.type === 'TICK_TIMER' && isGamePaused(state)) return state;
+  // Give the five-tap climax a bounded window without damage or advancing attacks.
+  // Later taps never renew this grace period.
+  if (action.type === 'TICK_TIMER' && state.lordOfHosts.graceSecondsRemaining > 0) {
+    return { ...state, isScreenShaking: false, lordOfHosts: { ...state.lordOfHosts,
+      graceSecondsRemaining: state.lordOfHosts.graceSecondsRemaining - 1 } };
+  }
   const input = action.type === 'TICK_TIMER' ? { ...state, elapsedSeconds: state.elapsedSeconds + 1 } : state;
   let next = reduceGame(input, action);
   if (action.type === 'RESTART_GAME') return next;
@@ -207,6 +214,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     metrics: { ...next.metrics },
   };
   next.incomeRate = incomeFor(next);
+  // Derive readiness from actual checkpoint coverage after every gameplay action.
+  // This includes transfers, reinforcements and recalls, not just deployments.
+  const miracleReady = !next.lordOfHosts.isCracked && next.gameStatus === 'playing'
+    && (next.defenseScore <= RULES.miracleDefenseThreshold || next.lordOfHosts.mashCount > 0);
+  const pressureCharge = 12 + (100 - next.defenseScore) / (100 - RULES.miracleDefenseThreshold) * 88;
+  next.lordOfHosts = { ...next.lordOfHosts, isPanicMashMode: miracleReady,
+    chargePercent: miracleReady || next.lordOfHosts.isCracked ? 100
+      : Math.min(96, Math.round(Math.max(state.lordOfHosts.chargePercent, next.lordOfHosts.chargePercent, pressureCharge))) };
   next.maxBudget = RULES.budgetBase + next.settlementsCount * RULES.budgetPerOutpost;
   next.budget = Math.min(next.budget, next.maxBudget);
   if (action.type !== 'TICK_TIMER') next.greenSideAttacks = next.greenSideAttacks.filter(a => next.tiles[a.breachId]?.garrisonCount === 0);
@@ -779,7 +794,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
     case 'CLICK_LORD_OF_HOSTS': {
       if (state.lordOfHosts.isPanicMashMode) {
-        return gameReducer(state, { type: 'MASH_LORD_OF_HOSTS' });
+        return reduceGame(state, { type: 'MASH_LORD_OF_HOSTS' });
       }
 
       sounds.playLordOfHostsClick();
@@ -796,10 +811,11 @@ function reduceGame(state: GameState, action: GameAction): GameState {
     }
 
     case 'MASH_LORD_OF_HOSTS': {
+      if (!state.lordOfHosts.isPanicMashMode || state.lordOfHosts.isCracked) return state;
       const nextMashCount = state.lordOfHosts.mashCount + 1;
-      sounds.playPanicMashThud();
+      sounds.playPanicMashThud(nextMashCount);
 
-      if (nextMashCount >= 7) {
+      if (nextMashCount >= RULES.miracleTaps) {
         sounds.playCrackCollapse();
         return {
           ...state,
@@ -808,6 +824,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           lordOfHosts: {
             ...state.lordOfHosts,
             mashCount: nextMashCount,
+            graceSecondsRemaining: 0,
             isCracked: true,
             isPanicMashMode: false,
             piousToast: strings.lordOfHosts.crackedText,
@@ -821,6 +838,9 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         lordOfHosts: {
           ...state.lordOfHosts,
           mashCount: nextMashCount,
+          graceSecondsRemaining: state.lordOfHosts.mashCount === 0
+            ? RULES.miracleGraceSeconds : state.lordOfHosts.graceSecondsRemaining,
+          piousToast: null,
         },
       };
     }

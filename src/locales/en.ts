@@ -29,7 +29,10 @@ export const en = {
     stage2Goal: "Deeper foothold required: 11 outposts",
     stage3Goal: "Hour of trial: 15 outposts & self-sacrifice",
     stage4Countdown: "Grace draws near! Miracle in:",
-    panicMashPrompt: "Tap rapidly for a miracle! (99.9%)",
+    panicMashPrompt: "Ready · Tap to invoke!",
+    charging: "The promise grows…",
+    tapFeedback: ["The gates stir — keep tapping!", "The light grows — keep going!", "Almost there — keep tapping!", "One final tap!"],
+    tapsLeft: "taps left",
     crackedText: "Miracles don't defend borders",
     excuses: [
       "A little more faith! Miracles aren't free.",
