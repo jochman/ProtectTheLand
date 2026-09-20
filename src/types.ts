@@ -16,6 +16,8 @@ export interface HexTile {
   settlementName?: string;
   garrisonCount: number; // Soldiers stationed here
   isBorderCheckpoint?: boolean;
+  isLocalCity?: boolean;
+  subLabel?: string;
   isBreached?: boolean;
   hasAlert?: boolean;
 }

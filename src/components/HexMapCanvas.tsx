@@ -10,7 +10,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
   const tiles = Object.values(state.tiles);
 
   // Helper to generate hexagonal SVG points centered at (cx, cy) with radius r
-  const getHexPoints = (cx: number, cy: number, r: number = 38) => {
+  const getHexPoints = (cx: number, cy: number, r: number = 36) => {
     const points: string[] = [];
     for (let i = 0; i < 6; i++) {
       const angle = (Math.PI / 3) * i + Math.PI / 6;
@@ -22,9 +22,9 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
   };
 
   return (
-    <div className="relative flex-1 w-full overflow-hidden flex items-center justify-center my-1 select-none">
+    <div className="relative flex-1 w-full overflow-hidden flex items-center justify-center my-0.5 select-none">
       <svg
-        viewBox="0 0 430 570"
+        viewBox="0 0 460 565"
         className="w-full h-full max-h-[570px] drop-shadow-xl"
         preserveAspectRatio="xMidYMid meet"
       >
@@ -40,6 +40,12 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             <stop offset="0%" stopColor="#fae08f" />
             <stop offset="60%" stopColor="#ecc062" />
             <stop offset="100%" stopColor="#dba743" />
+          </linearGradient>
+
+          <linearGradient id="cityTerrain" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f3deb3" />
+            <stop offset="70%" stopColor="#e2c490" />
+            <stop offset="100%" stopColor="#cfab72" />
           </linearGradient>
 
           <linearGradient id="buildCandidate" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -58,31 +64,26 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             <stop offset="100%" stopColor="#356d98" />
           </linearGradient>
 
-          {/* Roof gradient for 3D houses */}
           <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f97316" />
             <stop offset="100%" stopColor="#c2410c" />
           </linearGradient>
 
-          {/* House wall gradient */}
           <linearGradient id="wallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#fef3c7" />
             <stop offset="100%" stopColor="#fae8b0" />
           </linearGradient>
 
-          {/* Gold Coin Gradient */}
           <radialGradient id="coinGrad" cx="35%" cy="35%" r="65%">
             <stop offset="0%" stopColor="#fff7a1" />
             <stop offset="45%" stopColor="#ffd700" />
             <stop offset="100%" stopColor="#cc9900" />
           </radialGradient>
 
-          {/* Shadow Filter */}
           <filter id="dropShadow" x="-20%" y="-20%" width="150%" height="150%">
             <feDropShadow dx="1" dy="3" stdDeviation="2" floodColor="#000000" floodOpacity="0.25" />
           </filter>
 
-          {/* Alert Glow */}
           <filter id="redAlertGlow" x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
@@ -97,12 +98,16 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           const isCandidateForBuild =
             state.isBuildMode &&
             tile.terrain === 'westbank' &&
+            !tile.isLocalCity &&
             !tile.hasSettlement &&
             !state.constructions[tile.id];
 
           if (isCandidateForBuild) {
             fill = 'url(#buildCandidate)';
             stroke = '#b45309';
+          } else if (tile.isLocalCity) {
+            fill = 'url(#cityTerrain)';
+            stroke = '#a17843';
           } else if (tile.terrain === 'israel') {
             fill = 'url(#israelTerrain)';
             stroke = '#6b9e45';
@@ -129,29 +134,85 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             >
               {/* Tile Base Shadow for 3D Bevel effect */}
               <polygon
-                points={getHexPoints(tile.x, tile.y + 3, 38)}
+                points={getHexPoints(tile.x, tile.y + 3, 36)}
                 fill="rgba(0,0,0,0.12)"
               />
 
               {/* Top Hex Polygon */}
               <polygon
-                points={getHexPoints(tile.x, tile.y, 38)}
+                points={getHexPoints(tile.x, tile.y, 36)}
                 fill={fill}
                 stroke={stroke}
-                strokeWidth={isCandidateForBuild ? 3.5 : 2}
+                strokeWidth={isCandidateForBuild ? 3.5 : tile.isLocalCity ? 2.5 : 1.8}
                 strokeDasharray={isCandidateForBuild ? '4,3' : 'none'}
                 strokeLinejoin="round"
                 className="transition-colors duration-300"
               />
 
+              {/* ---------------- LOCAL WEST BANK CITIES / VILLAGES ---------------- */}
+              {tile.isLocalCity && (
+                <g transform={`translate(${tile.x}, ${tile.y})`} filter="url(#dropShadow)">
+                  {/* City silhouette / Domes & Buildings */}
+                  <g opacity="0.85" transform="translate(-12, -14)">
+                    {/* Dwellings */}
+                    <rect x="0" y="8" width="8" height="8" fill="#d4b483" stroke="#8a5e2f" strokeWidth="0.6" rx="0.5" />
+                    <rect x="8" y="5" width="10" height="11" fill="#c49e68" stroke="#8a5e2f" strokeWidth="0.6" rx="0.5" />
+                    <rect x="18" y="9" width="7" height="7" fill="#deb881" stroke="#8a5e2f" strokeWidth="0.6" rx="0.5" />
+                    {/* Central Dome / Tower */}
+                    <path d="M 10 5 Q 13 0 16 5 Z" fill="#b45309" stroke="#78350f" strokeWidth="0.6" />
+                    <circle cx="13" cy="0" r="1" fill="#f59e0b" />
+                  </g>
+
+                  {/* City Label Banner */}
+                  <g transform="translate(0, 10)">
+                    <rect
+                      x="-25"
+                      y="-7"
+                      width="50"
+                      height="17"
+                      rx="3.5"
+                      fill="rgba(44, 30, 16, 0.85)"
+                      stroke="rgba(245, 222, 179, 0.4)"
+                      strokeWidth="0.8"
+                    />
+                    {/* Hebrew Name */}
+                    <text
+                      x="0"
+                      y="1"
+                      textAnchor="middle"
+                      fill="#fff8e7"
+                      fontSize="7.5"
+                      fontWeight="900"
+                      className="font-heebo pointer-events-none"
+                    >
+                      {tile.label}
+                    </text>
+                    {/* English/Arabic Sublabel */}
+                    {tile.subLabel && (
+                      <text
+                        x="0"
+                        y="8"
+                        textAnchor="middle"
+                        fill="#fde68a"
+                        fontSize="5.5"
+                        fontWeight="bold"
+                        className="pointer-events-none"
+                      >
+                        {tile.subLabel}
+                      </text>
+                    )}
+                  </g>
+                </g>
+              )}
+
               {/* Build Candidate Indicator (+100 ₪) */}
               {isCandidateForBuild && (
                 <g transform={`translate(${tile.x}, ${tile.y})`}>
-                  <circle cx="0" cy="0" r="15" fill="#f59e0b" stroke="#fff" strokeWidth="1.5" />
+                  <circle cx="0" cy="0" r="14" fill="#f59e0b" stroke="#fff" strokeWidth="1.5" />
                   <text x="0" y="4" textAnchor="middle" fill="#fff" fontSize="12" fontWeight="900">
                     +
                   </text>
-                  <text x="0" y="24" textAnchor="middle" fill="#78350f" fontSize="8" fontWeight="bold">
+                  <text x="0" y="22" textAnchor="middle" fill="#78350f" fontSize="8" fontWeight="bold">
                     100 ₪
                   </text>
                 </g>
@@ -160,17 +221,15 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               {/* Organic 3D Trees scattered in Israel */}
               {tile.terrain === 'israel' && !tile.label && !isCandidateForBuild && (
                 <g opacity="0.45" transform={`translate(${tile.x - 8}, ${tile.y - 12})`}>
-                  {/* Tree 1 */}
                   <circle cx="4" cy="5" r="4.5" fill="#2d6a2d" />
                   <circle cx="4" cy="3.5" r="3" fill="#4ade80" />
-                  {/* Tree 2 */}
                   <circle cx="12" cy="11" r="5" fill="#1b4d1b" />
                   <circle cx="12" cy="9.5" r="3.5" fill="#34d399" />
                 </g>
               )}
 
               {/* Organic Rocks & Bushes in West Bank */}
-              {tile.terrain === 'westbank' && !tile.hasSettlement && !state.constructions[tile.id] && !isCandidateForBuild && (
+              {tile.terrain === 'westbank' && !tile.isLocalCity && !tile.hasSettlement && !state.constructions[tile.id] && !isCandidateForBuild && (
                 <g opacity="0.4" transform={`translate(${tile.x - 10}, ${tile.y - 8})`}>
                   <ellipse cx="6" cy="6" rx="5" ry="3" fill="#a17435" />
                   <ellipse cx="14" cy="10" rx="6" ry="4" fill="#8c5e23" />
@@ -190,13 +249,13 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               )}
 
               {/* Region or City Label */}
-              {tile.label && !isCandidateForBuild && (
+              {tile.label && !tile.isLocalCity && !isCandidateForBuild && (
                 <text
                   x={tile.x}
                   y={tile.y + 4}
                   textAnchor="middle"
                   fill="#ffffff"
-                  fontSize="10"
+                  fontSize="9.5"
                   fontWeight="bold"
                   className="pointer-events-none drop-shadow-md font-heebo"
                 >
@@ -209,14 +268,14 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
         {/* 2. UNDULATING GREEN LINE / BORDER BARRIER WITH DEPTH */}
         <path
-          d="M 195 40 Q 185 100 185 135 T 175 210 T 165 285 T 160 360 T 160 435 Q 140 460 120 485 L 180 490"
+          d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 135 460 110 485 L 170 490"
           fill="none"
           stroke="rgba(0,0,0,0.2)"
           strokeWidth="6"
           strokeLinecap="round"
         />
         <path
-          d="M 195 40 Q 185 100 185 135 T 175 210 T 165 285 T 160 360 T 160 435 Q 140 460 120 485 L 180 490"
+          d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 135 460 110 485 L 170 490"
           fill="none"
           stroke={state.defenseScore < 30 ? '#ef4444' : '#e04238'}
           strokeWidth="4"
@@ -233,16 +292,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               {isManned ? (
                 // 3D Plastic Green Army Figurine standing on border pedestal
                 <g filter="url(#dropShadow)">
-                  {/* Glowing neon green base halo */}
                   <ellipse cx="0" cy="6" rx="14" ry="7" fill="rgba(34,197,94,0.3)" stroke="#22c55e" strokeWidth="1.5" />
-                  {/* Soldier figurine base */}
                   <ellipse cx="0" cy="5" rx="9" ry="4.5" fill="#14532d" />
-                  {/* Legs */}
                   <rect x="-3" y="-1" width="2.5" height="6" fill="#166534" rx="1" />
                   <rect x="0.5" y="-1" width="2.5" height="6" fill="#166534" rx="1" />
-                  {/* Torso */}
                   <rect x="-4.5" y="-9" width="9" height="9" fill="#15803d" rx="2" />
-                  {/* Helmet */}
                   <ellipse cx="0" cy="-12" rx="4.5" ry="3.5" fill="#14532d" />
                   <ellipse cx="0" cy="-11" rx="5" ry="1.5" fill="#166534" />
                 </g>
@@ -265,13 +319,10 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           if (!t) return null;
           return (
             <g key={`const-${tileId}`} transform={`translate(${t.x}, ${t.y})`} filter="url(#dropShadow)">
-              {/* Construction Ring */}
-              <circle cx="0" cy="0" r="24" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4,4" className="animate-spin" />
-              {/* Scaffolding icon */}
+              <circle cx="0" cy="0" r="23" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4,4" className="animate-spin" />
               <rect x="-10" y="-8" width="20" height="16" fill="none" stroke="#78350f" strokeWidth="1.5" />
               <line x1="-10" y1="-8" x2="10" y2="8" stroke="#78350f" strokeWidth="1" />
               <line x1="-10" y1="8" x2="10" y2="-8" stroke="#78350f" strokeWidth="1" />
-              {/* Progress text */}
               <rect x="-18" y="14" width="36" height="11" rx="3" fill="#1e293b" />
               <text x="0" y="22" textAnchor="middle" fill="#fef08a" fontSize="7" fontWeight="bold">
                 {c.progress}% בבנייה
@@ -310,17 +361,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
               {/* 3D Isometric Mediterranean House Model */}
               <g filter="url(#dropShadow)" transform="translate(-11, -12)">
-                {/* Cast shadow under house */}
                 <ellipse cx="11" cy="20" rx="12" ry="5" fill="rgba(0,0,0,0.22)" />
-                {/* House Base Walls */}
                 <rect x="2" y="9" width="18" height="11" fill="url(#wallGrad)" rx="1.5" stroke="#d5c3aa" strokeWidth="1" />
-                {/* Front Door */}
                 <rect x="8" y="13" width="5" height="7" fill="#78350f" rx="0.5" />
-                {/* Window */}
                 <rect x="3.5" y="11.5" width="3" height="3" fill="#60a5fa" stroke="#3b82f6" strokeWidth="0.5" />
-                {/* Chimney */}
                 <rect x="14" y="2" width="2.5" height="5" fill="#991b1b" />
-                {/* Terracotta Pitched Roof */}
                 <polygon points="0,9 11,0 22,9" fill="url(#roofGrad)" stroke="#9a3412" strokeWidth="1" />
               </g>
 
@@ -338,7 +383,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 </g>
               )}
 
-              {/* Settlement Name Tag (Crisp & Clickable) */}
+              {/* Settlement Name Tag */}
               {s.settlementName && (
                 <g transform="translate(0, 24)">
                   <rect
@@ -379,9 +424,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             }}
             className="cursor-pointer animate-bounce"
           >
-            {/* Transparent Hit Area */}
             <circle cx="0" cy="0" r="20" fill="transparent" />
-            {/* 3D Gold Shekel Coin */}
             <circle cx="0" cy="0" r="11" fill="url(#coinGrad)" stroke="#a16207" strokeWidth="1.5" filter="url(#dropShadow)" />
             <circle cx="0" cy="0" r="8.5" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.6" />
             <text x="0" y="4" textAnchor="middle" fill="#713f12" fontSize="9" fontWeight="900" className="font-rubik">
@@ -400,18 +443,14 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
           return (
             <g key={truck.id} transform={`translate(${currentX}, ${currentY})`} filter="url(#dropShadow)">
-              {/* Dust Trail */}
               <circle cx="10" cy="3" r="5" fill="rgba(217, 119, 6, 0.4)" />
               <circle cx="18" cy="4" r="3" fill="rgba(217, 119, 6, 0.25)" />
-              {/* 3D White 4x4 Pickup Truck */}
               <rect x="-11" y="-5" width="22" height="10" fill="#f8fafc" rx="2" stroke="#334155" strokeWidth="1" />
               <rect x="-10" y="-3" width="7" height="6" fill="#94a3b8" rx="1" />
-              {/* Red Flag / Attacker Figure */}
               <circle cx="4" cy="-8" r="3" fill="#dc2626" />
               <rect x="3" y="-5" width="2.5" height="5" fill="#991b1b" />
               <line x1="8" y1="-12" x2="8" y2="-5" stroke="#475569" strokeWidth="1" />
               <polygon points="8,-12 14,-10 8,-8" fill="#ef4444" />
-              {/* Off-road Wheels */}
               <circle cx="-6" cy="6" r="2.5" fill="#0f172a" />
               <circle cx="6" cy="6" r="2.5" fill="#0f172a" />
             </g>
@@ -420,11 +459,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
         {/* Region Geographic Titles */}
         <text
-          x="105"
+          x="100"
           y="545"
           textAnchor="middle"
           fill="#274608"
-          fontSize="17"
+          fontSize="16"
           fontWeight="900"
           opacity="0.85"
           className="font-rubik pointer-events-none drop-shadow-sm"
@@ -433,11 +472,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
         </text>
 
         <text
-          x="300"
+          x="320"
           y="545"
           textAnchor="middle"
           fill="#612805"
-          fontSize="17"
+          fontSize="16"
           fontWeight="900"
           opacity="0.85"
           className="font-rubik pointer-events-none drop-shadow-sm"
