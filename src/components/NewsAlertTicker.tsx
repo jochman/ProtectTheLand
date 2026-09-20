@@ -50,11 +50,6 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
             >
               {state.currentNews.source}
             </span>
-            {state.currentNews.arcStep && (
-              <span className="text-[9.5px] font-bold text-amber-700 bg-amber-200/70 px-1 py-0.2 rounded border border-amber-400/50">
-                {isHe ? `עדכון ${state.currentNews.arcStep}` : `Part ${state.currentNews.arcStep}`}
-              </span>
-            )}
           </div>
           <span className="font-semibold text-xs tracking-tight">
             {state.currentNews.headline}

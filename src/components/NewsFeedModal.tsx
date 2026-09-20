@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, Radio, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Radio, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GameState, GameAction, NewsItem } from '../types';
 
 interface NewsFeedModalProps {
@@ -52,7 +52,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
                 {isHe ? 'מבזקון LIVE | צ׳אט הכתבים' : 'LIVE Wire | News Feed'}
               </h3>
               <p className="text-[10px] text-slate-500 font-heebo">
-                {isHe ? 'דיווחים בלעדיים, פוליטיקאים, סלבס וסיפורים' : 'Exclusive leaks, politicians, celebs & scoops'}
+                {isHe ? 'דיווחים בלעדיים, פוליטיקאים, רבנים וסלבס' : 'Exclusive leaks, politicians, rabbis & celebs'}
               </p>
             </div>
           </div>
@@ -80,28 +80,6 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
                 {current.timestamp || (isHe ? 'הרגע' : 'Just now')}
               </span>
             </div>
-
-            {/* If part of an ongoing Story Arc */}
-            {current.arcStep && current.totalArcSteps && (
-              <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl px-2.5 py-1 flex items-center justify-between text-[11px]">
-                <span className="font-bold text-amber-800 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  {isHe
-                    ? `סיפור בהמשכים (עדכון ${current.arcStep} מתוך ${current.totalArcSteps})`
-                    : `Ongoing Story (Update ${current.arcStep} of ${current.totalArcSteps})`}
-                </span>
-                <div className="flex gap-1">
-                  {Array.from({ length: current.totalArcSteps }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-3.5 h-1.5 rounded-full ${
-                        idx < (current.arcStep || 1) ? 'bg-amber-600' : 'bg-amber-200'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Big Headline */}
             <p className="text-sm font-black text-slate-900 leading-snug font-heebo">

@@ -533,73 +533,116 @@ export const STANDALONE_QUOTES: StoryArcStep[] = [
 ];
 
 /**
- * Returns the next juicy news item, either progressing an ongoing story arc
- * or launching a new arc / standalone quote.
+ * Returns the next juicy news item, driven directly by actual GAME PROGRESS:
+ * - Building settlements advances settlement/political/celeb arcs (Ben Gvir keychains -> Smotrich -> Noa Kirel & Daniel Peretz wedding -> couscous in Munich!)
+ * - Deploying troops & lowering defense triggers military/political clash arcs (Yair Golan -> Miri Regev -> Ofira & Berko -> Kabbalists)
+ * - Mobilizing reserves triggers economic strain & coalition commentary arcs
+ * - Recalling troops / Evacuating outposts triggers rational defense arcs
+ * - Ambient timer naturally carries ongoing storylines between actions
  */
-export function getNextJuicyNews(state: GameState): { item: NewsItem; nextArcs: Record<string, number> } {
+export function getProgressiveNews(
+  state: GameState,
+  trigger: 'build' | 'deploy' | 'reserves' | 'recall' | 'timer' = 'timer'
+): { item: NewsItem; nextArcs: Record<string, number> } {
   const currentArcs = { ...state.activeStoryArcs };
   const locale = state.locale;
 
-  // 1. Look for an active arc that has remaining steps
-  const activeArcEntry = Object.entries(currentArcs).find(([arcId, currentStep]) => {
-    const arc = STORY_ARCS.find(a => a.id === arcId);
-    return arc && currentStep + 1 < arc.steps.length;
-  });
-
-  if (activeArcEntry) {
-    const [arcId, currentStep] = activeArcEntry;
+  // Helper to format a news item for a specific arc step
+  const buildItemForArc = (arcId: string, stepIndex: number): NewsItem => {
     const arc = STORY_ARCS.find(a => a.id === arcId)!;
-    const nextStep = currentStep + 1;
-    currentArcs[arcId] = nextStep;
-
-    const stepData = arc.steps[nextStep];
+    const stepData = arc.steps[stepIndex];
     const text = stepData[locale] || stepData.he;
-
-    const item: NewsItem = {
-      id: `news-arc-${arcId}-${nextStep}-${Date.now()}`,
+    return {
+      id: `news-arc-${arcId}-${stepIndex}-${Date.now()}`,
       headline: text.headline,
       source: text.source,
       category: stepData.category,
       arcId,
-      arcStep: nextStep + 1,
+      arcStep: stepIndex + 1,
       totalArcSteps: arc.steps.length,
       timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
       isUrgent: false,
     };
+  };
 
-    return { item, nextArcs: currentArcs };
+  // Helper to advance or start a specific arc
+  const advanceArc = (arcId: string): NewsItem | null => {
+    const arc = STORY_ARCS.find(a => a.id === arcId);
+    if (!arc) return null;
+    const currentStep = currentArcs[arcId];
+    if (currentStep === undefined) {
+      currentArcs[arcId] = 0;
+      return buildItemForArc(arcId, 0);
+    } else if (currentStep + 1 < arc.steps.length) {
+      const nextStep = currentStep + 1;
+      currentArcs[arcId] = nextStep;
+      return buildItemForArc(arcId, nextStep);
+    }
+    return null;
+  };
+
+  // 1. GAME-PROGRESS BASED TARGETING
+  let targetedNews: NewsItem | null = null;
+
+  if (trigger === 'build') {
+    const count = state.settlementsCount;
+    if (count <= 2) {
+      targetedNews = advanceArc('ben_gvir_keychains');
+    } else if (count <= 4) {
+      targetedNews = advanceArc('smotrich_miracles') || advanceArc('ben_gvir_keychains');
+    } else if (count <= 6) {
+      targetedNews = advanceArc('noa_and_daniel') || advanceArc('smotrich_miracles');
+    } else if (count <= 8) {
+      targetedNews = advanceArc('noa_and_daniel') || advanceArc('ben_gvir_keychains') || advanceArc('smotrich_miracles');
+    } else {
+      targetedNews = advanceArc('big_brother_cottage') || advanceArc('noa_and_daniel');
+    }
+  } else if (trigger === 'deploy') {
+    const score = state.defenseScore;
+    if (score >= 60) {
+      targetedNews = advanceArc('yair_golan_quotes');
+    } else if (score >= 35) {
+      targetedNews = advanceArc('miri_regev_ribbon') || advanceArc('yair_golan_quotes');
+    } else if (score >= 15) {
+      targetedNews = advanceArc('ofira_and_berko') || advanceArc('miri_regev_ribbon');
+    } else {
+      targetedNews = advanceArc('rabbis_kabbalah') || advanceArc('gotliv_and_amsalem');
+    }
+  } else if (trigger === 'reserves') {
+    targetedNews = advanceArc('yinon_magal_tweets') || advanceArc('gotliv_and_amsalem') || advanceArc('smotrich_miracles');
+  } else if (trigger === 'recall') {
+    targetedNews = advanceArc('yair_golan_quotes') || advanceArc('rabbis_kabbalah') || advanceArc('ofira_and_berko');
   }
 
-  // 2. Either start an unstarted arc or pick a standalone quote
-  const availableArcs = STORY_ARCS.filter(a => !(a.id in currentArcs));
+  if (targetedNews) {
+    return { item: targetedNews, nextArcs: currentArcs };
+  }
 
-  // 60% chance to start a new arc if available, otherwise standalone quote
-  if (availableArcs.length > 0 && (Math.random() < 0.65 || STANDALONE_QUOTES.length === 0)) {
+  // 2. TIMED / IDLE CONTINUATION OF ONGOING ARCS
+  // If an arc is in-flight (started but not finished), continue it!
+  const inFlightArc = Object.entries(currentArcs).find(([arcId, currentStep]) => {
+    const arc = STORY_ARCS.find(a => a.id === arcId);
+    return arc && currentStep + 1 < arc.steps.length;
+  });
+
+  if (inFlightArc) {
+    const [arcId, currentStep] = inFlightArc;
+    const nextStep = currentStep + 1;
+    currentArcs[arcId] = nextStep;
+    return { item: buildItemForArc(arcId, nextStep), nextArcs: currentArcs };
+  }
+
+  // 3. START ANY UNSTARTED ARC OR FALLBACK TO QUOTE
+  const availableArcs = STORY_ARCS.filter(a => !(a.id in currentArcs));
+  if (availableArcs.length > 0 && Math.random() < 0.65) {
     const chosenArc = availableArcs[Math.floor(Math.random() * availableArcs.length)];
     currentArcs[chosenArc.id] = 0;
-
-    const stepData = chosenArc.steps[0];
-    const text = stepData[locale] || stepData.he;
-
-    const item: NewsItem = {
-      id: `news-arc-${chosenArc.id}-0-${Date.now()}`,
-      headline: text.headline,
-      source: text.source,
-      category: stepData.category,
-      arcId: chosenArc.id,
-      arcStep: 1,
-      totalArcSteps: chosenArc.steps.length,
-      timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-      isUrgent: false,
-    };
-
-    return { item, nextArcs: currentArcs };
+    return { item: buildItemForArc(chosenArc.id, 0), nextArcs: currentArcs };
   }
 
-  // 3. Fallback to random standalone quote
+  // Fallback to random standalone quote
   const chosenQuote = STANDALONE_QUOTES[Math.floor(Math.random() * STANDALONE_QUOTES.length)];
   const text = chosenQuote[locale] || chosenQuote.he;
-
   const item: NewsItem = {
     id: `news-quote-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     headline: text.headline,
@@ -611,3 +654,6 @@ export function getNextJuicyNews(state: GameState): { item: NewsItem; nextArcs: 
 
   return { item, nextArcs: currentArcs };
 }
+
+export const getNextJuicyNews = (state: GameState) => getProgressiveNews(state, 'timer');
+

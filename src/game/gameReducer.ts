@@ -3,7 +3,7 @@ import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { sounds } from '../audio/soundEngine';
-import { getNextJuicyNews } from './newsContent';
+import { getProgressiveNews, getNextJuicyNews } from './newsContent';
 
 export const INITIAL_STATE: GameState = {
   locale: 'he',
@@ -150,10 +150,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       sounds.playHammer();
 
+      const progressiveNews = getProgressiveNews(
+        { ...state, settlementsCount: state.settlementsCount + 1 },
+        'build'
+      );
+
       return {
         ...state,
         budget: state.budget - SETTLEMENT_COST,
         isBuildMode: false,
+        activeStoryArcs: progressiveNews.nextArcs,
         constructions: {
           ...state.constructions,
           [tileId]: {
@@ -161,15 +167,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             tileName: tile.settlementName || 'מאחז חדש',
           },
         },
-        ...withNews(state, {
-          id: `const-${Date.now()}`,
-          headline: state.locale === 'he'
-            ? `החלה הכשרת קרקע והקמת ${tile.settlementName || 'מאחז חדש'}!`
-            : `Ground broken for new outpost: ${tile.settlementName || 'New Outpost'}!`,
-          source: state.locale === 'he' ? 'מנהלת ההתיישבות' : 'Settlement Admin',
-          category: 'politics',
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-        }),
+        ...withNews(state, progressiveNews.item),
       };
     }
 
@@ -268,14 +266,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      let newsHeadline = strings.news.troopsDiverted;
-      if (newDefenseScore <= 50) {
-        newsHeadline = strings.news.chiefOfStaffWarning;
-        sounds.playSiren();
-      }
+      const progressiveDeploy = getProgressiveNews(
+        { ...state, defenseScore: newDefenseScore },
+        'deploy'
+      );
+
+      let deployNewsItem = progressiveDeploy.item;
       if (newDefenseScore <= 20) {
-        newsHeadline = strings.news.borderBreach;
         sounds.playSiren();
+        deployNewsItem = {
+          id: `breach-${Date.now()}`,
+          headline: strings.news.borderBreach,
+          source: state.locale === 'he' ? 'פיקוד דרום ומרכז' : 'Southern & Central Command',
+          category: 'military',
+          isUrgent: true,
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        };
+      } else if (newDefenseScore <= 50 && Math.random() < 0.4) {
+        sounds.playSiren();
+        deployNewsItem = {
+          id: `warning-${Date.now()}`,
+          headline: strings.news.chiefOfStaffWarning,
+          source: state.locale === 'he' ? 'לשכת הרמטכ״ל' : 'Chief of Staff',
+          category: 'military',
+          isUrgent: true,
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        };
       }
 
       let countdown = state.lordOfHosts.countdownSeconds;
@@ -294,6 +310,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
         activeBreaches,
+        activeStoryArcs: progressiveDeploy.nextArcs,
         movingTroops: newMovingTroops,
         lordOfHosts: {
           ...state.lordOfHosts,
@@ -303,14 +320,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           chargePercent: isPanic ? 99.9 : Math.max(state.lordOfHosts.chargePercent, 88),
           piousToast: isPanic ? strings.lordOfHosts.panicMashPrompt : null,
         },
-        ...withNews(state, {
-          id: `deploy-${Date.now()}`,
-          headline: newsHeadline,
-          source: state.locale === 'he' ? 'דובר צה״ל / קבינט' : 'IDF / Cabinet',
-          category: 'military',
-          isUrgent: newDefenseScore < 50,
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-        }),
+        ...withNews(state, deployNewsItem),
       };
     }
 
