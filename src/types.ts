@@ -1,0 +1,96 @@
+export type TerrainType = 'israel' | 'westbank' | 'border' | 'sea' | 'desert';
+
+export interface HexCoord {
+  q: number;
+  r: number;
+}
+
+export interface HexTile {
+  id: string;
+  coord: HexCoord;
+  x: number;
+  y: number;
+  terrain: TerrainType;
+  label?: string;
+  hasSettlement: boolean;
+  settlementName?: string;
+  garrisonCount: number; // Soldiers stationed here
+  isBorderCheckpoint?: boolean;
+  isBreached?: boolean;
+  hasAlert?: boolean;
+}
+
+export interface NewsItem {
+  id: string;
+  headline: string;
+  source: string;
+  isUrgent?: boolean;
+}
+
+export interface SparkParticle {
+  id: string;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  createdAt: number;
+}
+
+export interface GameState {
+  locale: 'he' | 'en';
+  soundEnabled: boolean;
+  gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
+  
+  // Numerical stats
+  settlementsCount: number;
+  soldiersTotal: number;
+  soldiersAtBorder: number;
+  soldiersAtSettlements: number;
+  reservesBatchesLeft: number; // Max 3
+  defenseScore: number; // 0% to 100%
+  
+  // The Satirical "יהוה צבאות" Deception Engine
+  lordOfHosts: {
+    chargePercent: number; // 12% -> 99.0% -> 99.9%
+    stage: 1 | 2 | 3 | 4;
+    stageGoalText: string;
+    countdownSeconds: number | null; // e.g. 30 -> 0
+    isPanicMashMode: boolean; // Triggered when defense collapses to 0
+    mashCount: number; // How many times mashed
+    isCracked: boolean; // Fractures on 7th mash
+    piousToast: string | null;
+  };
+
+  // World & Grid
+  tiles: Record<string, HexTile>;
+  activeBreaches: string[];
+  infiltratingTrucks: {
+    id: string;
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    progress: number;
+  }[];
+
+  // News ticker & messaging
+  currentNews: NewsItem | null;
+  selectedSettlementId: string | null;
+  isScreenShaking: boolean;
+  sparks: SparkParticle[];
+}
+
+export type GameAction =
+  | { type: 'BUILD_SETTLEMENT'; tileId?: string }
+  | { type: 'DEPLOY_TROOPS' }
+  | { type: 'CALL_RESERVES' }
+  | { type: 'CLICK_LORD_OF_HOSTS' }
+  | { type: 'MASH_LORD_OF_HOSTS' }
+  | { type: 'SELECT_TILE'; tileId: string | null }
+  | { type: 'EVACUATE_SETTLEMENT'; tileId: string }
+  | { type: 'DISMISS_TOAST' }
+  | { type: 'SET_LOCALE'; locale: 'he' | 'en' }
+  | { type: 'TOGGLE_SOUND' }
+  | { type: 'RESTART_GAME' }
+  | { type: 'TICK_TIMER' }
+  | { type: 'CLEAR_SPARK'; id: string };

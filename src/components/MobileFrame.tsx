@@ -1,0 +1,24 @@
+import React from 'react';
+
+interface MobileFrameProps {
+  children: React.ReactNode;
+  isShaking: boolean;
+}
+
+export const MobileFrame: React.FC<MobileFrameProps> = ({ children, isShaking }) => {
+  return (
+    <div className="flex items-center justify-center min-h-screen w-full bg-slate-950 p-0 sm:p-4 selection:bg-amber-300 selection:text-slate-900">
+      {/* 390px Mobile Portrait Container */}
+      <main
+        className={`relative w-full max-w-[430px] h-screen sm:h-[844px] bg-[#f8f4eb] sm:rounded-[44px] shadow-2xl overflow-hidden flex flex-col justify-between border-0 sm:border-8 sm:border-slate-800 ${
+          isShaking ? 'screen-shaking' : ''
+        }`}
+      >
+        {/* Subtle background terrain texture */}
+        <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#d97706_1px,transparent_1px)] [background-size:16px_16px]" />
+        
+        {children}
+      </main>
+    </div>
+  );
+};
