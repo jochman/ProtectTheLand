@@ -9,9 +9,9 @@ export const INITIAL_STATE: GameState = {
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
-  budget: 150, // Initial coalition funds (₪)
-  maxBudget: 400,
-  incomeRate: 8, // Full economic capacity (+8 ₪/tick)
+  budget: 120, // Initial coalition funds (₪) - allows 1st settlement + modest buffer
+  maxBudget: 250, // Capped treasury to prevent hoarding and keep penalties impactful
+  incomeRate: 2, // Steady baseline civilian economy (+2 ₪/s)
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
@@ -21,8 +21,8 @@ export const INITIAL_STATE: GameState = {
   isBuildMode: false,
   constructions: {},
   collectibleCoins: [
-    { id: 'coin-1', x: 110, y: 215, amount: 25, createdAt: Date.now() }, // Tel Aviv
-    { id: 'coin-2', x: 130, y: 65, amount: 25, createdAt: Date.now() },  // Haifa
+    { id: 'coin-1', x: 110, y: 215, amount: 20, createdAt: Date.now() }, // Tel Aviv
+    { id: 'coin-2', x: 130, y: 65, amount: 20, createdAt: Date.now() },  // Haifa
   ],
   lordOfHosts: {
     chargePercent: 12,
@@ -339,7 +339,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newBorder = state.soldiersAtBorder + addedSoldiers;
 
       // Economic Tradeoff: Mobilizing workers cripples the civilian economy!
-      const newIncomeRate = callsMade === 1 ? 5 : callsMade === 2 ? 3 : 1;
+      const newIncomeRate = callsMade === 1 ? 1 : 0;
 
       sounds.playReserves();
 
@@ -370,17 +370,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       );
 
       let newsHeadline = state.locale === 'he'
-        ? `צו 8! פלוגות מילואים גויסו. המשק בהאטה — קצב גיוס הכספים הואט ל-${newIncomeRate}₪ לשנייה (${newBatchesLeft} סבבים נותרו).`
+        ? `צו 8! פלוגות מילואים גויסו. עובדים נגרעו מהמשק — קצב הכנסות הואט ל-${newIncomeRate}₪ לשנייה בלבד (${newBatchesLeft} סבבים נותרו).`
         : `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
 
       if (callsMade === 2) {
         newsHeadline = state.locale === 'he'
-          ? `גל גיוס שני! מחסור חמור בידיים עובדות — קצב גיוס הכספים הואט ל-${newIncomeRate}₪ לשנייה בלבד.`
-          : `Second Mobilization Wave! Severe labor shortage — budget intake slowed to ₪${newIncomeRate}/s.`;
+          ? `גל גיוס שני! מחסור חמור בידיים עובדות — המשק שותק, 0₪ הכנסה פסיבית!`
+          : `Second Mobilization Wave! Severe labor shortage — economy stagnant at ₪0/s!`;
       } else if (callsMade === 3) {
         newsHeadline = state.locale === 'he'
-          ? `קריסה במערך המילואים! המשק בשיתוק כמעט מלא — קצב גיוס הכספים צנח ל-1₪ לשנייה בלבד!`
-          : `Reserve Exhaustion! Economy near paralysis — budget intake collapsed to ₪1/s!`;
+          ? `קריסה במערך המילואים! שיתוק כלכלי מוחלט — 0₪ הכנסה, תלות מלאה במטבעות ותרומות!`
+          : `Reserve Exhaustion! Total economic paralysis — ₪0/s passive income!`;
       }
 
       return {
@@ -468,13 +468,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         sounds.playSparkChime();
       }
 
-      // 2. Passive budget income (affected by reserve mobilization!)
-      const income = state.incomeRate ?? 8;
-      let newBudget = Math.min(state.maxBudget, state.budget + income);
-
-      // 3. Update constructions
+      // 2. State clones for tick calculations
       const updatedConstructions = { ...state.constructions };
       const updatedTiles = { ...state.tiles };
+
+      // 3. Passive budget income (affected by reserve mobilization & settlement maintenance drag!)
+      const baseIncome = state.incomeRate ?? 2;
+      const builtCount = Object.values(updatedTiles).filter(t => t.hasSettlement).length;
+      const settlementDrain = Math.floor(builtCount / 3);
+      const effectiveIncome = Math.max(0, baseIncome - settlementDrain);
+      let newBudget = Math.min(state.maxBudget, state.budget + effectiveIncome);
+
+      // 4. Update constructions
       let newSettlementsCount = state.settlementsCount;
       let newCharge = state.lordOfHosts.chargePercent;
       let newStage = state.lordOfHosts.stage;
@@ -732,19 +737,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Penalties only occur if player has built settlements in the West Bank!
       if (settlementsCount > 0) {
-        // Cooldown: at least 14 seconds between penalties
+        // Cooldown: at least 12 seconds between penalties
         // Probability scales with number of settlements:
-        // 1 settlement: ~6% chance per tick (avg ~30s), 3 settlements: ~12%, 5 settlements: ~18%, 8+ settlements: ~28%
-        const penaltyChance = Math.min(0.32, 0.03 + settlementsCount * 0.032);
+        // 1 settlement: ~8% chance per tick (avg ~24s), 3 settlements: ~16%, 5 settlements: ~25%, 8+ settlements: ~36%
+        const penaltyChance = Math.min(0.38, 0.04 + settlementsCount * 0.04);
 
-        if (nextPenaltyTick >= 14 && Math.random() < penaltyChance) {
-          // Penalty amount scales with number of settlements:
-          // 1 settlement: ~25₪
-          // 3 settlements: ~45₪
-          // 5 settlements: ~65₪
-          // 8 settlements: ~95₪
-          const rawPenalty = 15 + settlementsCount * 10 + (Math.floor(Math.random() * 3) - 1) * 5;
-          const penaltyAmount = Math.max(15, rawPenalty);
+        if (nextPenaltyTick >= 12 && Math.random() < penaltyChance) {
+          // Penalty amount scales heavily with number of settlements:
+          // 1 settlement: ~30₪ - 35₪ (takes 15-20s of +2₪/s to recover!)
+          // 2 settlements: ~42₪ - 48₪
+          // 3 settlements: ~55₪ - 60₪ (takes ~60s of +1₪/s to recover!)
+          // 5 settlements: ~75₪ - 85₪
+          // 8+ settlements: ~100₪ - 125₪ (can completely wipe out treasury!)
+          const basePenalty = 22 + settlementsCount * 12;
+          const variance = (Math.floor(Math.random() * 3) - 1) * 5;
+          const penaltyAmount = Math.max(20, basePenalty + variance);
           const actualDeducted = Math.min(newBudget, penaltyAmount);
           newBudget = Math.max(0, newBudget - actualDeducted);
 
@@ -803,6 +810,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         budget: newBudget,
+        incomeRate: effectiveIncome,
         settlementsCount: newSettlementsCount,
         constructions: updatedConstructions,
         tiles: updatedTiles,

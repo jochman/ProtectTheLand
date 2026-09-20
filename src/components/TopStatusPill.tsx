@@ -83,14 +83,16 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
             </div>
             <span
               className={`text-[9px] font-black tracking-tighter ${
-                (state.incomeRate ?? 8) >= 6
+                (state.incomeRate ?? 2) >= 2
                   ? 'text-emerald-700'
-                  : (state.incomeRate ?? 8) >= 3
+                  : (state.incomeRate ?? 2) === 1
                   ? 'text-amber-700'
                   : 'text-red-600 animate-pulse'
               }`}
             >
-              +{state.incomeRate ?? 8}₪/{state.locale === 'he' ? 'שנ' : 's'}
+              {(state.incomeRate ?? 2) <= 0
+                ? (state.locale === 'he' ? '0₪ (גירעון!)' : '₪0/s (Deficit!)')
+                : `+${state.incomeRate ?? 2}₪/${state.locale === 'he' ? 'שנ' : 's'}`}
             </span>
           </div>
         </div>
