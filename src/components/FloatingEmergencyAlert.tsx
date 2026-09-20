@@ -12,7 +12,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
   const [isVisible, setIsVisible] = useState(false);
 
   const currentNews = state.currentNews;
-  const isUrgent = currentNews?.isUrgent || state.defenseScore <= 25;
+  const isUrgent = Boolean(currentNews?.isUrgent);
   const isHe = state.locale === 'he';
 
   // Whenever a new urgent news item arrives, display the floating alert
@@ -22,10 +22,10 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
     if (isUrgent && currentNews.id !== dismissedNewsId) {
       setIsVisible(true);
 
-      // Auto-dismiss after 6.5 seconds so it doesn't block the screen indefinitely
+      // Auto-dismiss after 4.5 seconds so it doesn't linger or overwhelm
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 6500);
+      }, 4500);
 
       return () => clearTimeout(timer);
     } else if (!isUrgent) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Radio, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Radio, MessageSquare } from 'lucide-react';
 import { GameState, GameAction, NewsItem } from '../types';
 
 interface NewsFeedModalProps {
@@ -85,17 +85,6 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
             <p className="text-sm font-black text-slate-900 leading-snug font-heebo">
               {current.headline}
             </p>
-
-            {/* Quick Cycle Button inside Card */}
-            <div className="pt-1 flex justify-end">
-              <button
-                onClick={() => dispatch({ type: 'CYCLE_NEXT_NEWS' })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl font-bold text-xs shadow-sm hover:shadow active:scale-95 transition-all"
-              >
-                <span>{isHe ? 'מבזק הבא' : 'Next Flash'}</span>
-                {isHe ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-              </button>
-            </div>
           </div>
         )}
 

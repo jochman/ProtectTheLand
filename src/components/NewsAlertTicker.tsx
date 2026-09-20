@@ -10,7 +10,7 @@ interface NewsAlertTickerProps {
 export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatch }) => {
   if (!state.currentNews) return null;
 
-  const isUrgent = state.currentNews.isUrgent || state.defenseScore < 40;
+  const isUrgent = Boolean(state.currentNews.isUrgent);
   const isHe = state.locale === 'he';
 
   return (

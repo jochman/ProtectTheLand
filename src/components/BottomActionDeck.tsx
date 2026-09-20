@@ -52,48 +52,27 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
           </span>
         </button>
 
-        {/* 2. פריסת / החזרת כוחות (Troop Deployment / Tactical Recall) */}
-        {ungarrisonedCount > 0 ? (
-          <button
-            onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
-            disabled={state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
-            className="clay-btn py-3 px-1 text-center ring-2 ring-red-400 animate-bounce"
-          >
-            <span className="text-xs sm:text-sm font-black leading-tight text-red-950">
-              {strings.actions.deployTroops}
-            </span>
+        {/* 2. פריסת כוחות (Deploy Troops) */}
+        <button
+          onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
+          disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
+          className={`clay-btn py-3 px-1 text-center transition-all ${
+            ungarrisonedCount > 0 ? 'ring-2 ring-red-400 animate-bounce' : 'opacity-60 cursor-not-allowed'
+          }`}
+        >
+          <span className="text-xs sm:text-sm font-black leading-tight">
+            {strings.actions.deployTroops}
+          </span>
+          {ungarrisonedCount > 0 ? (
             <span className="text-[10px] font-bold text-red-700 mt-0.5">
               ({ungarrisonedCount} {isHe ? 'חשופים' : 'exposed'})
             </span>
-          </button>
-        ) : state.soldiersAtSettlements > 0 ? (
-          <button
-            onClick={() => dispatch({ type: 'RECALL_ALL_TROOPS' })}
-            disabled={state.gameStatus !== 'playing'}
-            className="clay-btn py-3 px-1 text-center bg-blue-100/95 hover:bg-blue-200 border-blue-400 text-blue-950 transition-all shadow-md group"
-            title={isHe ? 'החזרת כל הכוחות מהמאחזים לגבול' : 'Recall all troops from outposts to sovereign border'}
-          >
-            <span className="text-xs sm:text-sm font-black leading-tight flex items-center justify-center gap-1">
-              <span className="group-hover:-translate-x-0.5 transition-transform">⟵</span>
-              <span>{isHe ? 'החזר לגבול' : 'Recall'}</span>
-            </span>
-            <span className="text-[10px] font-bold text-blue-700 mt-0.5">
-              ({state.soldiersAtSettlements} {isHe ? 'במאחזים' : 'in outposts'})
-            </span>
-          </button>
-        ) : (
-          <button
-            disabled
-            className="clay-btn py-3 px-1 text-center opacity-60 cursor-not-allowed"
-          >
-            <span className="text-xs sm:text-sm font-black leading-tight">
-              {strings.actions.deployTroops}
-            </span>
+          ) : (
             <span className="text-[10px] font-semibold text-emerald-800/80 mt-0.5">
               {isHe ? 'מוצב' : 'Ready'}
             </span>
-          </button>
-        )}
+          )}
+        </button>
 
         {/* 3. בניית יישוב (Build Settlement) */}
         <button

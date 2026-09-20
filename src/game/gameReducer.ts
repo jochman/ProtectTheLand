@@ -573,13 +573,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const isPanic = state.defenseScore === 0 && state.activeBreaches.length >= 2;
 
-      // 6. Ambient Spicy News & Multi-part Story Arc Progress (every 5 seconds)
+      // 6. Ambient Spicy News & Multi-part Story Arc Progress (paced naturally every 28 seconds)
       let nextCurrentNews = state.currentNews;
       let nextNewsHistory = state.newsHistory || [];
       let nextStoryArcs = state.activeStoryArcs || {};
       let nextNewsTick = (state.lastNewsTick || 0) + 1;
 
-      if (nextNewsTick >= 5 && state.defenseScore > 20) {
+      if (nextNewsTick >= 28 && state.defenseScore > 20) {
         const { item, nextArcs } = getNextJuicyNews(state);
         nextStoryArcs = nextArcs;
         nextNewsTick = 0;
