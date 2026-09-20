@@ -254,6 +254,35 @@ class SoundEngine {
       osc.stop(st + 0.45);
     });
   }
+
+  public playClash() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    // Impactful friction sound: double stone impact + metallic clatter
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(260, ctx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.14);
+    gain1.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.14);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start();
+    osc1.stop(ctx.currentTime + 0.15);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(420, ctx.currentTime + 0.06);
+    osc2.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.2);
+    gain2.gain.setValueAtTime(0.18, ctx.currentTime + 0.06);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.06);
+    osc2.stop(ctx.currentTime + 0.21);
+  }
 }
 
 export const sounds = new SoundEngine();

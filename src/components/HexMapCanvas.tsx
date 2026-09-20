@@ -34,6 +34,21 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
     };
   }, [state.movingTroops, dispatch]);
 
+  // Auto-clear clashes once their duration completes
+  React.useEffect(() => {
+    if (!state.clashes || state.clashes.length === 0) return;
+    const now = Date.now();
+    const timers = state.clashes.map(clash => {
+      const remaining = Math.max(100, clash.durationMs - (now - clash.createdAt));
+      return setTimeout(() => {
+        dispatch({ type: 'CLEAR_CLASH', id: clash.id });
+      }, remaining);
+    });
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [state.clashes, dispatch]);
+
   return (
     <div className="relative w-full h-[465px] sm:h-[495px] flex-shrink-0 overflow-hidden flex items-center justify-center my-0.5 select-none">
       <svg
@@ -546,6 +561,194 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <ellipse cx="0" cy="-9.5" rx="3" ry="2.5" fill="#14532d" />
                   <ellipse cx="0" cy="-8.5" rx="3.8" ry="1" fill="#166534" />
                 </g>
+              </g>
+            </g>
+          );
+        })}
+
+        {/* 9. WEST BANK RANDOM CLASHES (עימותים הדדיים) */}
+        {(state.clashes || []).map(clash => {
+          const { startX, startY, targetX, targetY, midX, midY, isGarrisoned } = clash;
+          const dx = targetX - startX;
+          const dy = targetY - startY;
+
+          // Position groups at ~28% from their respective origin toward the middle
+          const settlerX = startX + dx * 0.28;
+          const settlerY = startY + dy * 0.28;
+          const arabX = startX + dx * 0.72;
+          const arabY = startY + dy * 0.72;
+
+          // Parabolic rock flight arcs between the two opposing groups
+          const arcSettlerToArab = `M ${settlerX} ${settlerY} Q ${midX} ${midY - 24} ${arabX} ${arabY}`;
+          const arcArabToSettler = `M ${arabX} ${arabY} Q ${midX} ${midY - 20} ${settlerX} ${settlerY}`;
+
+          return (
+            <g key={clash.id} className="pointer-events-none select-none">
+              {/* Dotted Tension Friction Line */}
+              <line
+                x1={startX}
+                y1={startY}
+                x2={targetX}
+                y2={targetY}
+                stroke="#dc2626"
+                strokeWidth="2"
+                strokeDasharray="4 3"
+                opacity="0.6"
+                className="animate-pulse"
+              />
+
+              {/* Group 1: Settlers / Hilltop Youth (מתנחלים ונוער גבעות) */}
+              <g transform={`translate(${settlerX}, ${settlerY})`} filter="url(#dropShadow)">
+                {/* Friction indicator circle */}
+                <circle cx="0" cy="0" r="13" fill="rgba(245, 158, 11, 0.35)" stroke="#d97706" strokeWidth="1.5" />
+                
+                {/* Settler Avatar Figure 1 */}
+                <g transform="translate(-3.5, -2) scale(0.95)">
+                  {/* Knitted Kippah (White & Gold) */}
+                  <ellipse cx="0" cy="-9" rx="3.5" ry="2" fill="#f59e0b" stroke="#78350f" strokeWidth="0.8" />
+                  {/* Head */}
+                  <circle cx="0" cy="-7" r="3.2" fill="#fed7aa" />
+                  {/* White Tzitziot Shirt */}
+                  <rect x="-3.5" y="-3.5" width="7" height="6.5" fill="#f8fafc" stroke="#475569" strokeWidth="0.8" rx="1" />
+                  {/* Arm holding a wooden stick / stone */}
+                  <line x1="3" y1="-2" x2="8" y2="-7" stroke="#78350f" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="8" cy="-7" r="1.8" fill="#78716c" />
+                </g>
+
+                {/* Settler Avatar Figure 2 (waving flag / stone) */}
+                <g transform="translate(3.5, 2) scale(0.85)">
+                  <ellipse cx="0" cy="-9" rx="3.2" ry="1.8" fill="#ea580c" />
+                  <circle cx="0" cy="-7" r="3" fill="#fed7aa" />
+                  <rect x="-3" y="-3.5" width="6" height="6" fill="#f8fafc" stroke="#0284c7" strokeWidth="0.8" rx="1" />
+                  {/* Mini Israeli Flag / Ribbon */}
+                  <line x1="2.5" y1="-2" x2="6" y2="-9" stroke="#475569" strokeWidth="1.2" />
+                  <polygon points="6,-9 11,-7.5 6,-6" fill="#0284c7" />
+                </g>
+
+                {/* Settler Side Mini Tag */}
+                <text x="0" y="16" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#78350f" className="font-rubik">
+                  {clash.settlementName}
+                </text>
+              </g>
+
+              {/* Group 2: Palestinian Village Residents / Youth (תושבי הכפר והצעירים) */}
+              <g transform={`translate(${arabX}, ${arabY})`} filter="url(#dropShadow)">
+                {/* Friction indicator circle */}
+                <circle cx="0" cy="0" r="13" fill="rgba(220, 38, 38, 0.35)" stroke="#b91c1c" strokeWidth="1.5" />
+
+                {/* Arab Avatar Figure 1 */}
+                <g transform="translate(3.5, -2) scale(0.95)">
+                  {/* Keffiyeh Pattern Headwrap (Black/White checkered) */}
+                  <ellipse cx="0" cy="-8.5" rx="4.2" ry="2.6" fill="#18181b" stroke="#f4f4f5" strokeWidth="0.8" />
+                  <circle cx="0" cy="-6.5" r="3" fill="#fed7aa" />
+                  {/* Dark Hoodie */}
+                  <rect x="-3.5" y="-3.5" width="7" height="6.5" fill="#166534" stroke="#14532d" strokeWidth="0.8" rx="1" />
+                  {/* Slingshot arm */}
+                  <line x1="-3" y1="-2" x2="-8" y2="-7" stroke="#1c1917" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="-8" cy="-7" r="2" fill="#57534e" />
+                </g>
+
+                {/* Arab Avatar Figure 2 */}
+                <g transform="translate(-3.5, 2) scale(0.85)">
+                  <ellipse cx="0" cy="-8.5" rx="4" ry="2.4" fill="#dc2626" />
+                  <circle cx="0" cy="-6.5" r="3" fill="#fed7aa" />
+                  <rect x="-3" y="-3.5" width="6" height="6" fill="#18181b" stroke="#27272a" strokeWidth="0.8" rx="1" />
+                  {/* Raising stone */}
+                  <circle cx="-6" cy="-8" r="2.2" fill="#78716c" />
+                </g>
+
+                {/* Arab Side Mini Tag */}
+                <text x="0" y="16" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#991b1b" className="font-rubik">
+                  {clash.arabCityName}
+                </text>
+              </g>
+
+              {/* Midpoint Clash Battle Hotspot (החיכוך במרכז) */}
+              <g transform={`translate(${midX}, ${midY})`}>
+                {/* Shockwave ping ring */}
+                <circle cx="0" cy="0" r="16" fill="rgba(239, 68, 68, 0.4)" stroke="#ef4444" strokeWidth="2" className="animate-ping" />
+                <circle cx="0" cy="0" r="22" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" strokeWidth="1.5" />
+
+                {/* Smoke / Dust cloud puffs */}
+                <ellipse cx="-6" cy="-5" rx="8" ry="5" fill="#cbd5e1" opacity="0.6" />
+                <ellipse cx="7" cy="-7" rx="9" ry="6" fill="#94a3b8" opacity="0.55" />
+                <ellipse cx="0" cy="4" rx="10" ry="5" fill="#cbd5e1" opacity="0.5" />
+
+                {/* Impact explosion icon */}
+                <text x="0" y="6" textAnchor="middle" fontSize="18" className="animate-bounce select-none">
+                  💥
+                </text>
+
+                {/* Fire & Smoke particles */}
+                <text x="-11" y="-7" fontSize="12">🔥</text>
+                <text x="9" y="-9" fontSize="12" opacity="0.85">💨</text>
+
+                {/* Presence of Army Separation vs Unprotected Outpost */}
+                {isGarrisoned ? (
+                  <g transform="translate(0, 18)">
+                    <rect x="-32" y="-7" width="64" height="13" rx="6.5" fill="#15803d" stroke="#86efac" strokeWidth="1" filter="url(#dropShadow)" />
+                    <text x="0" y="2.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="900" className="font-rubik">
+                      🛡️ צה״ל מפריד
+                    </text>
+                  </g>
+                ) : (
+                  <g transform="translate(0, 18)">
+                    <rect x="-36" y="-7" width="72" height="13" rx="6.5" fill="#b91c1c" stroke="#fca5a5" strokeWidth="1" className="animate-pulse" filter="url(#dropShadow)" />
+                    <text x="0" y="2.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="900" className="font-rubik">
+                      ⚠️ ללא אבטחה!
+                    </text>
+                  </g>
+                )}
+              </g>
+
+              {/* Parabolic Flying Stones Animation (יידויי אבנים הדדיים!) */}
+              {/* Stone 1: Settlers -> Arab Side */}
+              <g>
+                <animateMotion
+                  path={arcSettlerToArab}
+                  dur="0.75s"
+                  repeatCount="indefinite"
+                />
+                <circle cx="0" cy="0" r="3.2" fill="#44403c" stroke="#1c1917" strokeWidth="0.8" />
+                <circle cx="-0.8" cy="-0.8" r="1" fill="#a8a29e" />
+              </g>
+
+              {/* Stone 2: Arab Side -> Settlers */}
+              <g>
+                <animateMotion
+                  path={arcArabToSettler}
+                  dur="0.85s"
+                  begin="0.32s"
+                  repeatCount="indefinite"
+                />
+                <circle cx="0" cy="0" r="3.2" fill="#57534e" stroke="#292524" strokeWidth="0.8" />
+                <circle cx="-0.8" cy="-0.8" r="1" fill="#d6d3d1" />
+              </g>
+
+              {/* Floating Tactical Banner above the clash */}
+              <g transform={`translate(${midX}, ${midY - 32})`} filter="url(#dropShadow)">
+                <rect
+                  x="-55"
+                  y="-10"
+                  width="110"
+                  height="18"
+                  rx="9"
+                  fill="#991b1b"
+                  stroke="#fef08a"
+                  strokeWidth="1.5"
+                  className="animate-pulse"
+                />
+                <text
+                  x="0"
+                  y="2.5"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="8"
+                  fontWeight="900"
+                  className="font-rubik"
+                >
+                  {clash.title}
+                </text>
               </g>
             </g>
           );

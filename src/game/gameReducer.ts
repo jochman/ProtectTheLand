@@ -60,6 +60,8 @@ export const INITIAL_STATE: GameState = {
   isScreenShaking: false,
   sparks: [],
   movingTroops: [],
+  clashes: [],
+  lastClashTick: 0,
 };
 
 function withNews(state: GameState, item: NewsItem): { currentNews: NewsItem; newsHistory: NewsItem[]; lastNewsTick: number } {
@@ -466,7 +468,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // 2. Passive budget income (affected by reserve mobilization!)
       const income = state.incomeRate ?? 8;
-      const newBudget = Math.min(state.maxBudget, state.budget + income);
+      let newBudget = Math.min(state.maxBudget, state.budget + income);
 
       // 3. Update constructions
       const updatedConstructions = { ...state.constructions };
@@ -589,6 +591,134 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         nextCurrentNews = item;
       }
 
+      // 7. Random West Bank Clashes (עימותים הדדיים) between Jewish settlements and Arabic cities
+      const now = Date.now();
+      let activeClashes = (state.clashes || []).filter(c => now - c.createdAt < c.durationMs);
+      let nextClashTick = (state.lastClashTick || 0) + 1;
+
+      // Find all built settlements in West Bank and local Arabic cities
+      const builtSettlementList = Object.values(updatedTiles).filter(t => t.hasSettlement);
+      const arabCitiesList = Object.values(updatedTiles).filter(t => t.isLocalCity);
+
+      // Clashes only occur if there are Jewish settlements in the West Bank, and frequency scales with settlement count
+      if (builtSettlementList.length > 0 && arabCitiesList.length > 0) {
+        // Frequency increases significantly as more settlements are built:
+        // 1 settlement: ~9.5% per tick, 3 settlements: ~18.5%, 5 settlements: ~27.5%, 8+ settlements: ~40%
+        const clashChance = Math.min(0.40, 0.05 + builtSettlementList.length * 0.045);
+
+        // Cooldown: at least 7 seconds between clash triggers, and at most 2 concurrent clashes
+        if (nextClashTick >= 7 && activeClashes.length < 2 && Math.random() < clashChance) {
+          // Pick a random built settlement
+          const settlement = builtSettlementList[Math.floor(Math.random() * builtSettlementList.length)];
+
+          // Find the closest Arabic cities by Euclidean distance
+          const sortedArabCities = [...arabCitiesList].sort((a, b) => {
+            const distA = Math.hypot(a.x - settlement.x, a.y - settlement.y);
+            const distB = Math.hypot(b.x - settlement.x, b.y - settlement.y);
+            return distA - distB;
+          });
+
+          // Pick from the 2 closest Arabic cities
+          const targetArabCity = sortedArabCities[Math.random() < 0.7 ? 0 : Math.min(1, sortedArabCities.length - 1)];
+
+          const settlerInitiated = Math.random() < 0.5;
+          const settlementName = settlement.settlementName || (state.locale === 'he' ? 'מאחז חדש' : 'Outpost');
+          const arabCityName = (state.locale === 'he' ? targetArabCity.label : targetArabCity.subLabel) || (state.locale === 'he' ? 'הכפר הסמוך' : 'Nearby Village');
+          const isGarrisoned = settlement.garrisonCount > 0;
+
+          // Titles and narrative headlines
+          let clashHeadline = '';
+          let clashTitle = '';
+          let clashSource = '';
+          let isUrgentClash = false;
+
+          if (settlerInitiated) {
+            clashTitle = state.locale === 'he'
+              ? `פשיטה: ${settlementName} ⚔️ ${arabCityName}`
+              : `Raid: ${settlementName} vs ${arabCityName}`;
+
+            if (state.locale === 'he') {
+              const variants = [
+                `עימות אלים: קבוצת צעירים מ${settlementName} פשטה על פאתי ${arabCityName}, יודו אבנים הדדיות.`,
+                `חיכוך בשומרון: מתנחלים מ${settlementName} נכנסו למסיק זיתים סמוך ל${arabCityName}.`,
+                `הפגנה סוערת: תושבים מ${settlementName} חסמו את כביש הגישה ל${arabCityName} והבעירו צמיגים.`,
+                `פעולת 'תג מחיר': ריסוס כתובות ועימותים בין תושבי ${settlementName} לפאתי ${arabCityName}.`,
+              ];
+              clashHeadline = variants[Math.floor(Math.random() * variants.length)];
+            } else {
+              clashHeadline = `Violent clash: Settlers from ${settlementName} raided outskirts of ${arabCityName}, stones exchanged.`;
+            }
+          } else {
+            clashTitle = state.locale === 'he'
+              ? `יידוי אבנים: ${arabCityName} ⚔️ ${settlementName}`
+              : `Stones: ${arabCityName} vs ${settlementName}`;
+
+            if (state.locale === 'he') {
+              const variants = [
+                `התפרעות אלימה: עשרות מיידי אבנים יצאו מ${arabCityName} לעבר כביש הגישה ל${settlementName}.`,
+                `חיכוך סמוך לגדר: בקבוקי תבערה וזיקוקים מ${arabCityName} נורו לעבר בתי ${settlementName}.`,
+                `מארב אבנים: רכבים נרגמו באבנים בציר הסמוך ל${arabCityName}, סמוך ל${settlementName}.`,
+                `הפרת סדר בצומת: עשרות צעירים מ${arabCityName} התעמתו בפאתי המאחז ${settlementName}.`,
+              ];
+              clashHeadline = variants[Math.floor(Math.random() * variants.length)];
+            } else {
+              clashHeadline = `Violent riot: Stone throwers from ${arabCityName} targeted access road to ${settlementName}.`;
+            }
+          }
+
+          if (isGarrisoned) {
+            clashSource = state.locale === 'he' ? 'דובר צה״ל' : 'IDF Spokesperson';
+            sounds.playClash();
+          } else {
+            // UNGARRISONED OUTPOST: Severe tension, no military buffer!
+            clashSource = state.locale === 'he' ? 'משטרת מחוז ש״י' : 'District Police';
+            isUrgentClash = true;
+            sounds.playSiren();
+            updatedTiles[settlement.id] = { ...settlement, hasAlert: true };
+            if (newBudget >= 15) {
+              newBudget = Math.max(0, newBudget - 15);
+            }
+          }
+
+          const clashEvent = {
+            id: `clash-${now}-${Math.random().toString(36).slice(2, 6)}`,
+            settlementId: settlement.id,
+            arabCityId: targetArabCity.id,
+            settlerInitiated,
+            settlementName,
+            arabCityName,
+            startX: settlement.x,
+            startY: settlement.y,
+            targetX: targetArabCity.x,
+            targetY: targetArabCity.y,
+            midX: (settlement.x + targetArabCity.x) / 2,
+            midY: (settlement.y + targetArabCity.y) / 2,
+            createdAt: now,
+            durationMs: 7500,
+            title: clashTitle,
+            isGarrisoned,
+          };
+
+          activeClashes.push(clashEvent);
+          nextClashTick = 0;
+
+          // Dispatch news item for this clash
+          const clashNewsItem: NewsItem = {
+            id: `clash-news-${now}`,
+            headline: clashHeadline,
+            source: clashSource,
+            category: 'military',
+            isUrgent: isUrgentClash,
+            timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          };
+
+          if (nextCurrentNews) {
+            nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
+          }
+          nextCurrentNews = clashNewsItem;
+        }
+      }
+
       return {
         ...state,
         budget: newBudget,
@@ -603,6 +733,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         newsHistory: nextNewsHistory,
         activeStoryArcs: nextStoryArcs,
         lastNewsTick: nextNewsTick,
+        clashes: activeClashes,
+        lastClashTick: nextClashTick,
         lordOfHosts: {
           ...state.lordOfHosts,
           chargePercent: Math.round(newCharge),
@@ -919,6 +1051,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         movingTroops: (state.movingTroops || []).filter(t => t.id !== action.id),
+      };
+    }
+
+    case 'CLEAR_CLASH': {
+      return {
+        ...state,
+        clashes: (state.clashes || []).filter(c => c.id !== action.id),
       };
     }
 

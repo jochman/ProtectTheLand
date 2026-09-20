@@ -52,6 +52,25 @@ export interface MovingTroop {
   createdAt: number;
 }
 
+export interface ClashEvent {
+  id: string;
+  settlementId: string;
+  arabCityId: string;
+  settlerInitiated: boolean; // true = settlers raid village/orchard, false = village youth clash at settlement
+  settlementName: string;
+  arabCityName: string;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  midX: number;
+  midY: number;
+  createdAt: number;
+  durationMs: number;
+  title: string;
+  isGarrisoned: boolean;
+}
+
 export interface GameState {
   locale: 'he' | 'en';
   soundEnabled: boolean;
@@ -115,6 +134,8 @@ export interface GameState {
   isScreenShaking: boolean;
   sparks: SparkParticle[];
   movingTroops: MovingTroop[];
+  clashes: ClashEvent[];
+  lastClashTick: number;
 }
 
 export type GameAction =
@@ -135,6 +156,7 @@ export type GameAction =
   | { type: 'TICK_TIMER' }
   | { type: 'CLEAR_SPARK'; id: string }
   | { type: 'CLEAR_MOVING_TROOP'; id: string }
+  | { type: 'CLEAR_CLASH'; id: string }
   | { type: 'OPEN_NEWS_MODAL' }
   | { type: 'CLOSE_NEWS_MODAL' }
   | { type: 'CYCLE_NEXT_NEWS' }
