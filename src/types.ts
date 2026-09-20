@@ -22,6 +22,7 @@ export interface HexTile {
   hasAlert?: boolean;
   hp?: number; // Settlement health 0..100
   maxHp?: number;
+  damagedUntil?: number; // Timestamp until when post-impact smoke/aftermath is shown
 }
 
 export interface NewsItem {

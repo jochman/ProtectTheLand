@@ -645,13 +645,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // Heal / repair garrisoned settlements gradually
+      const now = Date.now();
+
+      // Heal / repair garrisoned settlements gradually and clear expired damaged city states
       for (const tId of Object.keys(updatedTiles)) {
         const t = updatedTiles[tId];
         if (t.hasSettlement && t.garrisonCount > 0 && t.hp !== undefined && t.hp < 100) {
           updatedTiles[tId] = {
             ...t,
             hp: Math.min(100, t.hp + 5),
+          };
+        }
+        if (t.damagedUntil && now >= t.damagedUntil) {
+          updatedTiles[tId] = {
+            ...t,
+            damagedUntil: undefined,
+            hasAlert: false,
           };
         }
       }
@@ -682,7 +691,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         nextCoinTick = 0;
       }
 
-      const now = Date.now();
       let nextCurrentNews = state.currentNews;
       let nextNewsHistory = state.newsHistory || [];
       let nextStoryArcs = state.activeStoryArcs || {};
@@ -751,7 +759,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sounds.playSiren();
           newDefenseScore = Math.max(0, newDefenseScore - 6);
           newBudget = Math.max(0, newBudget - 25);
-          updatedTiles[atk.targetCityId] = { ...updatedTiles[atk.targetCityId], hasAlert: true };
+          updatedTiles[atk.targetCityId] = {
+            ...updatedTiles[atk.targetCityId],
+            hasAlert: false, // Infiltration message is removed; city is now in post-impact aftermath
+            damagedUntil: now + 6500,
+          };
 
           const impactHeadlineHe = `פגיעה בעורף: חוליה חדרה לפאתי ${atk.targetCityName} דרך פרצה בקו הגבול! (25₪- נזק)`;
           const impactHeadlineEn = `Home front breach: Squad attacked outskirts of ${atk.targetCityName} through border gap! (-25₪ damage)`;

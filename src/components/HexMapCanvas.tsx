@@ -276,11 +276,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 />
               )}
 
-              {/* Region or City Label & Green Side Attack Alert Indicator */}
+              {/* Region or City Label & Green Side Attack Alert / Damage Indicator */}
               {tile.label && !tile.isLocalCity && !isCandidateForBuild && (
                 <g>
-                  {/* Alert ring when attacked or under threat */}
-                  {(tile.hasAlert || (state.greenSideAttacks || []).some(a => a.targetCityId === tile.id)) && (() => {
+                  {/* 1. Active Incoming Infiltration Threat (en route) */}
+                  {(state.greenSideAttacks || []).some(a => a.targetCityId === tile.id) && (() => {
                     const relatedAttack = (state.greenSideAttacks || []).find(a => a.targetCityId === tile.id);
                     return (
                       <g
@@ -297,14 +297,33 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                       >
                         <circle cx="0" cy="0" r="24" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" className="animate-pulse" />
                         <g transform="translate(0, -18)" filter="url(#dropShadow)">
-                          <rect x="-34" y="-6.5" width="68" height="13" rx="4" fill="#dc2626" stroke="#fca5a5" strokeWidth="1" />
+                          <rect x="-35" y="-6.5" width="70" height="13" rx="4" fill="#dc2626" stroke="#fca5a5" strokeWidth="1" />
                           <text x="0" y="2.5" textAnchor="middle" fill="#fff" fontSize="6.5" fontWeight="900" className="font-rubik">
-                            🚨 חדירה! (לחץ לבלימה)
+                            {state.locale === 'he' ? '🚨 חדירה בדרך! (בלימה)' : '🚨 Raid Inbound! (Defend)'}
                           </text>
                         </g>
                       </g>
                     );
                   })()}
+
+                  {/* 2. Post-Impact Aftermath (After squad hits: "חדירה!" is removed, replaced by 💥 פגיעה בעורף for 6s) */}
+                  {Boolean(tile.damagedUntil && Date.now() < tile.damagedUntil) && !(state.greenSideAttacks || []).some(a => a.targetCityId === tile.id) && (
+                    <g transform={`translate(${tile.x}, ${tile.y})`}>
+                      <circle cx="0" cy="0" r="22" fill="rgba(185, 28, 28, 0.25)" stroke="#b91c1c" strokeWidth="1.5" />
+                      {/* Rising smoke/ember particles */}
+                      <g transform="translate(0, -10)" opacity="0.85">
+                        <circle cx="-5" cy="-2" r="3" fill="#64748b" className="animate-ping" style={{ animationDuration: '2.4s' }} />
+                        <circle cx="4" cy="-5" r="4" fill="#475569" className="animate-pulse" />
+                        <circle cx="-1" cy="-8" r="2" fill="#ef4444" opacity="0.75" />
+                      </g>
+                      <g transform="translate(0, -18)" filter="url(#dropShadow)">
+                        <rect x="-36" y="-6.5" width="72" height="13" rx="4" fill="#7f1d1d" stroke="#fca5a5" strokeWidth="1" />
+                        <text x="0" y="2.5" textAnchor="middle" fill="#fee2e2" fontSize="6.5" fontWeight="900" className="font-rubik">
+                          {state.locale === 'he' ? '💥 פגיעה בעורף (-25₪)' : '💥 Struck! (-25₪)'}
+                        </text>
+                      </g>
+                    </g>
+                  )}
                   {tile.label.includes(' / ') ? (
                     <text
                       x={tile.x}
