@@ -755,14 +755,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedConstructions = { ...state.constructions };
       const updatedTiles = { ...state.tiles };
 
-      // 3. Passive budget income: Guarded settlements generate coalition funding (+1₪/s per outpost)
+      // 3. Passive budget income: Guarded settlements generate coalition funding (+2₪/s per outpost)
       // Baseline civilian production decreases when reserve call-ups remove workers from the economy.
       const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
-      const baseCivilianIncome = Math.max(1, 3 - callsMade);
+      const baseCivilianIncome = Math.max(1, 4 - callsMade);
       const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
-      const guardedIncomeBonus = guardedSettlementCount * 1;
+      const guardedIncomeBonus = guardedSettlementCount * 2;
       const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
-      const currentMaxBudget = 300 + Object.values(updatedTiles).filter(t => t.hasSettlement).length * 20;
+      const currentMaxBudget = 300 + Object.values(updatedTiles).filter(t => t.hasSettlement).length * 25;
       let newBudget = Math.min(currentMaxBudget, state.budget + effectiveIncome);
       let newLandHp = state.landHp !== undefined ? state.landHp : 100;
 
@@ -889,7 +889,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (state.activeBreaches.length > 0) {
         // Holes in the border fence allow hostile raids into the green side!
-        if (nextGreenAttackTick >= 26 && activeGreenAttacks.length < 1 && Math.random() < 0.4) {
+        // Dynamic scaling: early settlements get a significant grace cooldown!
+        const totalSettlements = Object.values(updatedTiles).filter(t => t.hasSettlement).length;
+        const minAttackCooldown = totalSettlements <= 1 ? 60 : totalSettlements === 2 ? 50 : 42;
+        const attackChance = totalSettlements <= 1 ? 0.22 : totalSettlements === 2 ? 0.30 : 0.35;
+
+        if (nextGreenAttackTick >= minAttackCooldown && activeGreenAttacks.length < 1 && Math.random() < attackChance) {
           const breachId = state.activeBreaches[Math.floor(Math.random() * state.activeBreaches.length)];
           const breachTile = updatedTiles[breachId];
           const targetInfo = BORDER_TO_GREEN_CITY[breachId] || { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' };
@@ -907,7 +912,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               targetY: targetCityTile.y,
               progress: 0,
               createdAt: now,
-              durationMs: 16000, // 16 seconds to give player plenty of time to read and react!
+              durationMs: 18000, // 18 seconds to give player plenty of time to read and react!
             };
             activeGreenAttacks.push(attackEvent);
             nextGreenAttackTick = 0;
@@ -938,22 +943,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       // Progress active green side attacks and trigger impact on reach
       const survivingGreenAttacks: GreenSideAttack[] = [];
       for (const atk of activeGreenAttacks) {
-        const nextProgress = atk.progress + 0.065; // ~15.5 - 16 seconds to cross (plenty of time to read and respond)
+        const nextProgress = atk.progress + 0.055; // ~18 seconds to cross (plenty of time to read and respond)
         if (nextProgress >= 1) {
           // RAID REACHED THE GREEN SIDE CITY!
           sounds.playPanicMashThud();
           sounds.playSiren();
-          newDefenseScore = Math.max(0, newDefenseScore - 6);
-          newBudget = Math.max(0, newBudget - 20);
-          newLandHp = Math.max(0, Number((newLandHp - 20).toFixed(1)));
+          newDefenseScore = Math.max(0, newDefenseScore - 4);
+          newBudget = Math.max(0, newBudget - 10);
+          newLandHp = Math.max(0, Number((newLandHp - 12).toFixed(1)));
           updatedTiles[atk.targetCityId] = {
             ...updatedTiles[atk.targetCityId],
             hasAlert: false, // Infiltration message is removed; city is now in post-impact aftermath
             damagedUntil: now + 6500,
           };
 
-          const impactHeadlineHe = `פגיעה ישירה בעורף: חוליה פגעה בפאתי ${atk.targetCityName}! (חוסן לאומי 20%- | 20₪- נזק)`;
-          const impactHeadlineEn = `Direct home front strike: Squad attacked outskirts of ${atk.targetCityName}! (-20% HP | -₪20 damage)`;
+          const impactHeadlineHe = `פגיעה ישירה בעורף: חוליה פגעה בפאתי ${atk.targetCityName}! (חוסן לאומי 12%- | 10₪- נזק)`;
+          const impactHeadlineEn = `Direct home front strike: Squad attacked outskirts of ${atk.targetCityName}! (-12% HP | -₪10 damage)`;
           const impactNewsItem: NewsItem = {
             id: `green-impact-${now}-${atk.id}`,
             headline: state.locale === 'he' ? impactHeadlineHe : impactHeadlineEn,
@@ -1015,10 +1020,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const unsecureSettlements = builtSettlementList.filter(t => t.garrisonCount === 0);
         const secureSettlements = builtSettlementList.filter(t => t.garrisonCount > 0);
 
-        // Fights happen significantly more frequently when non-secured settlements are exposed!
+        // Progressive scaling: give early settlements breathing room!
         const hasUnsecured = unsecureSettlements.length > 0;
-        const minClashCooldown = hasUnsecured ? 14 : 32;
-        const clashChance = hasUnsecured ? 0.42 : 0.12;
+        const totalBuilt = builtSettlementList.length;
+        const minClashCooldown = hasUnsecured
+          ? (totalBuilt <= 1 ? 45 : totalBuilt === 2 ? 38 : 32)
+          : (totalBuilt <= 2 ? 60 : 50);
+        const clashChance = hasUnsecured ? 0.28 : 0.10;
 
         if (nextClashTick >= minClashCooldown && activeClashes.length < 1 && Math.random() < clashChance) {
           // Fights happen significantly more against non-secured settlements (85% chance if any exist)!
@@ -1110,12 +1118,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             // UNGARRISONED OUTPOST: Severe tension, no military buffer! Unprotected outpost takes HP damage!
             isUrgentClash = true;
             sounds.playSiren();
-            if (newBudget >= 15) {
-              newBudget = Math.max(0, newBudget - 15);
+            if (newBudget >= 6) {
+              newBudget = Math.max(0, newBudget - 6);
             }
 
             const currentHp = settlement.hp !== undefined ? settlement.hp : 100;
-            const newHp = Math.max(0, currentHp - 35);
+            const newHp = Math.max(0, currentHp - 25);
 
             if (newHp <= 0) {
               // Settlement destroyed!
@@ -1205,13 +1213,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Penalties trigger only when settlements are built but LEFT UNPROTECTED!
       if (ungarrisonedCount > 0) {
-        // Cooldown: at least 16 seconds between coalition ultimatums
-        const penaltyChance = Math.min(0.45, 0.15 + ungarrisonedCount * 0.1);
+        // Cooldown: increased from 16s to 36s (or 45s for first settlement)
+        const totalBuilt = builtSettlementList.length;
+        const minPenaltyCooldown = totalBuilt <= 1 ? 45 : 36;
+        const penaltyChance = Math.min(0.32, 0.10 + ungarrisonedCount * 0.06);
 
-        if (nextPenaltyTick >= 16 && Math.random() < penaltyChance) {
-          const basePenalty = 20 + ungarrisonedCount * 6;
-          const variance = (Math.floor(Math.random() * 3) - 1) * 3;
-          const penaltyAmount = Math.max(20, basePenalty + variance);
+        if (nextPenaltyTick >= minPenaltyCooldown && Math.random() < penaltyChance) {
+          const basePenalty = 8 + ungarrisonedCount * 2;
+          const variance = (Math.floor(Math.random() * 3) - 1) * 2;
+          const penaltyAmount = Math.max(8, Math.min(14, basePenalty + variance));
           const actualDeducted = Math.min(newBudget, penaltyAmount);
           newBudget = Math.max(0, newBudget - actualDeducted);
 

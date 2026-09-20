@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 16:11:28 UTC (Branch: `main`, Iteration #40)
+> **Last Synchronized:** 2026-09-20 16:14:21 UTC (Branch: `main`, Iteration #41)
 
 ---
 
@@ -340,7 +340,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   $$\text{HoleBleed} = \text{ActiveBreaches} \times 0.4\text{ HP/s}$$
   Leaving 4 gaps unsealed drains 1.6 HP/s (16% HP lost every 10 seconds).
 - **Direct Attack Impact:**
-  - Infiltration raid striking an Israeli city: **-20 HP** directly to Land HP, **-20₪** damage, and screen shake.
+  - Infiltration raid striking an Israeli city: **-12 HP** directly to Land HP, **-10₪** damage, and screen shake (reduced from -20 HP / -20₪ for balanced expansion pacing).
   - West Bank settlement destroyed in a clash: **-10 HP** to Land HP.
 - **Resilience Recovery:**
   - When border is 100% fortified with 0 holes and 0 active attacks: recovers **+0.5 HP/s** (up to 100%).
@@ -348,10 +348,13 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 - **Defeat Threshold:**
   If `landHp <= 0`, sovereign defenses collapse and the **October 7 Catastrophe** defeat modal triggers immediately.
 
-### 5.7 Israeli Cities Shekel Collection ("כספים קואליציוניים")
+### 5.7 Israeli Cities Shekel Collection & Economy
+- **Guarded Outpost Yield:** Each secured settlement generates **+2₪/s** (increased from +1₪/s to reward player expansion).
+- **Civilian Baseline:** Starts at **+4₪/s**, tapering by -1₪/s per reserve call-up.
 - **Placement:** Spawns on sovereign Israeli cities.
 - **Controlled Quantity:** Strictly at most **1 coin** present at a time (cooldown: 16s between spawns).
 - **Balanced Value:** **+15₪** per coin, with 3D gold shekel animation, 30px touch hitbox, and cash register chime.
+- **Coalition Fines:** Cooldown increased to **36-45s** (previously 16s), and fine amounts halved to **8-14₪** (previously 20-35₪).
 
 ---
 
@@ -359,25 +362,32 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 
 ### 6.1 West Bank Clashes & Settlement HP Degradation
 - Clashes occur between built outposts and adjacent Palestinian cities (e.g. Nablus, Ramallah, Jenin, Hebron).
-- **Frequency:** Kept spaced out (~1 every 40 seconds) to prevent visual chaos.
+- **Progressive Cooldown Curve:**
+  - Settlements ≤ 1: Cooldown is at least **45 seconds** (grace period to allow first garrisoning).
+  - Settlements = 2: Cooldown is at least **38 seconds**.
+  - Settlements ≥ 3: Cooldown is **32 seconds** (unsecured) / **50-60 seconds** (secured).
 - **Garrisoned Settlements:** Soldier defends the perimeter. Sound: tactical clash sfx. HP remains protected.
 - **Ungarrisoned Outposts (HP Bar Mechanic):**
   - Exposed outposts lack IDF protection.
-  - When attacked, the outpost suffers **-35 HP** damage (visible health bar).
+  - When attacked, the outpost suffers **-25 HP** damage (previously -35 HP) and **-6₪** minor clash cost (halved from -15₪).
   - Sound: emergency siren and alert ring.
   - At **0 HP**, the outpost is burned/destroyed, settlement count drops by 1, and the disaster is reported on the news wire.
 
-### 6.2 Green-Side Hostile Infiltrations (16-Second Human-Readable Transit)
+### 6.2 Green-Side Hostile Infiltrations (18-Second Extended Reaction Window)
 - Whenever an unmanned border checkpoint exists (`isBreached: true`), hostile raiding squads can penetrate into the Green side.
-- **Extended 16-Second Response Window:**
-  - Raiders traverse along dashed attack vectors with `durationMs = 16000` (~16 seconds total transit time, speed `progress += 0.065/tick`).
-  - This guarantees ample human reaction time to comfortably read the alert headline, digest the tactical situation, and dispatch countermeasures.
-  - Live countdown tag displayed directly above the moving hostile vehicle: `🎯 [עיר] (15ש׳ לבלימה)`.
+- **Dynamic Pacing & Cooldown Curve:**
+  - Settlements ≤ 1: Cooldown is at least **60 seconds** with only 22% trigger probability.
+  - Settlements = 2: Cooldown is at least **50 seconds** with 30% trigger probability.
+  - Settlements ≥ 3: Cooldown is **42 seconds** (previously 26 seconds).
+- **Extended 18-Second Response Window:**
+  - Raiders traverse along dashed attack vectors with `durationMs = 18000` (~18 seconds total transit time, speed `progress += 0.055/tick`).
+  - Guarantees comfortable reaction time to read alerts, digest tactical advice, and dispatch defenses without panic.
+  - Live countdown tag displayed directly above the moving hostile vehicle: `🎯 [עיר] (17ש׳ לבלימה)`.
 - **Tri-Fold Actionable Defense:**
   1. **Floating Emergency Alert with Direct Button:** The urgent operational alert remains visible for 14 seconds and embeds a direct action button: `[🛡️ לחץ כאן לבלימת החדירה!]` opening the defense modal instantly.
   2. **The Reserves Button:** Turns red, pulsing with `🚨 בלום חדירה! / Intercept!`.
-  3. **Map Truck & City Clicking:** Clicking the raider truck or the target city opens `InfiltrationDefenseModal` showing the animated approach bar with exact seconds remaining (`~14s left to intercept`).
-- **Failure to Intercept:** If the truck reaches the city: **-25₪** direct damage, -6% defense drop, and city alert.
+  3. **Map Truck & City Clicking:** Clicking the raider truck or the target city opens `InfiltrationDefenseModal` showing the animated approach bar with exact seconds remaining.
+- **Failure to Intercept:** If the truck reaches the city: **-10₪** direct damage (halved from -20₪), -4% defense drop (previously -6%), and -12% Land HP.
 
 ---
 
