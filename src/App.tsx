@@ -10,6 +10,7 @@ import { SoulSparksOverlay } from './components/SoulSparksOverlay';
 import { SettlementInspectorModal } from './components/SettlementInspectorModal';
 import { October7DefeatModal } from './components/October7DefeatModal';
 import { RationalVictoryModal } from './components/RationalVictoryModal';
+import { NewsFeedModal } from './components/NewsFeedModal';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -39,8 +40,8 @@ export default function App() {
       {/* Top Status Counters & Defense Meter */}
       <TopStatusPill state={state} />
 
-      {/* Breaking News Ticker */}
-      <NewsAlertTicker state={state} />
+      {/* Breaking News Ticker (Clickable to open News Feed) */}
+      <NewsAlertTicker state={state} dispatch={dispatch} />
 
       {/* The Interactive Hex Map Viewport */}
       <HexMapCanvas state={state} dispatch={dispatch} />
@@ -55,6 +56,7 @@ export default function App() {
       <SettlementInspectorModal state={state} dispatch={dispatch} />
       <October7DefeatModal state={state} dispatch={dispatch} />
       <RationalVictoryModal state={state} dispatch={dispatch} />
+      <NewsFeedModal state={state} dispatch={dispatch} />
     </MobileFrame>
   );
 }

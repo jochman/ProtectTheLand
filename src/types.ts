@@ -26,6 +26,11 @@ export interface NewsItem {
   id: string;
   headline: string;
   source: string;
+  category?: 'politics' | 'celebs' | 'military' | 'rabbis';
+  arcId?: string;
+  arcStep?: number;
+  totalArcSteps?: number;
+  timestamp?: string;
   isUrgent?: boolean;
 }
 
@@ -102,6 +107,10 @@ export interface GameState {
 
   // News ticker & messaging
   currentNews: NewsItem | null;
+  newsHistory: NewsItem[];
+  isNewsModalOpen: boolean;
+  activeStoryArcs: Record<string, number>;
+  lastNewsTick: number;
   selectedSettlementId: string | null;
   isScreenShaking: boolean;
   sparks: SparkParticle[];
@@ -125,4 +134,7 @@ export type GameAction =
   | { type: 'RESTART_GAME' }
   | { type: 'TICK_TIMER' }
   | { type: 'CLEAR_SPARK'; id: string }
-  | { type: 'CLEAR_MOVING_TROOP'; id: string };
+  | { type: 'CLEAR_MOVING_TROOP'; id: string }
+  | { type: 'OPEN_NEWS_MODAL' }
+  | { type: 'CLOSE_NEWS_MODAL' }
+  | { type: 'CYCLE_NEXT_NEWS' };

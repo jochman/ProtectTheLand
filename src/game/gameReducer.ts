@@ -1,8 +1,9 @@
-import { GameState, GameAction } from '../types';
+import { GameState, GameAction, NewsItem } from '../types';
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { sounds } from '../audio/soundEngine';
+import { getNextJuicyNews } from './newsContent';
 
 export const INITIAL_STATE: GameState = {
   locale: 'he',
@@ -40,12 +41,38 @@ export const INITIAL_STATE: GameState = {
     id: 'start',
     headline: he.news.start,
     source: 'מבזק חדשות',
+    category: 'military',
+    timestamp: '12:00',
   },
+  newsHistory: [
+    {
+      id: 'start',
+      headline: he.news.start,
+      source: 'מבזק חדשות',
+      category: 'military',
+      timestamp: '12:00',
+    },
+  ],
+  isNewsModalOpen: false,
+  activeStoryArcs: {},
+  lastNewsTick: 0,
   selectedSettlementId: null,
   isScreenShaking: false,
   sparks: [],
   movingTroops: [],
 };
+
+function withNews(state: GameState, item: NewsItem): { currentNews: NewsItem; newsHistory: NewsItem[]; lastNewsTick: number } {
+  const prev = state.currentNews;
+  const history = prev && prev.id !== item.id
+    ? [prev, ...(state.newsHistory || []).filter(n => n.id !== item.id && n.id !== prev.id)].slice(0, 30)
+    : state.newsHistory || [];
+  return {
+    currentNews: item,
+    newsHistory: history,
+    lastNewsTick: 0,
+  };
+}
 
 const SETTLEMENT_COST = 100;
 
@@ -134,11 +161,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             tileName: tile.settlementName || 'מאחז חדש',
           },
         },
-        currentNews: {
+        ...withNews(state, {
           id: `const-${Date.now()}`,
-          headline: `החלה הכשרת קרקע והקמת ${tile.settlementName || 'מאחז חדש'}!`,
-          source: 'מנהלת ההתיישבות',
-        },
+          headline: state.locale === 'he'
+            ? `החלה הכשרת קרקע והקמת ${tile.settlementName || 'מאחז חדש'}!`
+            : `Ground broken for new outpost: ${tile.settlementName || 'New Outpost'}!`,
+          source: state.locale === 'he' ? 'מנהלת ההתיישבות' : 'Settlement Admin',
+          category: 'politics',
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        }),
       };
     }
 
@@ -272,12 +303,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           chargePercent: isPanic ? 99.9 : Math.max(state.lordOfHosts.chargePercent, 88),
           piousToast: isPanic ? strings.lordOfHosts.panicMashPrompt : null,
         },
-        currentNews: {
+        ...withNews(state, {
           id: `deploy-${Date.now()}`,
           headline: newsHeadline,
-          source: 'דובר צה״ל / קבינט',
+          source: state.locale === 'he' ? 'דובר צה״ל / קבינט' : 'IDF / Cabinet',
+          category: 'military',
           isUrgent: newDefenseScore < 50,
-        },
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        }),
       };
     }
 
@@ -349,12 +382,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ...state.lordOfHosts,
           isPanicMashMode: newDefenseScore === 0,
         },
-        currentNews: {
+        ...withNews(state, {
           id: `reserves-${Date.now()}`,
           headline: newsHeadline,
-          source: 'אגף כוח אדם והאוצר',
+          source: state.locale === 'he' ? 'אגף כוח אדם והאוצר' : 'Personnel & Treasury',
+          category: 'military',
           isUrgent: callsMade >= 2,
-        },
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        }),
       };
     }
 
@@ -528,6 +563,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const isPanic = state.defenseScore === 0 && state.activeBreaches.length >= 2;
 
+      // 6. Ambient Spicy News & Multi-part Story Arc Progress (every 5 seconds)
+      let nextCurrentNews = state.currentNews;
+      let nextNewsHistory = state.newsHistory || [];
+      let nextStoryArcs = state.activeStoryArcs || {};
+      let nextNewsTick = (state.lastNewsTick || 0) + 1;
+
+      if (nextNewsTick >= 5 && state.defenseScore > 20) {
+        const { item, nextArcs } = getNextJuicyNews(state);
+        nextStoryArcs = nextArcs;
+        nextNewsTick = 0;
+        if (nextCurrentNews) {
+          nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
+        }
+        nextCurrentNews = item;
+      }
+
       return {
         ...state,
         budget: newBudget,
@@ -538,6 +589,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         collectibleCoins: coins,
         isScreenShaking: false,
         infiltratingTrucks: updatedTrucks,
+        currentNews: nextCurrentNews,
+        newsHistory: nextNewsHistory,
+        activeStoryArcs: nextStoryArcs,
+        lastNewsTick: nextNewsTick,
         lordOfHosts: {
           ...state.lordOfHosts,
           chargePercent: Math.round(newCharge),
@@ -620,11 +675,48 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeBreaches,
         selectedSettlementId: null,
         gameStatus: isRationalVictory ? 'rational_victory' : 'playing',
-        currentNews: {
+        ...withNews(state, {
           id: `evac-${Date.now()}`,
-          headline: `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`,
-          source: 'פיקוד מרכז',
-        },
+          headline: state.locale === 'he'
+            ? `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`
+            : `Outpost evacuated. Troops returned to reinforce sovereign border.`,
+          source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          category: 'military',
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        }),
+      };
+    }
+
+    case 'OPEN_NEWS_MODAL': {
+      sounds.playClick();
+      return {
+        ...state,
+        isNewsModalOpen: true,
+      };
+    }
+
+    case 'CLOSE_NEWS_MODAL': {
+      sounds.playClick();
+      return {
+        ...state,
+        isNewsModalOpen: false,
+      };
+    }
+
+    case 'CYCLE_NEXT_NEWS': {
+      sounds.playClick();
+      const { item, nextArcs } = getNextJuicyNews(state);
+      const prev = state.currentNews;
+      const history = prev
+        ? [prev, ...(state.newsHistory || []).filter(n => n.id !== prev.id)].slice(0, 30)
+        : state.newsHistory || [];
+
+      return {
+        ...state,
+        currentNews: item,
+        newsHistory: history,
+        activeStoryArcs: nextArcs,
+        lastNewsTick: 0,
       };
     }
 
