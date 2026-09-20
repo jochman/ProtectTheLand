@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 16:47:16 UTC (Branch: `main`, Iteration #46)
+> **Last Synchronized:** 2026-09-20 17:59:05 UTC (Branch: `main`, Iteration #47)
 
 ---
 
@@ -44,6 +44,12 @@ The game concludes in one of two fundamental narrative endings:
 
 ### 2.3 GitHub Pages Deployment Branch
 - The GitHub Pages workflow runs automatically only for pushes to `main` on `origin`; `master` is not a deployment branch or workflow trigger.
+
+### 2.4 Specification Synchronization Hooks
+- `scripts/update-spec-version.sh` is the shared metadata updater for both supported coding-agent workflows. It accepts `SPEC_SYNC_AGENT=agy` or `SPEC_SYNC_AGENT=codex` from the corresponding Stop hook and supports `manual` execution through `npm run update-spec`.
+- `.agents/hooks.json` invokes the script for agy, and `.codex/hooks.json` invokes the same script for Codex. Both hooks update the `Last Synchronized` metadata in `spec.md`.
+- `scripts/hooks/pre-commit` independently updates the staged copy of `spec.md`, preserving unrelated unstaged specification edits.
+- Commit-message drafting and authorized pushes are delegated to the lowest-cost reliable model available, while preserving the user's selected files and remote.
 
 ### 2.2 Layout Strategy & Viewport Discipline
 - **Primary Viewport:** Portrait mobile ratio (`390px x 844px`, base aspect ratio `9 / 19.5`).

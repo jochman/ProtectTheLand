@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ./scripts/update-spec-version.sh",
+            "command": "SPEC_SYNC_AGENT=codex bash ./scripts/update-spec-version.sh",
             "timeout": 10,
             "statusMessage": "Synchronizing spec.md metadata"
           }

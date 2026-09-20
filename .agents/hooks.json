@@ -3,7 +3,7 @@
     "Stop": [
       {
         "type": "command",
-        "command": "./scripts/update-spec-version.sh"
+        "command": "SPEC_SYNC_AGENT=agy bash ./scripts/update-spec-version.sh"
       }
     ]
   }

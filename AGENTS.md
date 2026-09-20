@@ -15,3 +15,7 @@
 
 ## 4. Verification & Build
 - Verify every iteration with `npm run build` (TypeScript check `tsc` + Vite bundle) ensuring 0 errors before committing.
+
+## 5. Git Commit and Push Delegation
+- For commit-message drafting and `git push` work, delegate to the lowest-cost available model that can reliably perform the task (currently `gpt-5.6-luna`).
+- Keep the delegated Git work scoped to the files and remote explicitly authorized by the user; do not include unrelated working-tree changes.
