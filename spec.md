@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-20 22:24:57 UTC (Branch: `main`, Iteration #56)
+> **Last Synchronized:** 2026-09-20 22:28:40 UTC (Branch: `main`, Iteration #57)
 
 ---
 
@@ -50,6 +50,10 @@ The game concludes in one of two fundamental narrative endings:
 - `.agents/hooks.json` invokes the script for agy, and `.codex/hooks.json` invokes the same script for Codex. Both hooks update the `Last Synchronized` metadata in `spec.md`.
 - `scripts/hooks/pre-commit` independently updates the staged copy of `spec.md`, preserving unrelated unstaged specification edits.
 - Every completed iteration synchronizes the specification, passes the required checks, and is committed and pushed to `origin` on the current branch under standing user authorization. Unrelated working-tree changes are excluded. Commit-message drafting and pushes are delegated to the lowest-cost reliable model available.
+
+### 2.5 Project Documentation
+- `README.md` is the concise developer and player entry point. It documents the client-side architecture, local Node/npm requirements, development/build/test/spec-sync commands, campaign objective, directory map, and GitHub Pages deployment trigger.
+- `spec.md` remains the comprehensive source of truth for game mechanics, localization, UI behavior, and architecture; the README links contributors here for the complete contract.
 
 ### 2.2 Layout Strategy & Viewport Discipline
 - **Primary Viewport:** Portrait mobile ratio (`390px x 844px`, base aspect ratio `9 / 19.5`).
