@@ -447,7 +447,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      for (const bId of breachedCheckpoints) {
+      // Prioritize sealing checkpoints that are currently under hostile attack
+      const activeAttackBreachIds = new Set((state.greenSideAttacks || []).map(a => a.breachId));
+      const sortedBreachedCheckpoints = [...breachedCheckpoints].sort((a, b) => {
+        const aActive = activeAttackBreachIds.has(a) ? 1 : 0;
+        const bActive = activeAttackBreachIds.has(b) ? 1 : 0;
+        return bActive - aActive;
+      });
+
+      for (const bId of sortedBreachedCheckpoints) {
         if (remainingToPlace <= 0) break;
         updatedTiles[bId] = {
           ...updatedTiles[bId],
@@ -831,15 +839,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const builtSettlementList = Object.values(updatedTiles).filter(t => t.hasSettlement);
       const arabCitiesList = Object.values(updatedTiles).filter(t => t.isLocalCity);
 
-      // Clashes only occur if there are Jewish settlements in the West Bank, and frequency is kept deliberate and spaced out
+      // Clashes only occur if there are Jewish settlements in the West Bank
       if (builtSettlementList.length > 0 && arabCitiesList.length > 0) {
-        // Calm scaling: max 1 clash at a time, spaced at least ~35-40s apart (roughly ~1 per minute)
-        const clashChance = Math.min(0.12, 0.03 + builtSettlementList.length * 0.015);
+        const unsecureSettlements = builtSettlementList.filter(t => t.garrisonCount === 0);
+        const secureSettlements = builtSettlementList.filter(t => t.garrisonCount > 0);
 
-        // Cooldown: at least 35 seconds between clash triggers, and strictly at most 1 concurrent clash
-        if (nextClashTick >= 35 && activeClashes.length < 1 && Math.random() < clashChance) {
-          // Pick a random built settlement
-          const settlement = builtSettlementList[Math.floor(Math.random() * builtSettlementList.length)];
+        // Fights happen significantly more frequently when non-secured settlements are exposed!
+        const hasUnsecured = unsecureSettlements.length > 0;
+        const minClashCooldown = hasUnsecured ? 14 : 32;
+        const clashChance = hasUnsecured ? 0.42 : 0.12;
+
+        if (nextClashTick >= minClashCooldown && activeClashes.length < 1 && Math.random() < clashChance) {
+          // Fights happen significantly more against non-secured settlements (85% chance if any exist)!
+          const pickUnsecured = hasUnsecured && (secureSettlements.length === 0 || Math.random() < 0.85);
+          const settlement = pickUnsecured
+            ? unsecureSettlements[Math.floor(Math.random() * unsecureSettlements.length)]
+            : builtSettlementList[Math.floor(Math.random() * builtSettlementList.length)];
 
           // Find the closest Arabic cities by Euclidean distance
           const sortedArabCities = [...arabCitiesList].sort((a, b) => {
@@ -851,12 +866,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           // Pick from the 2 closest Arabic cities
           const targetArabCity = sortedArabCities[Math.random() < 0.7 ? 0 : Math.min(1, sortedArabCities.length - 1)];
 
-          const settlerInitiated = Math.random() < 0.5;
+          const isGarrisoned = settlement.garrisonCount > 0;
+          const settlerInitiated = isGarrisoned ? Math.random() < 0.5 : Math.random() < 0.25;
           const settlementNameHe = settlement.settlementName || 'מאחז חדש';
           const settlementNameEn = settlement.settlementName || 'New Outpost';
           const arabCityNameHe = targetArabCity.label || 'הכפר הסמוך';
           const arabCityNameEn = targetArabCity.subLabel || 'Nearby Village';
-          const isGarrisoned = settlement.garrisonCount > 0;
 
           // Titles and narrative headlines
           let clashHeadlineHe = '';
@@ -888,16 +903,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             clashHeadlineEn = variantsEn[vIdx];
           } else {
             clashTitle = state.locale === 'he'
-              ? `יידוי אבנים: ${arabCityNameHe} ⚔️ ${settlementNameHe}`
-              : `Stones: ${arabCityNameEn} vs ${settlementNameEn}`;
+              ? `מתקפה על מאחז: ${arabCityNameHe} ⚔️ ${settlementNameHe}`
+              : `Outpost targeted: ${arabCityNameEn} vs ${settlementNameEn}`;
 
-            const variantsHe = [
+            const variantsHe = !isGarrisoned ? [
+              `מאחז חשוף תחת מתקפה: בהיעדר כוחות צה״ל לשמירה, עשרות פורעים מ${arabCityNameHe} תקפו את פאתי ${settlementNameHe}!`,
+              `חיכוך אלים במאחז לא מאובטח: בקבוקי תבערה וזיקוקים מ${arabCityNameHe} נורו לעבר בתי ${settlementNameHe} ללא כוח מגן צבאי!`,
+              `מארב אבנים כבד: רכבים נרגמו סמוך ל${settlementNameHe} הבלתי-מאובטח, נזק כבד נגרם למבנים.`,
+              `התפרעות ללא מענה ביטחוני: עשרות צעירים מ${arabCityNameHe} פרצו את גדר ${settlementNameHe} החשוף!`,
+            ] : [
               `התפרעות אלימה: עשרות מיידי אבנים יצאו מ${arabCityNameHe} לעבר כביש הגישה ל${settlementNameHe}.`,
-              `חיכוך סמוך לגדר: בקבוקי תבערה וזיקוקים מ${arabCityNameHe} נורו לעבר בתי ${settlementNameHe}.`,
+              `חיכוך סמוך לגדר: בקבוקי תבערה מ${arabCityNameHe} נורו לעבר בתי ${settlementNameHe}.`,
               `מארב אבנים: רכבים נרגמו באבנים בציר הסמוך ל${arabCityNameHe}, סמוך ל${settlementNameHe}.`,
               `הפרת סדר בצומת: עשרות צעירים מ${arabCityNameHe} התעמתו בפאתי המאחז ${settlementNameHe}.`,
             ];
-            const variantsEn = [
+            const variantsEn = !isGarrisoned ? [
+              `Unsecured outpost under attack: With no IDF garrison at ${settlementNameEn}, dozens attacked from ${arabCityNameEn}!`,
+              `Friction at exposed outpost: Molotov cocktails and fireworks from ${arabCityNameEn} hit ${settlementNameEn} with no army presence!`,
+              `Heavy stone ambush: Vehicles and homes damaged at unprotected outpost ${settlementNameEn}.`,
+              `Security vacuum: Youths from ${arabCityNameEn} breached perimeter of ungarrisoned ${settlementNameEn}!`,
+            ] : [
               `Violent riot: Dozens of stone throwers came out of ${arabCityNameEn} toward the access road to ${settlementNameEn}.`,
               `Friction near perimeter: Molotov cocktails and fireworks from ${arabCityNameEn} fired toward ${settlementNameEn}.`,
               `Stone ambush: Vehicles pelted with stones on the road near ${arabCityNameEn}, close to ${settlementNameEn}.`,
@@ -1228,6 +1253,208 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'SEAL_BREACH': {
+      if (state.gameStatus !== 'playing') return state;
+      const cpId = action.checkpointId;
+      const cp = state.tiles[cpId];
+      if (!cp || !cp.isBorderCheckpoint || cp.garrisonCount > 0) return state;
+
+      const updatedTiles = { ...state.tiles };
+      const guardedSettlements = Object.values(updatedTiles).filter(
+        t => t.hasSettlement && t.garrisonCount > 0
+      );
+
+      // Priority 1: If troops are deployed at settlements, recall a soldier from the closest guarded settlement!
+      if (guardedSettlements.length > 0) {
+        const sortedGuarded = [...guardedSettlements].sort((a, b) => {
+          const distA = Math.hypot(a.x - cp.x, a.y - cp.y);
+          const distB = Math.hypot(b.x - cp.x, b.y - cp.y);
+          return distA - distB;
+        });
+        const sourceSettlement = sortedGuarded[0];
+
+        updatedTiles[sourceSettlement.id] = {
+          ...sourceSettlement,
+          garrisonCount: Math.max(0, sourceSettlement.garrisonCount - 1),
+        };
+
+        updatedTiles[cpId] = {
+          ...cp,
+          garrisonCount: 1,
+          isBreached: false,
+          hasAlert: false,
+        };
+
+        const newSettlementSoldiers = Math.max(0, state.soldiersAtSettlements - 1);
+        const newBorderSoldiers = state.soldiersAtBorder + 1;
+        const newDefenseScore = Math.min(100, Math.round((newBorderSoldiers / 8) * 100));
+
+        const newMovingTroops = [
+          ...(state.movingTroops || []),
+          {
+            id: `troop-seal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            fromX: sourceSettlement.x,
+            fromY: sourceSettlement.y,
+            toX: cp.x,
+            toY: cp.y,
+            createdAt: Date.now(),
+          },
+        ];
+
+        const activeBreaches = Object.keys(updatedTiles).filter(
+          id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+        );
+
+        // Intercept any attack targeting through this checkpoint
+        const remainingAttacks = (state.greenSideAttacks || []).filter(a => a.breachId !== cpId);
+        const hadIntercepted = (state.greenSideAttacks || []).length > remainingAttacks.length;
+
+        sounds.playShieldChime();
+
+        const toastHe = hadIntercepted
+          ? '🛡️ חדירה סוכלה בהצלחה! לוחם הוחזר ממאחז לבלימת הפרצה!'
+          : '🛡️ הפרצה נבלמה! לוחם הוחזר ממאחז לאבטחת המוצב.';
+        const toastEn = hadIntercepted
+          ? '🛡️ Infiltration thwarted! Soldier recalled from outpost to seal breach!'
+          : '🛡️ Breach sealed! Soldier recalled from outpost to secure post.';
+
+        const headlineHe = `בלימת חירום: חייל הוחזר מ${sourceSettlement.settlementName || 'המאחז'} ואייש את מוצב הגבול שנפרץ.${hadIntercepted ? ' החדירה סוכלה בהצלחה!' : ''}`;
+        const headlineEn = `Emergency containment: Soldier recalled from ${sourceSettlement.settlementName || 'outpost'} to seal the border breach.${hadIntercepted ? ' Infiltration thwarted!' : ''}`;
+
+        return {
+          ...state,
+          soldiersAtBorder: newBorderSoldiers,
+          soldiersAtSettlements: newSettlementSoldiers,
+          defenseScore: newDefenseScore,
+          tiles: updatedTiles,
+          activeBreaches,
+          greenSideAttacks: remainingAttacks,
+          interceptedToast: {
+            id: `intercept-${Date.now()}`,
+            textHe: toastHe,
+            textEn: toastEn,
+            timestamp: Date.now(),
+          },
+          movingTroops: newMovingTroops,
+          selectedInfiltrationId: null,
+          lordOfHosts: {
+            ...state.lordOfHosts,
+            isPanicMashMode: newDefenseScore === 0,
+          },
+          ...withNews(state, {
+            id: `seal-${Date.now()}`,
+            headline: state.locale === 'he' ? headlineHe : headlineEn,
+            source: state.locale === 'he' ? 'חמ״ל גזרה' : 'Sector Operations',
+            headlineHe,
+            headlineEn,
+            sourceHe: 'חמ״ל גזרה',
+            sourceEn: 'Sector Operations',
+            category: 'military',
+            isUrgent: true,
+            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          }),
+        };
+      }
+
+      // Priority 2: If no troops in settlements, but reserves are available: deploy reserves directly to this breach!
+      if (state.reservesBatchesLeft > 0) {
+        const newBatchesLeft = state.reservesBatchesLeft - 1;
+        const callsMade = 3 - newBatchesLeft;
+        const addedSoldiers = 4;
+        const newTotal = state.soldiersTotal + addedSoldiers;
+        const newBorder = state.soldiersAtBorder + addedSoldiers;
+        const newIncomeRate = Math.max(2, 4 - callsMade);
+
+        sounds.playShieldChime();
+
+        updatedTiles[cpId] = {
+          ...cp,
+          garrisonCount: 1,
+          isBreached: false,
+          hasAlert: false,
+        };
+        let remainingToPlace = addedSoldiers - 1;
+
+        const otherBreaches = Object.keys(updatedTiles).filter(
+          id => id !== cpId && updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+        );
+
+        for (const bId of otherBreaches) {
+          if (remainingToPlace <= 0) break;
+          updatedTiles[bId] = {
+            ...updatedTiles[bId],
+            garrisonCount: 1,
+            isBreached: false,
+            hasAlert: false,
+          };
+          remainingToPlace--;
+        }
+
+        const activeBorderCheckpoints = Object.values(updatedTiles).filter(
+          t => t.isBorderCheckpoint && t.garrisonCount > 0
+        ).length;
+        const newDefenseScore = Math.min(100, Math.round((activeBorderCheckpoints / 8) * 100));
+        const activeBreaches = Object.keys(updatedTiles).filter(
+          id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+        );
+
+        const remainingAttacks = (state.greenSideAttacks || []).filter(
+          a => updatedTiles[a.breachId]?.garrisonCount === 0
+        );
+        const hadIntercepted = (state.greenSideAttacks || []).length > remainingAttacks.length;
+
+        const newsHeadlineHe = `צו 8 חירום: כוחות מילואים הוזנקו וסתמו את הפרצה בגבול!${hadIntercepted ? ' החדירה נוטרלה!' : ''}`;
+        const newsHeadlineEn = `Emergency Call-Up: Reserve forces sealed the border gap!${hadIntercepted ? ' Infiltration neutralized!' : ''}`;
+
+        return {
+          ...state,
+          soldiersTotal: newTotal,
+          soldiersAtBorder: newBorder,
+          incomeRate: newIncomeRate,
+          reservesBatchesLeft: newBatchesLeft,
+          defenseScore: newDefenseScore,
+          tiles: updatedTiles,
+          activeBreaches,
+          greenSideAttacks: remainingAttacks,
+          interceptedToast: {
+            id: `intercept-${Date.now()}`,
+            textHe: hadIntercepted ? '🛡️ מילואים הוזעקו וסיכלו את החדירה!' : '🛡️ כוחות מילואים איישו את הפרצה בגבול!',
+            textEn: hadIntercepted ? '🛡️ Reserves deployed and thwarted infiltration!' : '🛡️ Reserve forces sealed the border breach!',
+            timestamp: Date.now(),
+          },
+          selectedInfiltrationId: null,
+          lordOfHosts: {
+            ...state.lordOfHosts,
+            isPanicMashMode: newDefenseScore === 0,
+          },
+          ...withNews(state, {
+            id: `reserves-seal-${Date.now()}`,
+            headline: state.locale === 'he' ? newsHeadlineHe : newsHeadlineEn,
+            source: state.locale === 'he' ? 'אגף המבצעים' : 'Operations Directorate',
+            headlineHe: newsHeadlineHe,
+            headlineEn: newsHeadlineEn,
+            sourceHe: 'אגף המבצעים',
+            sourceEn: 'Operations Directorate',
+            category: 'military',
+            isUrgent: true,
+            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          }),
+        };
+      }
+
+      // Priority 3: Neither troops in settlements nor reserves
+      sounds.playError();
+      return {
+        ...state,
+        lordOfHosts: {
+          ...state.lordOfHosts,
+          piousToast: state.locale === 'he'
+            ? 'אין חיילים זמינים! כל הלוחמים מרותקים למאחזים ואזלו המילואים!'
+            : 'No troops available! Soldiers tied up in outposts and no reserves left!',
+        },
+      };
+    }
+
     case 'RECALL_TROOP': {
       const tileId = action.tileId;
       const tile = state.tiles[tileId];
@@ -1240,7 +1467,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (emptyBorderIds.length === 0) return state;
 
-      const chosenBorderId = emptyBorderIds[Math.floor(Math.random() * emptyBorderIds.length)];
+      // Prioritize the breach checkpoint under active attack, or specified targetBorderId, or with alert!
+      const activeAttackBreachId = (state.greenSideAttacks || []).map(a => a.breachId).find(bId => emptyBorderIds.includes(bId));
+      const alertedBreachId = emptyBorderIds.find(id => updatedTiles[id]?.isBreached || updatedTiles[id]?.hasAlert);
+      const chosenBorderId = (action.targetBorderId && emptyBorderIds.includes(action.targetBorderId))
+        ? action.targetBorderId
+        : (activeAttackBreachId || alertedBreachId || emptyBorderIds[0]);
+
       const borderTile = updatedTiles[chosenBorderId];
 
       updatedTiles[tileId] = {
@@ -1307,6 +1540,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         } : state.interceptedToast,
         movingTroops: newMovingTroops,
         selectedSettlementId: null,
+        selectedInfiltrationId: hadIntercepted ? null : state.selectedInfiltrationId,
         ...withNews(state, {
           id: `recall-${Date.now()}`,
           headline: state.locale === 'he' ? recallHeadlineHe : recallHeadlineEn,

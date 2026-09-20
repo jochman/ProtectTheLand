@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 15:10:21 UTC (Branch: `main`, Iteration #30)
+> **Last Synchronized:** 2026-09-20 15:26:07 UTC (Branch: `main`, Iteration #31)
 
 ---
 
@@ -416,16 +416,29 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 
 ## 11. Tactical Interception & Defense Mechanics
 
-1. **Hostile Raid Interception:**
-   - When a border checkpoint is breached, hostile squads attempt to raid Green Side Israeli population centers.
-   - If the player mobilizes reserves (`CALL_RESERVES`) or recalls soldiers from West Bank outposts (`RECALL_TROOP` / `RECALL_ALL_TROOPS`), any incoming raid passing through the newly re-manned checkpoint is immediately thwarted.
-   - Interception triggers `sounds.playShieldChime()` and renders an animated green banner: `🛡️ חדירה סוכלה בהצלחה!` / `🛡️ Infiltration Thwarted Successfully!`.
-2. **Settlement Inspector Tactical Feedback:**
+1. **Direct Breach Containment (`SEAL_BREACH` & Prioritized Targeting):**
+   - Tapping an unmanned border checkpoint bearing the `⚠️ פרצה (לחץ לבלימה)` prompt immediately dispatches `SEAL_BREACH`.
+   - **Troop Recall Priority:** If soldiers are garrisoned in West Bank outposts, the system immediately pulls a soldier from the closest outpost and leaps them straight to the breached checkpoint.
+   - The checkpoint is instantly re-manned (`garrisonCount = 1`, `isBreached = false`, `hasAlert = false`), the sovereign defense score increases, and any hostile squad traversing that breach is intercepted on the spot.
+   - Triggers `sounds.playShieldChime()` and pops the feedback banner: `🛡️ חדירה סוכלה בהצלחה! לוחם הוחזר ממאחז לבלימת הפרצה!`.
+   - **Target Prioritization in `RECALL_TROOP`:** Recalling troops from settlement modals now strictly targets the checkpoint under active hostile attack rather than choosing an empty checkpoint at random, guaranteeing that returning a soldier always thwarts the immediate threat.
+   - **Reserve Fallback:** If zero soldiers are deployed in outposts, `SEAL_BREACH` mobilizes available reserves specifically to the targeted breach.
+
+2. **West Bank Clashes: Skewed Against Non-Secured Settlements:**
+   - When non-secured outposts (`garrisonCount === 0`) are present in the West Bank:
+     - Clash pacing accelerates dramatically: cooldown shrinks from 32s to 14s, and trigger chance climbs to 42%.
+     - **85% Probability Weight:** Clashes are heavily weighted to strike non-secured, exposed outposts rather than garrisoned settlements.
+     - **Vulnerability & Attrition:** Non-secured outposts endure direct damage (-35 HP per incident, sirens, -15₪ damages) and are wiped off the map if HP reaches 0%.
+     - **Narrative Framing:** Breaking headlines highlight the security vacuum (*"מאחז חשוף תחת מתקפה: בהיעדר כוחות צה״ל לשמירה..."*), creating a sharp dilemma between protecting sovereign borders and preventing outpost destruction.
+
+3. **Settlement Inspector Tactical Feedback:**
    - In `SettlementInspectorModal`, the troop recall button displays explicit strategic benefit: `⚡ +12.5% הגנה לקו הגבול הריבוני בהחזרת חייל!`.
-3. **Garrison Benefits & Outpost Repair:**
+
+4. **Garrison Benefits & Outpost Repair:**
    - Outposts with stationed troops display a miniature IDF shield badge (`✡`).
    - Garrisoned outposts regenerate durability at +5 HP/second, while ungarrisoned outposts degrade during local clashes.
-4. **Perimeter Collapse Visuals:**
+
+5. **Perimeter Collapse Visuals:**
    - Sovereign border line turns dashed amber below 50% defense.
    - Below 25% defense, the border line turns glowing pulsating red with crackling hazard alert sparks along the Green Line.
 

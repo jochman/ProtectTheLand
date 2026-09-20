@@ -206,5 +206,6 @@ export type GameAction =
   | { type: 'OPEN_NEWS_MODAL' }
   | { type: 'CLOSE_NEWS_MODAL' }
   | { type: 'CYCLE_NEXT_NEWS' }
-  | { type: 'RECALL_TROOP'; tileId: string }
-  | { type: 'RECALL_ALL_TROOPS' };
+  | { type: 'RECALL_TROOP'; tileId: string; targetBorderId?: string }
+  | { type: 'RECALL_ALL_TROOPS' }
+  | { type: 'SEAL_BREACH'; checkpointId: string };

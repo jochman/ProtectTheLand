@@ -26,12 +26,12 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
   const canRecallTroop = guardedSettlements.length > 0;
 
   const handleCallReserves = () => {
-    dispatch({ type: 'CALL_RESERVES' });
+    dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId });
     dispatch({ type: 'SELECT_INFILTRATION', id: null });
   };
 
   const handleRecallTroop = (settlementId: string) => {
-    dispatch({ type: 'RECALL_TROOP', tileId: settlementId });
+    dispatch({ type: 'RECALL_TROOP', tileId: settlementId, targetBorderId: attack.breachId });
     dispatch({ type: 'SELECT_INFILTRATION', id: null });
   };
 

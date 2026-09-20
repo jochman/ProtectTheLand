@@ -460,18 +460,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   className="cursor-pointer group"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const relatedAttack = (state.greenSideAttacks || []).find(a => a.breachId === cp.id);
-                    if (relatedAttack) {
-                      dispatch({ type: 'SELECT_INFILTRATION', id: relatedAttack.id });
-                    } else if ((state.greenSideAttacks || []).length > 0) {
-                      dispatch({ type: 'SELECT_INFILTRATION', id: state.greenSideAttacks[0].id });
-                    } else if (state.reservesBatchesLeft > 0) {
-                      dispatch({ type: 'CALL_RESERVES' });
-                    }
+                    dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id });
                   }}
                 >
                   {/* Empty post ground footprint */}
-                  <ellipse cx="0" cy="6" rx="13" ry="6.5" fill="rgba(239, 68, 68, 0.15)" stroke="#f87171" strokeWidth="1.2" strokeDasharray="3 2" className="animate-pulse" />
+                  <ellipse cx="0" cy="6" rx="14" ry="7" fill="rgba(239, 68, 68, 0.18)" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3 2" className="animate-pulse" />
                   
                   {/* Road concrete barrier */}
                   <rect x="-9" y="1" width="18" height="5.5" rx="1.5" fill="#475569" stroke="#334155" strokeWidth="0.8" />
@@ -481,16 +474,17 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
                   {/* Barrier post & lifted gate pole */}
                   <rect x="-8" y="-7" width="3" height="9" rx="0.8" fill="#334155" />
-                  <line x1="-6.5" y1="-5" x2="8" y2="-12" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 2" />
+                  <line x1="-6.5" y1="-5" x2="8" y2="-12" stroke="#dc2626" strokeWidth="2.2" strokeLinecap="round" strokeDasharray="3 2" />
 
                   {/* Indicator dot */}
-                  <circle cx="0" cy="-5" r="3" fill="#ef4444" opacity="0.9" />
+                  <circle cx="0" cy="-5" r="4" fill="#ef4444" className="animate-ping" opacity="0.6" />
+                  <circle cx="0" cy="-5" r="3" fill="#ef4444" />
 
                   {/* Tooltip prompt on breach */}
-                  <g transform="translate(0, -18)">
-                    <rect x="-24" y="-5.5" width="48" height="11" rx="3" fill="rgba(15, 23, 42, 0.95)" stroke="#ef4444" strokeWidth="0.8" />
-                    <text x="0" y="2.2" textAnchor="middle" fill="#fca5a5" fontSize="5.5" fontWeight="900" className="font-rubik">
-                      ⚠️ פרצה (לחץ לבלימה)
+                  <g transform="translate(0, -18)" className="transition-transform group-hover:scale-105">
+                    <rect x="-28" y="-6" width="56" height="12" rx="3.5" fill="rgba(15, 23, 42, 0.95)" stroke="#ef4444" strokeWidth="1" />
+                    <text x="0" y="2.5" textAnchor="middle" fill="#fca5a5" fontSize="5.5" fontWeight="900" className="font-rubik">
+                      {state.locale === 'he' ? '⚠️ פרצה (לחץ לבלימה)' : '⚠️ Breach (Click to Seal)'}
                     </text>
                   </g>
                 </g>
