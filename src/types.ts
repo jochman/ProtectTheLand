@@ -38,6 +38,15 @@ export interface SparkParticle {
   createdAt: number;
 }
 
+export interface MovingTroop {
+  id: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  createdAt: number;
+}
+
 export interface GameState {
   locale: 'he' | 'en';
   soundEnabled: boolean;
@@ -96,6 +105,7 @@ export interface GameState {
   selectedSettlementId: string | null;
   isScreenShaking: boolean;
   sparks: SparkParticle[];
+  movingTroops: MovingTroop[];
 }
 
 export type GameAction =
@@ -114,4 +124,5 @@ export type GameAction =
   | { type: 'TOGGLE_SOUND' }
   | { type: 'RESTART_GAME' }
   | { type: 'TICK_TIMER' }
-  | { type: 'CLEAR_SPARK'; id: string };
+  | { type: 'CLEAR_SPARK'; id: string }
+  | { type: 'CLEAR_MOVING_TROOP'; id: string };

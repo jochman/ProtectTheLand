@@ -44,6 +44,7 @@ export const INITIAL_STATE: GameState = {
   selectedSettlementId: null,
   isScreenShaking: false,
   sparks: [],
+  movingTroops: [],
 };
 
 const SETTLEMENT_COST = 100;
@@ -183,24 +184,43 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
+      // Randomly shuffle border checkpoints so forces are pulled randomly along the border instead of bottom-up
+      const shuffledBorderIds = [...mannedBorderIds].sort(() => Math.random() - 0.5);
+
+      // Randomly shuffle ungarrisoned settlements so forces are distributed organically across the map
+      const shuffledSettlementIds = [...ungarrisonedSettlementIds].sort(() => Math.random() - 0.5);
+
       const updatedTiles = { ...state.tiles };
+      const newMovingTroops = [...(state.movingTroops || [])];
       let transferredCount = 0;
 
-      for (const settlementId of ungarrisonedSettlementIds) {
-        const borderId = mannedBorderIds.pop();
+      for (const settlementId of shuffledSettlementIds) {
+        const borderId = shuffledBorderIds.pop();
         if (!borderId) break;
 
+        const borderTile = updatedTiles[borderId];
+        const settlementTile = updatedTiles[settlementId];
+
         updatedTiles[borderId] = {
-          ...updatedTiles[borderId],
-          garrisonCount: updatedTiles[borderId].garrisonCount - 1,
+          ...borderTile,
+          garrisonCount: borderTile.garrisonCount - 1,
           isBreached: true,
           hasAlert: true,
         };
 
         updatedTiles[settlementId] = {
-          ...updatedTiles[settlementId],
+          ...settlementTile,
           garrisonCount: 1,
         };
+
+        newMovingTroops.push({
+          id: `troop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          fromX: borderTile.x,
+          fromY: borderTile.y,
+          toX: settlementTile.x,
+          toY: settlementTile.y,
+          createdAt: Date.now(),
+        });
 
         transferredCount++;
       }
@@ -243,6 +263,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
         activeBreaches,
+        movingTroops: newMovingTroops,
         lordOfHosts: {
           ...state.lordOfHosts,
           stage: newStage,
@@ -621,6 +642,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         sparks: state.sparks.filter(s => s.id !== action.id),
+      };
+    }
+
+    case 'CLEAR_MOVING_TROOP': {
+      return {
+        ...state,
+        movingTroops: (state.movingTroops || []).filter(t => t.id !== action.id),
       };
     }
 

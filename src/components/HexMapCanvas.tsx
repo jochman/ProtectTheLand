@@ -21,6 +21,19 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
     return points.join(' ');
   };
 
+  // Auto-clear moving troops once their leap animation completes
+  React.useEffect(() => {
+    if (!state.movingTroops || state.movingTroops.length === 0) return;
+    const timers = state.movingTroops.map(troop => {
+      return setTimeout(() => {
+        dispatch({ type: 'CLEAR_MOVING_TROOP', id: troop.id });
+      }, 850);
+    });
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [state.movingTroops, dispatch]);
+
   return (
     <div className="relative flex-1 w-full overflow-hidden flex items-center justify-center my-0.5 select-none">
       <svg
@@ -334,6 +347,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
         {/* 5. BUILT SETTLEMENTS (ROBUST CLICK TARGET + 3D ISOMETRIC HOUSE) */}
         {tiles.filter(t => t.hasSettlement).map(s => {
           const isGuarded = s.garrisonCount > 0;
+          const isIncoming = (state.movingTroops || []).some(t => Math.hypot(t.toX - s.x, t.toY - s.y) < 10);
           return (
             <g
               key={`settlement-group-${s.id}`}
@@ -346,6 +360,20 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             >
               {/* Generous Transparent Hit-Area Circle (ensures clicks never misfire!) */}
               <circle cx="0" cy="0" r="32" fill="transparent" pointerEvents="all" />
+
+              {/* Incoming Reinforcement Target Ping */}
+              {isIncoming && (
+                <circle
+                  cx="0"
+                  cy="0"
+                  r="27"
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth="2"
+                  strokeDasharray="4,3"
+                  className="animate-spin"
+                />
+              )}
 
               {/* Red Dotted Security Perimeter */}
               <circle
@@ -453,6 +481,50 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               <polygon points="8,-12 14,-10 8,-8" fill="#ef4444" />
               <circle cx="-6" cy="6" r="2.5" fill="#0f172a" />
               <circle cx="6" cy="6" r="2.5" fill="#0f172a" />
+            </g>
+          );
+        })}
+
+        {/* 8. TROOPS ACTIVELY REDEPLOYING FROM BORDER (LEFT) TO SETTLEMENTS (RIGHT) */}
+        {(state.movingTroops || []).map(troop => {
+          const midX = (troop.fromX + troop.toX) / 2;
+          const midY = Math.min(troop.fromY, troop.toY) - 28;
+          const pathD = `M ${troop.fromX} ${troop.fromY} Q ${midX} ${midY} ${troop.toX} ${troop.toY}`;
+
+          return (
+            <g key={troop.id} className="pointer-events-none">
+              {/* Flight / Leap Trajectory Arc */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke="#22c55e"
+                strokeWidth="2.5"
+                strokeDasharray="5,3"
+                strokeLinecap="round"
+                className="animate-pulse"
+                opacity="0.85"
+              />
+
+              {/* Moving Army Figurine leaping along the trajectory arc */}
+              <g filter="url(#dropShadow)">
+                <animateMotion
+                  path={pathD}
+                  dur="0.8s"
+                  fill="freeze"
+                  repeatCount="1"
+                />
+                {/* Glowing Green Radar Aura */}
+                <circle cx="0" cy="0" r="14" fill="rgba(34, 197, 94, 0.4)" stroke="#16a34a" strokeWidth="1.5" />
+                {/* 3D Green Figurine Model */}
+                <g transform="translate(0, 3) scale(1.15)">
+                  <ellipse cx="0" cy="4" rx="7" ry="3.5" fill="#14532d" />
+                  <rect x="-2" y="-1" width="1.8" height="4.5" fill="#166534" rx="0.8" />
+                  <rect x="0.5" y="-1" width="1.8" height="4.5" fill="#166534" rx="0.8" />
+                  <rect x="-3.5" y="-7.5" width="7" height="7" fill="#15803d" rx="1.5" />
+                  <ellipse cx="0" cy="-9.5" rx="3" ry="2.5" fill="#14532d" />
+                  <ellipse cx="0" cy="-8.5" rx="3.8" ry="1" fill="#166534" />
+                </g>
+              </g>
             </g>
           );
         })}
