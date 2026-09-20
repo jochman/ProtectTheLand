@@ -608,10 +608,10 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         };
       } else {
         const conceptziaHeadlinesHe = [
-          `עלות פריסת כוחות (₪${deploymentCost}-): כספי ביטחון הושקעו בשינוע כוחות לשמירה על מאחזים מבודדים על חשבון קווי הגבול.`,
-          `דילול כוחות בגבול (₪${deploymentCost}-): שר האוצר והביטחון אישרו תקציב לאבטחת התיישבות. אמ״ן מרגיע: ״הגבול שקט״.`,
+          `עלות פריסת כוחות (-${deploymentCost}₪): כספי ביטחון הושקעו בשינוע כוחות לשמירה על מאחזים מבודדים על חשבון קווי הגבול.`,
+          `דילול כוחות בגבול (-${deploymentCost}₪): שר האוצר והביטחון אישרו תקציב לאבטחת התיישבות. אמ״ן מרגיע: ״הגבול שקט״.`,
           `כוחות נגרעו מהגבול! אמ״ן בקבינט: ״חמאס מורתע לשנים קדימה, הפוקוס הביטחוני שייך למאחזים״.`,
-          `הוצאות פריסה שוטפות (₪${deploymentCost}-): פיקוד העורף טוען שהמכשול ההרמטי והסנסורים יחפו על דילול הלוחמים.`,
+          `הוצאות פריסה שוטפות (-${deploymentCost}₪): פיקוד העורף טוען שהמכשול ההרמטי והסנסורים יחפו על דילול הלוחמים.`,
         ];
         const conceptziaHeadlinesEn = [
           `Troop Deployment Cost (-₪${deploymentCost}): Defense budget spent moving forces to secure isolated outposts at border's expense.`,

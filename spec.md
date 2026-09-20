@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-20 22:28:40 UTC (Branch: `main`, Iteration #57)
+> **Last Synchronized:** 2026-09-20 22:51:37 UTC (Branch: `main`, Iteration #58)
 
 ---
 
@@ -79,6 +79,7 @@ The game operates seamlessly in **Hebrew (`he`, RTL)** and **English (`en`, LTR)
 
 ### 3.2 Shared UI Translation Catalog
 - Static and interpolated player-facing UI copy is centralized in `src/locales/inlineTranslations.ts` as Hebrew/English pairs. Components call `translate(state.locale, key, values)` from `src/locales/translate.ts`; `{{0}}`-style placeholders preserve dynamic game values without duplicating locale conditionals in JSX or game rules.
+- Hebrew copy maintains high linguistic fidelity: terminology distinguishes sovereign green line cities from hilltop outposts (`מאחז`), active actions avoid confusing telegram-style dismissals (e.g. `לאטימת הפרצה` instead of ambiguous `לסגירה`), and numeric unit suffixes (`ש׳`, `שנ׳`, `חוסן`) are strictly localized to prevent BiDi inversion and Latin character leakage.
 - `selectLocale()` is reserved for already-bilingual runtime records such as live news and tactical feedback. Language state remains owned by `GameState`, preserving immediate RTL/LTR changes and the existing reducer-based language switch.
 
 ---
