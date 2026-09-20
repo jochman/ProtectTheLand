@@ -90,13 +90,18 @@ export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> =
         {/* Creative / Rational Strategic Action: Recall or Evacuate */}
         <div className="flex flex-col gap-2">
           {isGuarded && (
-            <button
-              onClick={() => dispatch({ type: 'RECALL_TROOP', tileId: tile.id })}
-              className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-heebo"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>{state.locale === 'he' ? 'החזרת חייל להגנת הגבול המערבי ⟵' : 'Recall Soldier to Western Border ⟵'}</span>
-            </button>
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => dispatch({ type: 'RECALL_TROOP', tileId: tile.id })}
+                className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-heebo"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>{state.locale === 'he' ? 'החזרת חייל להגנת הגבול המערבי ⟵' : 'Recall Soldier to Western Border ⟵'}</span>
+              </button>
+              <div className="text-[11px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-1 rounded-xl border border-emerald-300 text-center font-rubik">
+                {state.locale === 'he' ? '⚡ +12.5% הגנה לקו הגבול הריבוני בהחזרת חייל!' : '⚡ +12.5% Defense to Sovereign Border on Recall!'}
+              </div>
+            </div>
           )}
 
           <button

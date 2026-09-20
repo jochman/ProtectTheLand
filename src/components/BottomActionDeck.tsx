@@ -22,10 +22,10 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
   const isHe = state.locale === 'he';
 
   return (
-    <div className="relative w-full px-4 pb-3 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-2 z-20 flex-shrink-0">
+    <div className="relative w-full px-3 sm:px-4 pb-2 sm:pb-3 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-1.5 sm:gap-2 z-20 flex-shrink-0">
       {/* Build Mode active banner - FLOATING ABSOLUTE to prevent any layout shift */}
       {state.isBuildMode && (
-        <div className="absolute -top-8 inset-x-4 z-30 py-1.5 px-3 bg-amber-500 text-amber-950 font-black text-xs rounded-xl text-center shadow-lg animate-pulse font-rubik flex items-center justify-between border border-amber-300">
+        <div className="absolute -top-8 inset-x-4 z-30 py-1 px-3 bg-amber-500 text-amber-950 font-black text-xs rounded-xl text-center shadow-lg animate-pulse font-rubik flex items-center justify-between border border-amber-300">
           <span>👈 {strings.actions.selectTileToBuild}</span>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}
@@ -37,12 +37,12 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
       )}
 
       {/* Three Primary Clay Buttons with strictly invariant layout height */}
-      <div className="grid grid-cols-3 gap-2 w-full">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
         {/* 1. מילואים (Reserves) */}
         <button
           onClick={() => dispatch({ type: 'CALL_RESERVES' })}
           disabled={state.reservesBatchesLeft <= 0 || state.gameStatus !== 'playing'}
-          className={`clay-btn py-3 px-1 text-center transition-all ${
+          className={`clay-btn py-2 sm:py-2.5 px-1 text-center transition-all ${
             (state.greenSideAttacks || []).length > 0
               ? 'ring-4 ring-red-500 bg-red-100/95 animate-pulse text-red-950 font-black shadow-[0_0_15px_rgba(239,68,68,0.5)]'
               : ''
@@ -65,7 +65,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         <button
           onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
           disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
-          className={`clay-btn py-3 px-1 text-center transition-all ${
+          className={`clay-btn py-2 sm:py-2.5 px-1 text-center transition-all ${
             ungarrisonedCount > 0 ? 'ring-2 ring-red-400/80 bg-red-50/40' : 'opacity-60 cursor-not-allowed'
           }`}
         >
@@ -87,7 +87,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         <button
           onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}
           disabled={state.gameStatus !== 'playing'}
-          className={`clay-btn py-3 px-1 text-center transition-all ${
+          className={`clay-btn py-2 sm:py-2.5 px-1 text-center transition-all ${
             state.isBuildMode
               ? 'ring-4 ring-amber-400 bg-amber-200'
               : !canAffordSettlement

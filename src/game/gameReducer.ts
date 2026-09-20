@@ -75,6 +75,7 @@ export const INITIAL_STATE: GameState = {
   greenSideAttacks: [],
   lastGreenAttackTick: 0,
   selectedInfiltrationId: null,
+  interceptedToast: null,
 };
 
 export const BORDER_TO_GREEN_CITY: Record<string, { cityId: string; nameHe: string; nameEn: string }> = {
@@ -485,6 +486,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const hadIntercepted = (state.greenSideAttacks || []).length > remainingGreenAttacks.length;
 
       if (hadIntercepted) {
+        sounds.playShieldChime();
         newsHeadlineHe += ' כוחות המילואים בלמו ויירטו חוליות שחדרו לעורף!';
         newsHeadlineEn += ' Reserve forces intercepted hostile squads penetrating the home front!';
       }
@@ -499,6 +501,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         tiles: updatedTiles,
         activeBreaches,
         greenSideAttacks: remainingGreenAttacks,
+        interceptedToast: hadIntercepted ? {
+          id: `intercept-${Date.now()}`,
+          textHe: '🛡️ חדירה סוכלה בהצלחה!',
+          textEn: '🛡️ Infiltration Thwarted Successfully!',
+          timestamp: Date.now(),
+        } : state.interceptedToast,
         lordOfHosts: {
           ...state.lordOfHosts,
           isPanicMashMode: newDefenseScore === 0,
@@ -1089,6 +1097,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastPenaltyTick: nextPenaltyTick,
         greenSideAttacks: activeGreenAttacks,
         lastGreenAttackTick: nextGreenAttackTick,
+        interceptedToast: (state.interceptedToast && now - state.interceptedToast.timestamp > 3800)
+          ? null
+          : state.interceptedToast,
         lordOfHosts: {
           ...state.lordOfHosts,
           chargePercent: Math.round(newCharge),
@@ -1098,6 +1109,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           piousToast: toast,
           isPanicMashMode: isPanic,
         },
+      };
+    }
+
+    case 'CLEAR_INTERCEPTED_TOAST': {
+      return {
+        ...state,
+        interceptedToast: null,
       };
     }
 
@@ -1258,10 +1276,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      sounds.playDeploy();
+      // Intercept any green side attacks whose breach checkpoint was just re-manned!
+      const remainingGreenAttacks = (state.greenSideAttacks || []).filter(
+        atk => atk.breachId !== chosenBorderId
+      );
+      const hadIntercepted = (state.greenSideAttacks || []).length > remainingGreenAttacks.length;
 
-      const recallHeadlineHe = `כוח צה״ל נסוג מ${tile.settlementName || 'המאחז'} ושב לבצר את קו הגבול המערבי.`;
-      const recallHeadlineEn = `Troops recalled from ${tile.settlementName || 'outpost'} to secure the western border.`;
+      if (hadIntercepted) {
+        sounds.playShieldChime();
+      } else {
+        sounds.playDeploy();
+      }
+
+      const recallHeadlineHe = `כוח צה״ל נסוג מ${tile.settlementName || 'המאחז'} ושב לבצר את קו הגבול המערבי.${hadIntercepted ? ' חדירה סוכלה בהצלחה!' : ''}`;
+      const recallHeadlineEn = `Troops recalled from ${tile.settlementName || 'outpost'} to secure the western border.${hadIntercepted ? ' Infiltration thwarted!' : ''}`;
 
       return {
         ...state,
@@ -1270,6 +1298,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
         activeBreaches,
+        greenSideAttacks: remainingGreenAttacks,
+        interceptedToast: hadIntercepted ? {
+          id: `intercept-${Date.now()}`,
+          textHe: '🛡️ חדירה סוכלה בהצלחה!',
+          textEn: '🛡️ Infiltration Thwarted Successfully!',
+          timestamp: Date.now(),
+        } : state.interceptedToast,
         movingTroops: newMovingTroops,
         selectedSettlementId: null,
         ...withNews(state, {
@@ -1344,10 +1379,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      sounds.playDeploy();
+      // Intercept any green side attacks whose breach checkpoint was just re-manned!
+      const remainingGreenAttacksAll = (state.greenSideAttacks || []).filter(
+        atk => updatedTiles[atk.breachId]?.garrisonCount === 0
+      );
+      const hadInterceptedAll = (state.greenSideAttacks || []).length > remainingGreenAttacksAll.length;
 
-      const recallAllHeadlineHe = `נסיגה טקטית מלאה! ${recalledCount} לוחמים פונו מהמאחזים וחזרו לאבטח את הגבול המערבי.`;
-      const recallAllHeadlineEn = `Full tactical pullback! ${recalledCount} soldiers recalled from outposts to secure the western border.`;
+      if (hadInterceptedAll) {
+        sounds.playShieldChime();
+      } else {
+        sounds.playDeploy();
+      }
+
+      const recallAllHeadlineHe = `נסיגה טקטית מלאה! ${recalledCount} לוחמים פונו מהמאחזים וחזרו לאבטח את הגבול המערבי.${hadInterceptedAll ? ' חדירות נבלמו!' : ''}`;
+      const recallAllHeadlineEn = `Full tactical pullback! ${recalledCount} soldiers recalled from outposts to secure the western border.${hadInterceptedAll ? ' Infiltrations thwarted!' : ''}`;
 
       return {
         ...state,
@@ -1356,6 +1401,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
         activeBreaches,
+        greenSideAttacks: remainingGreenAttacksAll,
+        interceptedToast: hadInterceptedAll ? {
+          id: `intercept-${Date.now()}`,
+          textHe: '🛡️ חדירות סוכלו בהצלחה!',
+          textEn: '🛡️ Infiltrations Thwarted Successfully!',
+          timestamp: Date.now(),
+        } : state.interceptedToast,
         movingTroops: newMovingTroops,
         selectedSettlementId: null,
         ...withNews(state, {

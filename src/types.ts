@@ -99,6 +99,13 @@ export interface GreenSideAttack {
   durationMs: number;
 }
 
+export interface InterceptionToast {
+  id: string;
+  textHe: string;
+  textEn: string;
+  timestamp: number;
+}
+
 export interface GameState {
   locale: 'he' | 'en';
   soundEnabled: boolean;
@@ -170,6 +177,7 @@ export interface GameState {
   lastGreenAttackTick: number;
   selectedInfiltrationId: string | null;
   lastCoinTick?: number;
+  interceptedToast: InterceptionToast | null;
 }
 
 export type GameAction =
@@ -194,6 +202,7 @@ export type GameAction =
   | { type: 'CLEAR_CLASH'; id: string }
   | { type: 'CLEAR_PENALTY' }
   | { type: 'CLEAR_GREEN_ATTACK'; id: string }
+  | { type: 'CLEAR_INTERCEPTED_TOAST' }
   | { type: 'OPEN_NEWS_MODAL' }
   | { type: 'CLOSE_NEWS_MODAL' }
   | { type: 'CYCLE_NEXT_NEWS' }

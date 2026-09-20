@@ -21,9 +21,9 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
   }
 
   return (
-    <div className="flex flex-col items-center gap-1.5 px-4 z-20 flex-shrink-0">
+    <div className="flex flex-col items-center gap-1 sm:gap-1.5 px-3 sm:px-4 z-20 flex-shrink-0">
       {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
-      <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1.5 rounded-full shadow-lg border border-amber-100/60">
+      <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-lg border border-amber-100/60">
         {/* Floating Settlement Penalty Popup */}
         {state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600) && (
           <div className="absolute -top-7 right-2 sm:right-4 z-30 pointer-events-none whitespace-nowrap bg-red-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-red-400 flex items-center gap-1 font-heebo">
@@ -100,7 +100,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
       </div>
 
       {/* Lower Pill: Defense Bar */}
-      <div className="status-pill flex items-center justify-between w-64 px-3 py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60">
+      <div className="status-pill flex items-center justify-between w-60 sm:w-64 px-3 py-1 sm:py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60">
         {/* Progress Fill Bar */}
         <div className="flex-1 bg-amber-100/80 rounded-full h-4 p-0.5 border border-amber-300/60 overflow-hidden shadow-inner relative">
           <div

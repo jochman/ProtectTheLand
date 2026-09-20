@@ -48,6 +48,35 @@ export default function App() {
       {/* Floating Operational Emergency Alert (0px layout footprint, never resizes map) */}
       <FloatingEmergencyAlert state={state} dispatch={dispatch} />
 
+      {/* Floating Interception Success Feedback Banner (0px layout footprint, auto-clearing) */}
+      {state.interceptedToast && (
+        <div
+          onClick={() => dispatch({ type: 'CLEAR_INTERCEPTED_TOAST' })}
+          className="absolute top-[138px] inset-x-4 z-40 cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/95 via-emerald-800/95 to-emerald-950/95 border-2 border-emerald-400 shadow-2xl backdrop-blur-md p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 flex items-center justify-between pointer-events-auto"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xl flex-shrink-0 animate-bounce">🛡️</span>
+            <div className="flex flex-col text-start">
+              <span className="text-xs font-black text-emerald-200 font-rubik">
+                {state.locale === 'he' ? state.interceptedToast.textHe : state.interceptedToast.textEn}
+              </span>
+              <span className="text-[10px] text-emerald-300 font-heebo">
+                {state.locale === 'he' ? 'כוחות הביטחון יירטו את החוליה וביצרו את הגבול!' : 'Forces neutralized hostile infiltrators & fortified the line!'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch({ type: 'CLEAR_INTERCEPTED_TOAST' });
+            }}
+            className="text-emerald-300 hover:text-white p-1 text-xs font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Critical Defense Perimeter Alert Vignette */}
       {state.defenseScore <= 25 && state.gameStatus === 'playing' && (
         <div className="pointer-events-none absolute inset-0 ring-4 ring-inset ring-red-600/60 animate-pulse z-30" />

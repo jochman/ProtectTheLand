@@ -14,7 +14,7 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
   const isHe = state.locale === 'he';
 
   return (
-    <div className="px-3 py-0.5 z-20 w-full h-[40px] min-h-[40px] max-h-[40px] flex-shrink-0">
+    <div className="px-3 py-0.5 z-20 w-full h-[36px] min-h-[36px] max-h-[36px] sm:h-[40px] sm:min-h-[40px] sm:max-h-[40px] flex-shrink-0">
       <div
         role="button"
         tabIndex={0}

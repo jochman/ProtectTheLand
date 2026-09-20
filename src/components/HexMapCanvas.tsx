@@ -50,7 +50,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
   }, [state.clashes, dispatch]);
 
   return (
-    <div className="relative w-full h-[465px] sm:h-[495px] flex-shrink-0 overflow-hidden flex items-center justify-center my-0.5 select-none">
+    <div className="relative w-full flex-1 min-h-[220px] max-h-full overflow-hidden flex items-center justify-center my-0 select-none">
       <svg
         viewBox="0 0 460 565"
         className="w-full h-full drop-shadow-xl"
@@ -393,12 +393,29 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
         <path
           d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 165 465 170 490 L 110 485"
           fill="none"
-          stroke={state.defenseScore < 30 ? '#ef4444' : '#e04238'}
-          strokeWidth="4"
-          strokeDasharray={state.defenseScore < 50 ? '7,4' : 'none'}
-          className={state.defenseScore < 30 ? 'animate-pulse' : ''}
+          stroke={state.defenseScore <= 25 ? '#ef4444' : state.defenseScore < 50 ? '#f59e0b' : '#e04238'}
+          strokeWidth={state.defenseScore <= 25 ? 5 : 4}
+          strokeDasharray={state.defenseScore <= 25 ? '4,5' : state.defenseScore < 50 ? '8,4' : 'none'}
+          className={state.defenseScore <= 25 ? 'animate-pulse' : ''}
           strokeLinecap="round"
         />
+        {/* Critical Perimeter Collapse Warning Sparks along the Green Line */}
+        {state.defenseScore <= 25 && (
+          <g className="animate-pulse pointer-events-none">
+            {[
+              { x: 172, y: 110 },
+              { x: 163, y: 240 },
+              { x: 155, y: 390 },
+            ].map((spark, idx) => (
+              <g key={`border-spark-${idx}`} transform={`translate(${spark.x}, ${spark.y})`}>
+                <circle cx="0" cy="0" r="7" fill="rgba(239, 68, 68, 0.25)" />
+                <circle cx="0" cy="0" r="3" fill="#ef4444" />
+                <line x1="-5" y1="-5" x2="5" y2="5" stroke="#fca5a5" strokeWidth="1.2" />
+                <line x1="-5" y1="5" x2="5" y2="-5" stroke="#fca5a5" strokeWidth="1.2" />
+              </g>
+            ))}
+          </g>
+        )}
 
         {/* 3. BORDER CHECKPOINTS & WATCHTOWERS */}
         {tiles.filter(t => t.isBorderCheckpoint).map(cp => {
@@ -578,6 +595,18 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <circle cx="0" cy="0" r="9" fill="#ffffff" stroke="#16a34a" strokeWidth="1.5" />
                   <circle cx="0" cy="-2.5" r="2.5" fill="#14532d" />
                   <path d="M -2.5 0.5 L 2.5 0.5 L 3 5.5 L -3 5.5 Z" fill="#15803d" />
+                  {/* Miniature IDF Shield Badge */}
+                  <g transform="translate(5, -7)">
+                    <path d="M 0 0 L 4 2 L 4 6 Q 4 9 0 11 Q -4 9 -4 6 L -4 2 Z" fill="#2563eb" stroke="#ffffff" strokeWidth="0.8" />
+                    <text x="0" y="6" textAnchor="middle" fill="#ffffff" fontSize="4.5" fontWeight="900">✡</text>
+                  </g>
+                  {/* Active outpost repair / healing status */}
+                  {(s.hp ?? 100) < 100 && (
+                    <g transform="translate(-14, -8)">
+                      <rect x="-8" y="-4" width="16" height="8" rx="2.5" fill="#15803d" stroke="#86efac" strokeWidth="0.6" />
+                      <text x="0" y="2" textAnchor="middle" fill="#86efac" fontSize="5" fontWeight="900" className="font-rubik">+5 HP</text>
+                    </g>
+                  )}
                 </g>
               ) : (
                 // Empty garrison badge: subtle dashed outline with guard silhouette (no bouncing, calm)

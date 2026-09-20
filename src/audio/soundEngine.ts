@@ -300,6 +300,26 @@ class SoundEngine {
     osc.start();
     osc.stop(ctx.currentTime + 0.27);
   }
+
+  public playShieldChime() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    // Crisp resonant protective shield chime arpeggio (G5 -> C6 -> E6)
+    const notes = [783.99, 1046.5, 1318.51];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const st = ctx.currentTime + idx * 0.05;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, st);
+      gain.gain.setValueAtTime(0.18, st);
+      gain.gain.exponentialRampToValueAtTime(0.001, st + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(st);
+      osc.stop(st + 0.36);
+    });
+  }
 }
 
 export const sounds = new SoundEngine();

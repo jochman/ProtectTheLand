@@ -42,7 +42,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
       <button
         onClick={handleClick}
         disabled={isCracked}
-        className={`w-full py-2 px-3 transition-all relative overflow-hidden ${
+        className={`w-full py-1.5 sm:py-2 px-3 transition-all relative overflow-hidden ${
           isCracked
             ? 'bg-stone-500 border-stone-600 text-stone-300 cursor-not-allowed opacity-80 rounded-full border-2'
             : isPanic
