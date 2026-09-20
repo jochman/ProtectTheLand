@@ -17,6 +17,8 @@ export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> =
 
   const strings = state.locale === 'he' ? he : en;
   const isGuarded = tile.garrisonCount > 0;
+  const mannedBorders = Object.values(state.tiles).filter(t => t.isBorderCheckpoint && t.garrisonCount > 0);
+  const canDeploy = !isGuarded && state.budget >= 25 && mannedBorders.length > 0;
 
   return (
     <div
@@ -89,6 +91,29 @@ export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> =
 
         {/* Creative / Rational Strategic Action: Recall or Evacuate */}
         <div className="flex flex-col gap-2">
+          {!isGuarded && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-2.5">
+              <p className="text-xs font-black text-red-900">
+                {state.locale === 'he' ? 'תחזית לפני פריסה: ‎-12.5% הגנת גבול, פרצה חדשה, ‎-25₪' : 'Deployment forecast: -12.5% border defense, one new breach, -₪25'}
+              </p>
+              <p className="mt-1 text-[10px] text-red-700">
+                {state.locale === 'he' ? 'בחרו במפורש איזו גזרת גבול תישאר ללא חייל:' : 'Explicitly choose which border sector will be left unmanned:'}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {mannedBorders.map((border, index) => (
+                  <button
+                    key={border.id}
+                    disabled={!canDeploy}
+                    onClick={() => dispatch({ type: 'DEPLOY_TROOP', settlementId: tile.id, borderId: border.id })}
+                    className="rounded-lg border border-red-300 bg-white px-2 py-1 text-[10px] font-bold text-red-800 disabled:opacity-50"
+                  >
+                    {state.locale === 'he' ? `גזרה ${index + 1}` : `Sector ${index + 1}`}
+                  </button>
+                ))}
+              </div>
+              {!canDeploy && <p className="mt-1 text-[10px] text-red-600">{state.locale === 'he' ? 'דרושים 25₪ וחייל בגבול.' : 'Requires ₪25 and a border troop.'}</p>}
+            </div>
+          )}
           {isGuarded && (
             <div className="flex flex-col gap-1">
               <button

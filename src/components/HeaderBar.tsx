@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, RotateCcw, Globe, HelpCircle, Maximize2, Minimize2, Play, Pause } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Globe, HelpCircle, Maximize2, Minimize2, Play, Pause, BookOpen } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 
 interface HeaderBarProps {
@@ -61,6 +61,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ state, dispatch }) => {
           title={isHe ? 'הוראות ומטרת המשחק' : 'How to Play'}
         >
           <HelpCircle className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => dispatch({ type: 'OPEN_TOOLKIT' })}
+          className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-xs font-bold border border-white/20 backdrop-blur-sm transition-transform active:scale-95 text-amber-300"
+          title={isHe ? 'שולחן אסטרטגיה, תרחישים ונגישות' : 'Strategy desk, scenarios & accessibility'}
+        >
+          <BookOpen className="w-4 h-4" />
         </button>
 
         {/* Fullscreen Toggle */}

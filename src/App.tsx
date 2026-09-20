@@ -14,6 +14,7 @@ import { FloatingEmergencyAlert } from './components/FloatingEmergencyAlert';
 import { InfiltrationDefenseModal } from './components/InfiltrationDefenseModal';
 import { NewsFeedModal } from './components/NewsFeedModal';
 import { EntranceInstructionModal } from './components/EntranceInstructionModal';
+import { StrategyToolkitModal } from './components/StrategyToolkitModal';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -59,7 +60,7 @@ export default function App() {
   }, [state.interceptedToast]);
 
   return (
-    <MobileFrame isShaking={state.isScreenShaking}>
+    <MobileFrame isShaking={state.isScreenShaking} reduceMotion={state.reduceMotion}>
       {/* Floating Game Paused Indicator */}
       {state.isPaused && (
         <div
@@ -140,6 +141,7 @@ export default function App() {
       <RationalVictoryModal state={state} dispatch={dispatch} />
       <NewsFeedModal state={state} dispatch={dispatch} />
       <EntranceInstructionModal state={state} dispatch={dispatch} />
+      <StrategyToolkitModal state={state} dispatch={dispatch} />
     </MobileFrame>
   );
 }

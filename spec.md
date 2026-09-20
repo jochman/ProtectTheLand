@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 16:25:38 UTC (Branch: `main`, Iteration #42)
+> **Last Synchronized:** 2026-09-20 16:43:57 UTC (Branch: `main`, Iteration #43)
 
 ---
 
@@ -573,7 +573,34 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 
 ---
 
-## 14. Authorial & Educational Inscription
+## 14. Strategy Desk, Player Agency & Accessibility
+
+1. **Player-Directed Deployment:**
+   - The broad `DEPLOY_TROOPS` action no longer moves soldiers randomly. It directs the player to open an unguarded outpost.
+   - `SettlementInspectorModal` presents every currently manned border sector as a deliberate source choice. Selecting one dispatches `DEPLOY_TROOP { settlementId, borderId }`.
+   - Before confirmation, the inspector always exposes the exact consequence: one soldier costs `25₪`, the selected sector becomes a breach, and border readiness loses `12.5%`.
+   - This preserves decision ownership and makes the manpower trade-off inspectable rather than opaque.
+
+2. **Strategy Desk (`StrategyToolkitModal.tsx`):**
+   - The compact book control in `HeaderBar` opens a paused, dismissible strategy desk without changing the game viewport layout.
+   - It contains a bilingual policy ledger (choice, immediate gain, ongoing cost), an explicit statement that the product is a simplified educational/satirical model rather than a forecast or historical reconstruction, and replayable starting scenarios.
+   - The desk links to the project’s original analysis inspiration, keeping its framing and simplified assumptions visible to players who want additional context.
+   - `defend_first` begins with an additional 50₪; `overextension` begins with two guarded outposts and two open border sectors; `recovery` begins with three guarded outposts, five manned sectors, 70% Homeland HP, and one reserve call.
+   - Scenario construction clones `INITIAL_STATE`, so every scenario is deterministic in its starting board and directly comparable.
+
+3. **Alternative Rational Resolution:**
+   - Sustainable-security victory can be reached after restoring 100% border defense and reducing the outpost count to two or fewer once the player has experienced overextension, including via a scenario. It is no longer coupled exclusively to constructing three outposts in a single unstructured run.
+
+4. **Accessibility:**
+   - The strategy desk offers a persistent reduce-motion preference (`reduceMotion`). The root `reduce-motion` class neutralizes animation and transition durations while retaining state and color-independent text cues.
+   - Map labels, textual breach indicators, and numeric readiness/HP readouts remain available when motion is disabled.
+
+5. **Counterfactual & Result Sharing:**
+   - The defeat debrief explains the exact modeled counterfactual: recalling one troop seals one sector and eliminates that sector's `0.4 HP/second` drain.
+   - In addition to native and WhatsApp text sharing, `October7DefeatModal` exports a self-contained SVG result card containing outpost, breach, resilience, and civic-slogan data.
+
+
+## 15. Authorial & Educational Inscription
 
 > **"לא מצביעים בלי שיודעים."**  
 > Dedicated to clarity, public responsibility, and sovereign defense prioritization.

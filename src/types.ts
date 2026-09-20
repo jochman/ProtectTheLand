@@ -191,6 +191,13 @@ export interface GameState {
   isIntroModalOpen: boolean;
   isPaused: boolean;
   infoPopover: { title: string; text: string } | null;
+  /** A compact, replayable starting situation chosen from the strategy desk. */
+  scenarioId: 'open' | 'defend_first' | 'overextension' | 'recovery';
+  /** Records that the player has seen the costs of dispersing forces. */
+  hasExperiencedOverextension: boolean;
+  isToolkitOpen: boolean;
+  reduceMotion: boolean;
+  actionHistory: { id: string; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate'; timestamp: number }[];
 }
 
 export type GameAction =
@@ -205,6 +212,7 @@ export type GameAction =
   | { type: 'COLLECT_COIN'; id: string }
   | { type: 'COLLECT_CITY_TAX'; cityId: string }
   | { type: 'DEPLOY_TROOPS' }
+  | { type: 'DEPLOY_TROOP'; settlementId: string; borderId: string }
   | { type: 'CALL_RESERVES' }
   | { type: 'CLICK_LORD_OF_HOSTS' }
   | { type: 'MASH_LORD_OF_HOSTS' }
@@ -214,6 +222,10 @@ export type GameAction =
   | { type: 'DISMISS_TOAST' }
   | { type: 'SET_LOCALE'; locale: 'he' | 'en' }
   | { type: 'TOGGLE_SOUND' }
+  | { type: 'TOGGLE_REDUCE_MOTION' }
+  | { type: 'OPEN_TOOLKIT' }
+  | { type: 'CLOSE_TOOLKIT' }
+  | { type: 'START_SCENARIO'; scenarioId: GameState['scenarioId'] }
   | { type: 'RESTART_GAME' }
   | { type: 'TICK_TIMER' }
   | { type: 'CLEAR_SPARK'; id: string }

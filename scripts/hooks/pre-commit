@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-# scripts/hooks/pre-commit
-# Git pre-commit hook to automatically synchronize spec.md on each code iteration.
+# Synchronize the *staged* copy of spec.md when application files are staged.
+# Do not run the worktree helper here: doing so overwrote/staged unrelated,
+# unstaged spec edits and could make an otherwise valid commit hook fail.
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
@@ -19,11 +20,29 @@ CODE_CHANGED=$(echo "$STAGED_FILES" | grep -E '^(src/|public/|package\.json|inde
 if [ -n "$CODE_CHANGED" ]; then
   echo "[hook:pre-commit] Application changes detected in current iteration."
   
-  if [ -f "$REPO_ROOT/scripts/update-spec-version.sh" ]; then
-    bash "$REPO_ROOT/scripts/update-spec-version.sh"
-    git add "$REPO_ROOT/spec.md"
-    echo "[hook:pre-commit] spec.md synchronized and added to commit."
+  if [ ! -f "$REPO_ROOT/spec.md" ]; then
+    echo "[hook:pre-commit] spec.md is missing; cannot synchronize metadata." >&2
+    exit 1
   fi
+
+  SPEC_TMP=$(mktemp)
+  trap 'rm -f "$SPEC_TMP"' EXIT
+  # Read from the index, so a dirty working tree is never captured by a commit.
+  git show :spec.md > "$SPEC_TMP" 2>/dev/null || cp "$REPO_ROOT/spec.md" "$SPEC_TMP"
+  TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+  BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+  ITERATION=$(( $(git rev-list --count HEAD 2>/dev/null || echo 0) + 1 ))
+  METADATA="> **Last Synchronized:** $TIMESTAMP (Branch: \`$BRANCH\`, Iteration #$ITERATION)"
+  if grep -q "\*\*Last Synchronized:\*\*" "$SPEC_TMP"; then
+    sed -i "s|> \*\*Last Synchronized:\*\*.*|$METADATA|" "$SPEC_TMP"
+  else
+    sed -i "/\*\*Repository:\*\*/a $METADATA" "$SPEC_TMP"
+  fi
+  MODE=$(git ls-files -s -- spec.md | awk 'NR==1 {print $1}')
+  MODE=${MODE:-100644}
+  BLOB=$(git hash-object -w "$SPEC_TMP")
+  git update-index --add --cacheinfo "$MODE,$BLOB,spec.md"
+  echo "[hook:pre-commit] staged spec.md metadata synchronized."
 fi
 
 exit 0
