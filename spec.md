@@ -286,11 +286,11 @@ $$\text{IncomeRate} = \max\left(2\text{₪/s}, 4 - \text{CallsMade}\right)$$
 | **2 calls** | 16 | +2 ₪/sec | Labor shortage alert |
 | **3 calls (Max)** | 20 | +2 ₪/sec | Complete mobilization burnout |
 
-### 5.4 Coastal Shekel Collection ("כספים קואליציוניים")
-- Spawns at realistic coastal port coordinates (Tel Aviv, Haifa, Sharon, Shfela, Ashdod).
-- Value: **+30₪** per coin.
-- Visuals: 3D gold shekel with `<animateTransform>` bobbing and 30px touch hitbox.
-- Collection Reward: Synthesized cash register chime, golden particle burst, and instant treasury deposit.
+### 5.4 Israeli Cities Shekel Collection ("כספים קואליציוניים")
+- **Placement:** Spawns directly on actual sovereign Israeli cities (Tel Aviv `[105, 210]`, Haifa `[115, 60]`, Netanya/Sharon `[110, 135]`, Shfela/Modi'in `[100, 285]`, Ashdod `[95, 360]`, Beer Sheva `[95, 435]`). Completely separated from the Mediterranean sea tiles.
+- **Controlled Quantity:** Strictly at most **1 coin** present on screen at any time (initial: 1 coin at Tel Aviv; cooldown: 14s between spawns).
+- **Balanced Value:** **+25₪** per coin (calibrated to support the 5-7 minute game loop without flooding treasury).
+- **Visuals & Feedback:** 3D gold shekel with `<animateTransform>` bobbing, generous 30px touch hitbox, badge `+25₪`, cash register chime, and golden spark burst effect on collection.
 
 ### 5.5 Settlement Financial Drain Penalties
 Building outposts creates permanent infrastructure drain (bypass roads, armored shuttles, security squads):

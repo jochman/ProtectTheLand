@@ -21,9 +21,9 @@ export const INITIAL_STATE: GameState = {
   isBuildMode: false,
   constructions: {},
   collectibleCoins: [
-    { id: 'coin-1', x: 45, y: 215, amount: 30, createdAt: Date.now() }, // Tel Aviv Port / Sea
-    { id: 'coin-2', x: 50, y: 65, amount: 30, createdAt: Date.now() },  // Haifa Port / Sea
+    { id: 'coin-1', x: 105, y: 210, amount: 25, createdAt: Date.now() }, // Tel Aviv city
   ],
+  lastCoinTick: 0,
   lordOfHosts: {
     chargePercent: 12,
     stage: 1,
@@ -281,6 +281,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         budget: Math.min(state.maxBudget, state.budget + coin.amount),
         collectibleCoins: state.collectibleCoins.filter(c => c.id !== action.id),
         sparks: newSparks,
+        lastCoinTick: 0,
       };
     }
 
@@ -655,28 +656,30 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // 4. Spawn collectible coins on Israel cities
+      // 4. Spawn collectible coins on Israeli cities (strictly at most 1, on real city coordinates)
       const coins = [...state.collectibleCoins];
-      const reservesMobilized = 3 - state.reservesBatchesLeft;
-      const maxAllowedCoins = reservesMobilized <= 1 ? 3 : 2;
-      const coinSpawnChance = reservesMobilized === 0 ? 0.60 : reservesMobilized === 1 ? 0.45 : 0.30;
+      let nextCoinTick = (state.lastCoinTick || 0) + 1;
+      const maxAllowedCoins = 1; // Strictly at most 1 coin at a time on screen to prevent clutter
 
-      if (coins.length < maxAllowedCoins && Math.random() < coinSpawnChance) {
+      // Cooldown of at least 14 seconds between coins, spawning directly on actual Israeli cities
+      if (coins.length < maxAllowedCoins && nextCoinTick >= 14 && Math.random() < 0.35) {
         const israelCityTiles = [
-          { x: 45, y: 215 }, // Tel Aviv Coast
-          { x: 50, y: 135 }, // Sharon Coast
-          { x: 50, y: 65 },  // Haifa Coast
-          { x: 40, y: 290 }, // Shfela Coast
-          { x: 35, y: 365 }, // Ashdod Coast
+          { x: 105, y: 210 }, // תל אביב
+          { x: 115, y: 60 },  // חיפה והצפון
+          { x: 110, y: 135 }, // נתניה / השרון
+          { x: 100, y: 285 }, // השפלה / מודיעין
+          { x: 95, y: 360 },  // אשדוד / אשקלון
+          { x: 95, y: 435 },  // באר שבע והנגב
         ];
         const randomCity = israelCityTiles[Math.floor(Math.random() * israelCityTiles.length)];
         coins.push({
           id: `coin-${Date.now()}`,
           x: randomCity.x,
           y: randomCity.y,
-          amount: 30,
+          amount: 25,
           createdAt: Date.now(),
         });
+        nextCoinTick = 0;
       }
 
       const now = Date.now();
@@ -1061,6 +1064,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         tiles: updatedTiles,
         sparks: newSparks,
         collectibleCoins: coins,
+        lastCoinTick: nextCoinTick,
         isScreenShaking: false,
         infiltratingTrucks: updatedTrucks,
         currentNews: nextCurrentNews,

@@ -168,6 +168,7 @@ export interface GameState {
   greenSideAttacks: GreenSideAttack[];
   lastGreenAttackTick: number;
   selectedInfiltrationId: string | null;
+  lastCoinTick?: number;
 }
 
 export type GameAction =

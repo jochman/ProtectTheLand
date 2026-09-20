@@ -599,7 +599,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           );
         })}
 
-        {/* 6. COLLECTIBLE COINS FLOATING OVER ISRAEL COAST */}
+        {/* 6. COLLECTIBLE COINS FLOATING OVER ISRAELI CITIES */}
         {state.collectibleCoins.map(coin => (
           <g
             key={coin.id}
