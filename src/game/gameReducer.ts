@@ -10,6 +10,7 @@ export const INITIAL_STATE: GameState = {
   gameStatus: 'playing',
   budget: 150, // Initial coalition funds (₪)
   maxBudget: 400,
+  incomeRate: 8, // Full economic capacity (+8 ₪/tick)
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
@@ -264,9 +265,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.reservesBatchesLeft <= 0) return state;
 
       const newBatchesLeft = state.reservesBatchesLeft - 1;
+      const callsMade = 3 - newBatchesLeft;
       const addedSoldiers = 4;
       const newTotal = state.soldiersTotal + addedSoldiers;
       const newBorder = state.soldiersAtBorder + addedSoldiers;
+
+      // Economic Tradeoff: Mobilizing workers cripples the civilian economy!
+      const newIncomeRate = callsMade === 1 ? 5 : callsMade === 2 ? 3 : 1;
 
       sounds.playReserves();
 
@@ -296,15 +301,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      let newsHeadline = `${strings.news.reservesCalled} (${newBatchesLeft} ${strings.stats.reservesLeft})`;
-      if (newBatchesLeft === 0) {
-        newsHeadline = strings.news.reservesExhausted;
+      let newsHeadline = state.locale === 'he'
+        ? `צו 8! פלוגות מילואים גויסו. המשק בהאטה — קצב גיוס הכספים הואט ל-${newIncomeRate}₪ לשנייה (${newBatchesLeft} סבבים נותרו).`
+        : `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
+
+      if (callsMade === 2) {
+        newsHeadline = state.locale === 'he'
+          ? `גל גיוס שני! מחסור חמור בידיים עובדות — קצב גיוס הכספים הואט ל-${newIncomeRate}₪ לשנייה בלבד.`
+          : `Second Mobilization Wave! Severe labor shortage — budget intake slowed to ₪${newIncomeRate}/s.`;
+      } else if (callsMade === 3) {
+        newsHeadline = state.locale === 'he'
+          ? `קריסה במערך המילואים! המשק בשיתוק כמעט מלא — קצב גיוס הכספים צנח ל-1₪ לשנייה בלבד!`
+          : `Reserve Exhaustion! Economy near paralysis — budget intake collapsed to ₪1/s!`;
       }
 
       return {
         ...state,
         soldiersTotal: newTotal,
         soldiersAtBorder: newBorder,
+        incomeRate: newIncomeRate,
         reservesBatchesLeft: newBatchesLeft,
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
@@ -316,7 +331,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         currentNews: {
           id: `reserves-${Date.now()}`,
           headline: newsHeadline,
-          source: 'אגף כוח אדם (אכ״א)',
+          source: 'אגף כוח אדם והאוצר',
+          isUrgent: callsMade >= 2,
         },
       };
     }
@@ -382,8 +398,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         sounds.playSparkChime();
       }
 
-      // 2. Passive budget income
-      const newBudget = Math.min(state.maxBudget, state.budget + 6);
+      // 2. Passive budget income (affected by reserve mobilization!)
+      const income = state.incomeRate ?? 8;
+      const newBudget = Math.min(state.maxBudget, state.budget + income);
 
       // 3. Update constructions
       const updatedConstructions = { ...state.constructions };
@@ -440,15 +457,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // 4. Spawn collectible coins on Israel cities
+      // 4. Spawn collectible coins on Israel cities (slows down drastically with reserves!)
       const coins = [...state.collectibleCoins];
-      if (coins.length < 3 && Math.random() > 0.5) {
+      const reservesMobilized = 3 - state.reservesBatchesLeft;
+      const maxAllowedCoins = reservesMobilized === 0 ? 3 : reservesMobilized === 1 ? 2 : 1;
+      const coinSpawnChance = reservesMobilized === 0 ? 0.55 : reservesMobilized === 1 ? 0.30 : reservesMobilized === 2 ? 0.15 : 0.05;
+
+      if (coins.length < maxAllowedCoins && Math.random() < coinSpawnChance) {
         const israelCityTiles = [
-          { x: 110, y: 215 }, // Tel Aviv
-          { x: 120, y: 140 }, // Netanya
-          { x: 105, y: 290 }, // Shfela
-          { x: 95, y: 365 },  // Ashdod
-          { x: 95, y: 440 },  // Beer Sheva
+          { x: 105, y: 210 }, // Tel Aviv
+          { x: 110, y: 135 }, // Netanya
+          { x: 100, y: 285 }, // Shfela
+          { x: 95, y: 360 },  // Ashdod
+          { x: 95, y: 435 },  // Beer Sheva
         ];
         const randomCity = israelCityTiles[Math.floor(Math.random() * israelCityTiles.length)];
         coins.push({

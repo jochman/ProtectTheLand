@@ -46,6 +46,7 @@ export interface GameState {
   // Numerical stats & Resources
   budget: number; // Coalition funds / Resources (₪)
   maxBudget: number;
+  incomeRate: number; // Current passive income per tick (slows down with reserves!)
   settlementsCount: number;
   soldiersTotal: number;
   soldiersAtBorder: number;

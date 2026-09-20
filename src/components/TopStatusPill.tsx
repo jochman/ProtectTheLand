@@ -55,16 +55,29 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
 
         <div className="w-px h-5 bg-slate-200" />
 
-        {/* Coalition Budget ₪ Counter */}
+        {/* Coalition Budget ₪ Counter & Income Rate */}
         <div className="flex items-center gap-1.5" title={strings.stats.budget}>
           <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-100 border border-amber-300">
             <Coins className="w-3.5 h-3.5 text-amber-600" />
           </div>
-          <div className="flex items-baseline">
-            <span className="text-xl font-black text-amber-700 tracking-tight font-rubik">
-              {state.budget}
+          <div className="flex flex-col items-start leading-none">
+            <div className="flex items-baseline">
+              <span className="text-xl font-black text-amber-700 tracking-tight font-rubik">
+                {state.budget}
+              </span>
+              <span className="text-xs font-bold text-amber-800 ml-0.5">₪</span>
+            </div>
+            <span
+              className={`text-[9px] font-black tracking-tighter ${
+                (state.incomeRate ?? 8) >= 6
+                  ? 'text-emerald-700'
+                  : (state.incomeRate ?? 8) >= 3
+                  ? 'text-amber-700'
+                  : 'text-red-600 animate-pulse'
+              }`}
+            >
+              +{state.incomeRate ?? 8}₪/{state.locale === 'he' ? 'שנ' : 's'}
             </span>
-            <span className="text-xs font-bold text-amber-800 ml-0.5">₪</span>
           </div>
         </div>
 
