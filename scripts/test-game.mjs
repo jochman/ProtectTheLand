@@ -6,7 +6,8 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false, 
 after(() => server.close());
 const { gameReducer: reduce, INITIAL_STATE } = await server.ssrLoadModule('/src/game/gameReducer.ts');
 const { SETTLEMENT_CANDIDATE_IDS: outposts } = await server.ssrLoadModule('/src/game/hexGridData.ts');
-const { incomeFor, availableTroops } = await server.ssrLoadModule('/src/game/rules.ts');
+const { incomeFor, availableTroops, medals } = await server.ssrLoadModule('/src/game/rules.ts');
+const { threatDefense, incomingSupport } = await server.ssrLoadModule('/src/game/threats.ts');
 const start = () => reduce(structuredClone(INITIAL_STATE), { type: 'RESTART_GAME' });
 const tick = (state, count = 1) => { for (let i = 0; i < count; i++) state = reduce(state, { type: 'TICK_TIMER' }); return state; };
 const built = () => tick(reduce(start(), { type: 'BUILD_SETTLEMENT' }), 7);
@@ -67,9 +68,10 @@ const expanded = () => {
 };
 
 for (const action of completionActions) {
-  test(`main-game victory still works via ${action.type} after expansion and reduction`, () => {
+  test(`${action.type} cannot win by expanding then dismantling`, () => {
     const s = reduce(expanded(), action);
-    assert.equal(s.gameStatus, 'rational_victory');
+    assert.equal(s.gameStatus, 'playing');
+    assert.equal(s.defenseStreak, 0);
     assert.equal(s.defenseScore, 100);
     assert.equal(s.incomeRate, incomeFor(s));
   });
@@ -108,6 +110,7 @@ test('restarts clear progression, preserve preferences and repeat threat outcome
   const replay = reduce({ ...a, locale: 'en', reduceMotion: true, soundEnabled: false }, { type: 'RESTART_GAME' });
   assert.equal(replay.tutorialStep, 'build');
   assert.equal(replay.peakSettlementsCount, 0);
+  assert.equal(replay.defenseStreak, 0);
   assert.equal(replay.settlementsCount, 0);
   assert.equal(replay.seed, a.seed);
   assert.equal(replay.locale, 'en');
@@ -193,4 +196,266 @@ test('an empty available pool cannot create soldiers or charge for a failed depl
   assert.equal(s.soldiersTotal, before.soldiersTotal);
   assert.equal(s.tiles[outposts[0]].garrisonCount, 0);
   assert.equal(s.timeline.length, before.timeline.length);
+});
+
+const tactical = (count = 1) => {
+  const s = { ...start(), tutorialStep: 'done', soldiersTotal: 20, budget: 300, nextThreatAt: 1 };
+  for (const id of outposts.slice(0, count)) s.tiles[id] = { ...s.tiles[id], hasSettlement: true, garrisonCount: 1, hp: 100 };
+  return tick(s);
+};
+const sendSupport = (s, threat = s.threats[0], sourceId = 'available') => reduce(s, { type: 'REINFORCE_THREAT', threatId: threat.id, sourceId });
+const accountTroops = s => availableTroops(s) + s.reinforcements.length + Object.values(s.tiles).reduce((sum, t) => sum + t.garrisonCount, 0);
+
+test('tutorial has no tactical threats; completing it schedules a full grace period', () => {
+  assert.equal(tick(start(), 120).threats.length, 0);
+  const s = reduce(deployed(), { type: 'SEAL_BREACH', checkpointId: 'bdr-1' });
+  assert.equal(tick(s, 19).threats.length, 0);
+  const active = tick(s, 20);
+  assert.equal(active.threats.length, 1);
+  assert.equal(active.threats[0].deadline - active.elapsedSeconds, 24);
+});
+
+test('guarded outposts still face threats; support is unavailable in transit and returns after interception', () => {
+  let s = tactical();
+  const threat = s.threats[0];
+  const pool = availableTroops(s);
+  const budget = s.budget;
+  s = sendSupport(s);
+  assert.equal(s.budget, budget);
+  assert.equal(availableTroops(s), pool - 1);
+  assert.equal(threatDefense(s, threat), 1);
+  assert.equal(incomingSupport(s, threat.id), 1);
+  assert.equal(accountTroops(s), 20);
+  assert.equal(threatDefense(tick(s, 3), threat), 1);
+  s = tick(s, 4);
+  assert.equal(threatDefense(s, threat), 2);
+  s = tick(s, threat.deadline - s.elapsedSeconds);
+  assert.equal(s.metrics.intercepted, 1);
+  assert.equal(s.metrics.threatDamage, 0);
+  assert.equal(s.reinforcements.length, 0);
+  assert.equal(availableTroops(s), pool);
+  assert.equal(accountTroops(s), 20);
+});
+
+test('a guard can transfer directly from an outpost or checkpoint with actual consequences at its source', () => {
+  for (const border of [false, true]) {
+    let s = tactical(2);
+    const target = s.threats[0].tileId;
+    const source = border ? 'bdr-1' : outposts.slice(0, 2).find(id => id !== target);
+    const income = s.incomeRate;
+    s = sendSupport(s, s.threats[0], source);
+    assert.equal(s.tiles[source].garrisonCount, 0);
+    assert.equal(s.reinforcements.length, 1);
+    assert.equal(accountTroops(s), 20);
+    if (border) {
+      assert.deepEqual(s.activeBreaches, ['bdr-1']);
+      assert.equal(s.defenseScore, 88);
+      assert.equal(tick(s).metrics.exposureDamage, 0.4);
+    } else assert.equal(s.incomeRate, income - 2);
+    s = tick(s, 24);
+    assert.equal(s.tiles[source].garrisonCount, 0, 'support returns to pool, not its former post');
+    assert.equal(accountTroops(s), 20);
+  }
+});
+
+test('understaffed battles cause proportional damage, stop repairs, and can end the run', () => {
+  let s = tactical();
+  const id = s.threats[0].tileId;
+  s.tiles[id] = { ...s.tiles[id], hp: 70 };
+  s = tick(s, 24);
+  assert.equal(s.tiles[id].hp, 55);
+  assert.equal(s.landHp, 94);
+  assert.equal(s.metrics.threatDamage, 6);
+  assert.equal(s.timeline.at(-1).damage, 6);
+  assert.equal(tick(s).tiles[id].hp, 56);
+  let doomed = tactical();
+  doomed.landHp = 3;
+  doomed = tick(doomed, 24);
+  assert.equal(doomed.gameStatus, 'catastrophe');
+  assert.equal(doomed.metrics.threatDamage, 3);
+  assert.equal(doomed.landHp, 0);
+  assert.strictEqual(reduce(doomed, { type: 'REINFORCE_THREAT', threatId: 'expired', sourceId: 'available' }), doomed);
+});
+
+test('expansion creates overlapping, distinct, stronger targets including staffed border posts', () => {
+  let s = tactical(4);
+  assert.equal(s.threats[0].required, 4);
+  s = tick(s, 18);
+  assert.equal(s.threats.length, 2);
+  assert.notEqual(s.threats[0].tileId, s.threats[1].tileId);
+  s = tick(s, 18);
+  assert.equal(s.threats.length, 2);
+  assert.ok(s.threats.some(t => s.tiles[t.tileId].isBorderCheckpoint));
+  assert.equal(tactical(8).threats[0].required, 5);
+});
+
+test('planning pauses threats and travel; language changes preserve deterministic gameplay', () => {
+  let s = sendSupport(tactical(4));
+  s = reduce(s, { type: 'SELECT_THREAT', id: s.threats[0].id });
+  assert.strictEqual(tick(s, 100), s);
+  s = reduce(s, { type: 'SELECT_THREAT', id: null });
+  const en = tick(reduce(s, { type: 'SET_LOCALE', locale: 'en' }), 50);
+  const he = tick(s, 50);
+  assert.deepEqual(en.threats, he.threats);
+  assert.deepEqual(en.metrics, he.metrics);
+  assert.equal(en.landHp, he.landHp);
+});
+
+test('cancelled or destroyed outposts release temporary support without duplicating troops', () => {
+  let s = sendSupport(tactical());
+  const id = s.threats[0].tileId;
+  s = reduce(s, { type: 'EVACUATE_SETTLEMENT', tileId: id });
+  assert.equal(s.threats.length, 0);
+  assert.equal(s.reinforcements.length, 0);
+  assert.equal(availableTroops(s), 12);
+  assert.equal(accountTroops(s), 20);
+  s = tactical(2);
+  const target = s.threats[0].tileId;
+  s.tiles[target] = { ...s.tiles[target], hp: 10 };
+  s = sendSupport(s);
+  s = tick(s, 24);
+  assert.equal(s.tiles[target].hasSettlement, false);
+  assert.equal(s.reinforcements.length, 0);
+  assert.equal(accountTroops(s), 20);
+  s = tick(tactical(4), 18);
+  const [first, second] = s.threats;
+  s = sendSupport(sendSupport(s, first), second);
+  s = reduce(s, { type: 'EVACUATE_SETTLEMENT', tileId: first.tileId });
+  s = sendSupport(s, second);
+  assert.equal(new Set(s.reinforcements.map(t => t.id)).size, s.reinforcements.length);
+  assert.equal(accountTroops(s), 20);
+});
+
+test('reject invalid, excessive and late dispatches; arrival exactly at deadline counts', () => {
+  let s = tactical();
+  for (const source of [s.threats[0].tileId, 'missing', 'isr-1']) {
+    assert.equal(sendSupport(s, s.threats[0], source).reinforcements.length, 0);
+  }
+  s = tick(s, 20);
+  s = sendSupport(s);
+  assert.equal(sendSupport(s).reinforcements.length, 1);
+  assert.equal(tick(s, 4).metrics.intercepted, 1);
+  const late = tick(tactical(), 21);
+  assert.equal(sendSupport(late).reinforcements.length, 0);
+  const empty = tactical();
+  empty.soldiersTotal = 9;
+  assert.equal(sendSupport(empty).reinforcements.length, 0);
+});
+
+test('victory waits for active battles and restart clears tactical state', () => {
+  let s = sendSupport(sendSupport(tactical(3)));
+  s.defenseStreak = 2;
+  s = tick(s, 4);
+  assert.equal(s.gameStatus, 'playing');
+  s = tick(s, 20);
+  assert.equal(s.gameStatus, 'rational_victory');
+  const restarted = reduce(s, { type: 'RESTART_GAME' });
+  assert.deepEqual(restarted.threats, []);
+  assert.deepEqual(restarted.reinforcements, []);
+  assert.equal(restarted.nextThreatAt, null);
+  assert.equal(restarted.metrics.threatDamage, 0);
+  assert.equal(restarted.defenseStreak, 0);
+});
+
+test('an idle fully guarded board loses pressure battles while active reinforcement sustains it', () => {
+  const idle = tick(tactical(4), 180);
+  assert.equal(idle.gameStatus, 'catastrophe');
+  let active = tactical(4);
+  for (let second = 0; second < 180 && active.gameStatus === 'playing'; second++) {
+    for (const threat of active.threats) {
+      while (threatDefense(active, threat) + incomingSupport(active, threat.id) < threat.required) {
+        const next = sendSupport(active, threat);
+        assert.ok(next.reinforcements.length > active.reinforcements.length, 'the mobile reserve can meet this scenario');
+        active = next;
+      }
+    }
+    active = tick(active);
+    assert.equal(accountTroops(active), 20);
+  }
+  assert.equal(active.gameStatus, 'rational_victory');
+  assert.equal(active.landHp, 100);
+  assert.equal(active.metrics.threatDamage, 0);
+  assert.ok(active.metrics.intercepted >= 3);
+  assert.equal(active.threats.length, 0);
+  assert.equal(active.defenseStreak, 3);
+});
+
+test('three outposts require three defended attacks; pre-expansion attacks do not count', () => {
+  let opening = sendSupport(tactical());
+  opening = tick(opening, 24);
+  assert.equal(opening.metrics.intercepted, 1);
+  assert.equal(opening.defenseStreak, 0);
+  let s = tactical(3);
+  // Two reserve calls provide enough manpower to earn the economy medal.
+  s.soldiersTotal = 16;
+  s.reservesBatchesLeft = 1;
+  s.metrics.reserveCalls = 2;
+  for (let attack = 1; attack <= 3; attack++) {
+    while (!s.threats.length) s = tick(s);
+    const threat = s.threats[0];
+    while (threatDefense(s, threat) + incomingSupport(s, threat.id) < threat.required) s = sendSupport(s, threat);
+    s = tick(s, threat.deadline - s.elapsedSeconds);
+    assert.equal(s.defenseStreak, attack);
+    assert.equal(s.gameStatus, attack === 3 ? 'rational_victory' : 'playing');
+  }
+  assert.equal(s.settlementsCount, 3);
+  assert.equal(s.landHp, 100);
+  assert.equal(medals(s)[1].earned, true);
+  assert.equal(medals({ ...s, metrics: { ...s.metrics, reserveCalls: 3 } })[1].earned, false);
+});
+
+test('evacuation, missing guards, failed battles and destruction reset the defense streak', () => {
+  const ready = () => ({ ...tactical(3), defenseStreak: 2 });
+  let s = reduce(ready(), { type: 'EVACUATE_SETTLEMENT', tileId: outposts[0] });
+  assert.equal(s.defenseStreak, 0);
+  assert.equal(s.gameStatus, 'playing');
+  for (const border of [false, true]) {
+    s = ready();
+    const source = border ? 'bdr-1' : outposts.slice(0, 3).find(id => id !== s.threats[0].tileId);
+    s = sendSupport(s, s.threats[0], source);
+    assert.equal(s.defenseStreak, 0);
+  }
+  s = tick(ready(), 24);
+  assert.equal(s.defenseStreak, 0);
+  assert.equal(s.gameStatus, 'playing');
+  s = ready();
+  s.tiles[s.threats[0].tileId].hp = 15;
+  s = tick(s, 24);
+  assert.equal(s.settlementsCount, 2);
+  assert.equal(s.defenseStreak, 0);
+  assert.equal(s.gameStatus, 'playing');
+});
+
+test('cancelling a threat earns no defense credit, and pauses cannot advance progress', () => {
+  let s = { ...tactical(4), defenseStreak: 1 };
+  s = reduce(s, { type: 'EVACUATE_SETTLEMENT', tileId: s.threats[0].tileId });
+  assert.equal(s.settlementsCount, 3);
+  assert.equal(s.threats.length, 0);
+  assert.equal(s.defenseStreak, 1);
+  s = reduce(s, { type: 'TOGGLE_PAUSE' });
+  assert.strictEqual(tick(s, 100), s);
+});
+
+test('three defenses wait for construction; failed overlapping battles resume pressure', () => {
+  let s = { ...tactical(3), defenseStreak: 2 };
+  s = sendSupport(sendSupport(s));
+  s = tick(s, 23);
+  s = reduce(s, { type: 'BUILD_SETTLEMENT', tileId: outposts[3] });
+  s = tick(s);
+  assert.equal(s.defenseStreak, 3);
+  assert.equal(s.gameStatus, 'playing');
+  s = tick(s, 4);
+  assert.equal(s.defenseStreak, 0, 'the new outpost must be staffed too');
+  assert.equal(s.gameStatus, 'playing');
+  s = tick(tactical(4), 18);
+  s.defenseStreak = 2;
+  const first = s.threats[0];
+  for (let i = 0; i < 3; i++) s = sendSupport(s, first);
+  s = tick(s, first.deadline - s.elapsedSeconds);
+  assert.equal(s.defenseStreak, 3);
+  assert.equal(s.threats.length, 1);
+  assert.equal(s.gameStatus, 'playing');
+  s = tick(s, s.threats[0].deadline - s.elapsedSeconds);
+  assert.equal(s.defenseStreak, 0);
+  assert.ok(s.threats.length > 0, 'pressure resumes after the remaining battle fails');
 });

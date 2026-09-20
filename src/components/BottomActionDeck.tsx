@@ -9,13 +9,16 @@ export function BottomActionDeck({ state, dispatch }: { state: GameState; dispat
   const hasTroops = availableTroops(state) > 0 || Object.values(state.tiles).some(t => t.isBorderCheckpoint && t.garrisonCount > 0);
   const playing = state.gameStatus === 'playing';
   const constructing = Object.keys(state.constructions).length > 0;
+  const threat = state.threats[0];
+  const reinforce = !!threat && !state.isDeployMode;
   const instruction = state.isDeployMode ? (he ? 'בחר מאחז מודגש במפה' : 'Select a highlighted outpost')
     : state.isBuildMode ? (he ? 'בחר גבעה מודגשת במפה' : 'Select a highlighted hilltop')
     : state.tutorialStep === 'observe' && state.activeBreaches.length ? (he ? '3/3 · הפרצה שוחקת חוסן. לחץ לסגירה' : '3/3 · The gap drains HP. Tap to seal it')
     : state.activeBreaches.length ? (he ? 'לחץ על פרצה מודגשת להחזרת חייל' : 'Tap a highlighted gap to return a troop')
+    : threat ? (he ? `שלח תגבור · בלימות ${state.defenseStreak}/${RULES.victoryDefenses}` : `Reinforce · Defenses ${state.defenseStreak}/${RULES.victoryDefenses}`)
     : state.tutorialStep === 'build' ? (constructing ? (he ? 'המאחז בבנייה…' : 'Outpost under construction…') : (he ? '1/3 · בנה מאחז ראשון' : '1/3 · Build your first outpost'))
     : state.tutorialStep === 'deploy' ? (he ? '2/3 · בחר פריסה ובדוק את המחיר' : '2/3 · Select Deploy and preview the cost')
-    : (he ? 'ההדרכה הושלמה — המשך לנהל את המערכה' : 'Tutorial complete — continue your campaign');
+    : objective(state);
   const details = state.tutorialStep === 'observe'
     ? (he ? '3/3 · החייל הועבר למאחז. הפרצה המודגשת שוחקת 0.4 חוסן לשנייה. לחץ עליה להחזרת חייל; כך תוכל להשוות בין מימון המאחז להגנת הגבול.' : '3/3 · Your troop moved to the outpost. The highlighted gap drains 0.4 HP/s. Tap it to return a troop and compare outpost funding with border security.')
     : objective(state);
@@ -28,8 +31,8 @@ export function BottomActionDeck({ state, dispatch }: { state: GameState; dispat
       <button className="clay-btn min-h-14 px-1 py-1 text-xs" disabled={!playing || state.reservesBatchesLeft === 0} onClick={() => dispatch({ type: 'CALL_RESERVES' })}>
         <span>{he ? 'גייס מילואים' : 'Call reserves'}</span><span className="text-[11px]">+4 · {state.reservesBatchesLeft} {he ? 'נותרו' : 'left'}</span>
       </button>
-      <button className={`clay-btn min-h-14 px-1 py-1 text-xs ${state.isDeployMode ? 'ring-2 ring-amber-700' : ''}`} disabled={!playing || (!state.isDeployMode && (!exposed || !hasTroops || state.budget < RULES.deployCost))} onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}>
-        <span>{he ? 'פריסת חייל' : 'Deploy troop'}</span><span className="text-[11px]">₪{RULES.deployCost} / {he ? 'חייל' : 'troop'}</span>
+      <button className={`clay-btn min-h-14 px-1 py-1 text-xs ${state.isDeployMode || reinforce ? 'ring-2 ring-amber-700' : ''}`} disabled={!playing || (!reinforce && !state.isDeployMode && (!exposed || !hasTroops || state.budget < RULES.deployCost))} onClick={() => dispatch(reinforce ? { type: 'SELECT_THREAT', id: threat.id } : { type: 'DEPLOY_TROOPS' })}>
+        <span>{reinforce ? (he ? 'שלח תגבור' : 'Reinforce') : (he ? 'פריסת חייל' : 'Deploy troop')}</span><span className="text-[11px]">{reinforce ? (he ? '4ש׳ · ללא עלות' : '4s · free') : `₪${RULES.deployCost} / ${he ? 'חייל' : 'troop'}`}</span>
       </button>
       <button className={`clay-btn min-h-14 px-1 py-1 text-xs ${state.isBuildMode ? 'ring-2 ring-amber-700' : ''}`} disabled={!playing || (!state.isBuildMode && state.budget < RULES.buildCost)} onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}>
         <span>{he ? 'בניית מאחז' : 'Build outpost'}</span><span className="text-[11px]">₪{RULES.buildCost}</span>

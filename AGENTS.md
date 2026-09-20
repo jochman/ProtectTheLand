@@ -17,6 +17,7 @@
 - Verify every iteration with `npm run build` (TypeScript check `tsc` + Vite bundle) ensuring 0 errors before committing.
 
 ## 5. Git Commit and Push Delegation
+- After every completed iteration, run the required checks, synchronize `spec.md`, then commit and push the iteration's related changes to `origin` on the current branch. This is standing user authorization; keep unrelated working-tree changes out of the commit.
 - For commit-message drafting and `git push` work, delegate to the lowest-cost available model that can reliably perform the task (currently `gpt-5.6-luna`).
 - Keep the delegated Git work scoped to the files and remote explicitly authorized by the user; do not include unrelated working-tree changes.
 

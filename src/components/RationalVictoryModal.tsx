@@ -42,7 +42,7 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
 
         {/* Analytical Explanation */}
         <p className="text-xs leading-relaxed text-slate-700 px-1 font-heebo">
-          {state.locale === 'he' ? 'החזרת את הביטחון לאחר ההתרחבות. הגבול מאויש והאיומים הפעילים נבלמו. בדוק כיצד ההחלטות שלך השפיעו על החוסן ועל השימוש במילואים.' : 'Security restored after expansion. The border is staffed and active raids have been stopped. Review how your decisions affected resilience and reserve use.'}
+          {state.locale === 'he' ? 'החזקת לפחות שלושה מאחזים ואת הגבול ובלמת שלוש התקפות רצופות. כל העמדות מאוישות והאיומים הפעילים הסתיימו. בדוק את המחיר בחוסן ובגיוס מילואים.' : 'You held at least three outposts and the border through three consecutive attacks. Every post is staffed and all active threats are resolved. Review the cost in resilience and reserve call-ups.'}
         </p>
         <RunReport state={state} />
 

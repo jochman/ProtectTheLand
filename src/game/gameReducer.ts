@@ -2,14 +2,17 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { RULES, AVAILABLE_TROOP_SOURCE, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon } from './rules';
+import { RULES, AVAILABLE_TROOP_SOURCE, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon, holdsExpandedLine } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
+import { pruneThreats, reinforceThreat, tickThreats } from './threats';
 
 export const INITIAL_STATE: GameState = {
-  elapsedSeconds: 0, peakSettlementsCount: 0, seed: 7102023,
+  threats: [], reinforcements: [], nextThreatAt: null, threatSequence: 0,
+  selectedThreatId: null, threatFeedback: null,
+  elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, seed: 7102023,
   tutorialStep: 'build', isDeployMode: false, pendingBorderId: null,
-  metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
+  metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, threatDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
   timeline: [],
   locale: 'he',
   soundEnabled: true,
@@ -179,6 +182,7 @@ const gameplayActions = new Set<GameAction['type']>([
   'TICK_TIMER', 'BUILD_SETTLEMENT', 'SELECT_TILE_TO_BUILD', 'COLLECT_COIN', 'COLLECT_CITY_TAX',
   'DEPLOY_TROOP', 'CALL_RESERVES', 'CLICK_LORD_OF_HOSTS', 'MASH_LORD_OF_HOSTS',
   'EVACUATE_SETTLEMENT', 'RECALL_TROOP', 'RECALL_ALL_TROOPS', 'SEAL_BREACH',
+  'REINFORCE_THREAT',
 ]);
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -188,6 +192,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   let next = reduceGame(input, action);
   if (action.type === 'RESTART_GAME') return next;
   if (!gameplayActions.has(action.type)) return next;
+  next = pruneThreats(action.type === 'TICK_TIMER' ? tickThreats(next) : next);
+  if (next.threatSequence > state.threatSequence) sounds.playSiren();
+  if (action.type === 'REINFORCE_THREAT' && next.reinforcements.length > state.reinforcements.length) sounds.playDeploy();
+  if (action.type === 'TICK_TIMER' && next.metrics.intercepted > state.metrics.intercepted) sounds.playShieldChime();
   const checkpoints = Object.values(next.tiles).filter(t => t.isBorderCheckpoint);
   const activeBreaches = checkpoints.filter(t => t.garrisonCount === 0).map(t => t.id);
   const soldiersAtSettlements = Object.values(next.tiles).filter(t => t.hasSettlement)
@@ -204,7 +212,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (action.type !== 'TICK_TIMER') next.greenSideAttacks = next.greenSideAttacks.filter(a => next.tiles[a.breachId]?.garrisonCount === 0);
   const secure = !activeBreaches.length && !next.greenSideAttacks.length;
   const completedTutorial = state.tutorialStep === 'observe' && secure;
-  if (completedTutorial) next.tutorialStep = 'done';
+  if (completedTutorial) {
+    next.tutorialStep = 'done';
+    next.nextThreatAt = next.elapsedSeconds + RULES.threatGrace;
+  }
   // Only expansion in the main game qualifies for victory, never the guided opening.
   if (state.tutorialStep === 'done') next.peakSettlementsCount = Math.max(state.peakSettlementsCount, next.settlementsCount);
   if (state.tutorialStep === 'build' && next.settlementsCount > 0) next.tutorialStep = 'deploy';
@@ -217,8 +228,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     SELECT_TILE_TO_BUILD: 'build', BUILD_SETTLEMENT: 'build', DEPLOY_TROOP: 'deploy',
     CALL_RESERVES: 'reserve', RECALL_TROOP: 'recall', RECALL_ALL_TROOPS: 'recall',
     EVACUATE_SETTLEMENT: 'evacuate', SEAL_BREACH: 'seal',
+    REINFORCE_THREAT: 'reinforce',
   };
-  const changed = next.tiles !== state.tiles || next.budget !== state.budget || next.reservesBatchesLeft !== state.reservesBatchesLeft;
+  const changed = next.tiles !== state.tiles || next.budget !== state.budget || next.reservesBatchesLeft !== state.reservesBatchesLeft
+    || next.reinforcements.length !== state.reinforcements.length;
   const kind = interventions[action.type];
   if (kind && changed) {
     const intercepted = state.greenSideAttacks.filter(a => !next.greenSideAttacks.some(b => b.id === a.id)).length;
@@ -229,6 +242,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       gaps: activeBreaches.length, hp: next.landHp, intercepted }];
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
+  if (!holdsExpandedLine(next)) next.defenseStreak = 0;
   if (next.gameStatus === 'playing' && !completedTutorial && hasWon(next)) {
     next = { ...next, gameStatus: 'rational_victory', selectedSettlementId: null, selectedInfiltrationId: null };
     sounds.playVictory();
@@ -244,6 +258,12 @@ function reduceGame(state: GameState, action: GameAction): GameState {
   const strings = state.locale === 'he' ? he : en;
 
   switch (action.type) {
+    case 'SELECT_THREAT':
+      return { ...state, selectedThreatId: state.threats.some(t => t.id === action.id) ? action.id : null,
+        selectedSettlementId: null, selectedInfiltrationId: null, infoPopover: null,
+        isDeployMode: false, isBuildMode: false, pendingBorderId: null };
+    case 'REINFORCE_THREAT':
+      return reinforceThreat(state, action.threatId, action.sourceId);
     case 'SET_LOCALE': {
       const nextLocale = action.locale;
       const nextStrings = nextLocale === 'he' ? he : en;
@@ -841,7 +861,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         const holeDrain = Math.round(holeCount * RULES.gapDamage * 10) / 10;
         metrics.exposureDamage += Math.min(newLandHp, holeDrain);
         newLandHp = Math.max(0, Number((newLandHp - holeDrain).toFixed(1)));
-      } else if ((state.greenSideAttacks || []).length === 0 && newLandHp < 100) {
+      } else if ((state.greenSideAttacks || []).length === 0 && state.threats.length === 0 && newLandHp < 100) {
         // Safe, fortified borders naturally stabilize homeland security
         newLandHp = Math.min(100, Number((newLandHp + RULES.recoveryRate).toFixed(1)));
       }
@@ -906,10 +926,11 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       // Heal / repair garrisoned settlements gradually and clear expired damaged city states
       for (const tId of Object.keys(updatedTiles)) {
         const t = updatedTiles[tId];
-        if (t.hasSettlement && t.garrisonCount > 0 && t.hp !== undefined && t.hp < 100) {
+        if (t.hasSettlement && t.garrisonCount > 0 && t.hp !== undefined && t.hp < 100
+          && !state.threats.some(threat => threat.tileId === tId)) {
           updatedTiles[tId] = {
             ...t,
-            hp: Math.min(100, t.hp + 5),
+            hp: Math.min(100, t.hp + RULES.outpostRepair),
           };
         }
         if (t.damagedUntil && now >= t.damagedUntil) {
@@ -1089,7 +1110,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const arabCitiesList = Object.values(updatedTiles).filter(t => t.isLocalCity);
 
       // Clashes only occur if there are Jewish settlements in the West Bank
-      if (builtSettlementList.length > 0 && arabCitiesList.length > 0) {
+      if (state.tutorialStep !== 'done' && builtSettlementList.length > 0 && arabCitiesList.length > 0) {
         const unsecureSettlements = builtSettlementList.filter(t => t.garrisonCount === 0);
         const secureSettlements = builtSettlementList.filter(t => t.garrisonCount > 0);
 

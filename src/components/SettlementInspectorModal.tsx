@@ -19,6 +19,9 @@ export function SettlementInspectorModal({ state, dispatch }: { state: GameState
     <section role="dialog" aria-modal="true" aria-labelledby="outpost-title" className="modal-panel w-full max-w-sm rounded-3xl bg-amber-50 p-4 text-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between gap-2"><h2 id="outpost-title" className="text-lg font-black">{tileName(tile, state.locale)}</h2><button className="min-h-11 min-w-11" aria-label={he ? 'סגור' : 'Close'} onClick={close}>✕</button></div>
       <p className="rounded-xl bg-white p-3 text-sm">{guarded ? (he ? `מאויש · מימון +${RULES.guardedIncome}₪ לשנייה` : `Guarded · funding +₪${RULES.guardedIncome}/s`) : (he ? `לא מאויש · עמידות ${tile.hp ?? 100}%` : `Unguarded · durability ${tile.hp ?? 100}%`)}</p>
+      {state.threats.filter(t => t.tileId === tile.id).map(threat => <button key={threat.id}
+        className="mt-3 min-h-11 w-full rounded-xl bg-red-800 p-3 text-sm font-bold text-white"
+        onClick={() => dispatch({ type: 'SELECT_THREAT', id: threat.id })}>{he ? 'איום פעיל — שלח תגבור' : 'Active threat — send reinforcements'}</button>)}
       {!guarded && <div className="mt-3">
         <h3 className="text-sm font-bold">{he ? 'בחר מאין לפרוס חייל' : 'Choose a troop source'}</h3>
         {spareCount > 0 && <button aria-pressed={fromAvailable} className={`mt-2 min-h-11 w-full rounded-xl border p-2 text-start text-sm font-bold ${fromAvailable ? 'border-emerald-700 bg-emerald-100' : 'border-emerald-300 bg-white'}`} onClick={() => dispatch({ type: 'PREVIEW_DEPLOYMENT', borderId: AVAILABLE_TROOP_SOURCE })}>{he ? `כוח זמין: ${spareCount} חיילים — ללא דילול עמדות` : `Available soldiers: ${spareCount} — keep guards in place`}</button>}

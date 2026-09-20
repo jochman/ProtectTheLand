@@ -15,7 +15,8 @@ import { InfiltrationDefenseModal } from './components/InfiltrationDefenseModal'
 import { NewsFeedModal } from './components/NewsFeedModal';
 import { EntranceInstructionModal } from './components/EntranceInstructionModal';
 import { StrategyToolkitModal } from './components/StrategyToolkitModal';
-import { isGamePaused, objective } from './game/rules';
+import { isGamePaused } from './game/rules';
+import { ThreatCommand, ThreatStatus } from './components/ThreatCommand';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -42,6 +43,7 @@ export default function App() {
     state.isNewsModalOpen,
     state.selectedSettlementId,
     state.selectedInfiltrationId,
+    state.selectedThreatId,
     state.isToolkitOpen,
     state.infoPopover,
   ]);
@@ -83,9 +85,7 @@ export default function App() {
 
       {/* Breaking News Ticker (Clickable to open News Feed) */}
       <NewsAlertTicker state={state} dispatch={dispatch} />
-      <div className="game-goal z-10 shrink-0 px-3 py-1 text-center text-[11px] font-bold leading-snug text-slate-800">
-        {objective(state)} · <span className="tabular-nums">{state.elapsedSeconds}s</span>
-      </div>
+      <ThreatStatus state={state} dispatch={dispatch} />
 
       {/* Floating Operational Emergency Alert (0px layout footprint, never resizes map) */}
       <FloatingEmergencyAlert state={state} dispatch={dispatch} />
@@ -137,6 +137,7 @@ export default function App() {
       {/* Modals */}
       <InfiltrationDefenseModal state={state} dispatch={dispatch} />
       <SettlementInspectorModal state={state} dispatch={dispatch} />
+      <ThreatCommand state={state} dispatch={dispatch} />
       <October7DefeatModal state={state} dispatch={dispatch} />
       <RationalVictoryModal state={state} dispatch={dispatch} />
       <NewsFeedModal state={state} dispatch={dispatch} />

@@ -3,7 +3,7 @@ import { createServer } from 'vite';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const server = await createServer({ server: { host: '127.0.0.1', port: 4178, strictPort: true, hmr: false } });
 await server.listen();
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined });
 const failures = [];
 try {
   for (const locale of ['he', 'en']) {
@@ -36,7 +36,8 @@ try {
   }
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', error => failures.push(error.message));
-  await page.clock.install();
+  await page.clock.install({ time: new Date('2026-09-20T12:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-20T12:00:01Z'));
   await page.goto('http://127.0.0.1:4178');
   await page.getByRole('button', { name: 'למפה — נלמד תוך כדי משחק' }).click();
   await page.getByTitle('החלף שפה').click();
@@ -49,13 +50,13 @@ try {
   await page.getByRole('button', { name: 'Confirm troop deployment' }).click();
   await page.getByRole('button', { name: 'Seal gap bdr-1' }).click();
   assert.equal(await page.getByRole('dialog').count(), 0);
-  await page.getByRole('button', { name: /Tutorial complete/ }).waitFor();
+  await page.getByRole('button', { name: /Staff 3\+ outposts/ }).waitFor();
   await page.clock.runFor(65000);
   assert.equal(await page.getByRole('dialog').count(), 0);
   await page.getByTitle('Strategy desk & accessibility').click();
   assert.equal(await page.getByRole('button', { name: /scenario|Defend first|Overextension|Emergency recovery/i }).count(), 0);
   await page.getByRole('button', { name: 'Close', exact: true }).click();
-  // Continue the same board into the main expansion/recovery game.
+  // Expansion and evacuation alone must not end the campaign.
   for (let i = 0; i < 2; i++) {
     await page.getByRole('button', { name: /Build outpost/ }).click();
     await page.getByRole('button', { name: /Build here/ }).first().click();
@@ -65,7 +66,29 @@ try {
   assert.equal(await page.getByRole('dialog').count(), 0);
   await page.getByRole('button', { name: /Select outpost/ }).last().click();
   await page.getByRole('button', { name: 'Evacuate outpost and return troops' }).click();
-  await page.getByRole('dialog').filter({ hasText: 'Security restored after expansion' }).waitFor();
+  if (await page.getByTestId('threat-status').count()) await page.clock.runFor(24000);
+  assert.equal(await page.getByRole('dialog').count(), 0);
+  assert.equal(await page.getByRole('button', { name: /Select outpost/ }).count(), 2);
+  await page.getByRole('button', { name: /Build outpost/ }).click();
+  await page.getByRole('button', { name: /Build here/ }).first().click();
+  await page.clock.runFor(5000);
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /Call reserves/ }).click();
+  const victory = page.getByRole('dialog').filter({ hasText: 'You held at least three outposts' });
+  for (let second = 0; second < 120 && !(await victory.count()); second++) {
+    if (await page.getByTestId('threat-status').count()) {
+      await page.getByTestId('threat-status').click();
+      const send = page.getByRole('button', { name: /Send available troop/ });
+      while (await send.count()) {
+        assert.equal(await send.isDisabled(), false);
+        await send.click();
+      }
+      await page.getByRole('button', { name: 'Return to map' }).click();
+    }
+    await page.clock.runFor(1000);
+  }
+  await victory.waitFor();
+  assert.match(await victory.innerText(), /Attacks repelled 3\/3/);
+  assert.equal(await page.getByRole('button', { name: /Select outpost/ }).count(), 3);
   await page.screenshot({ path: '/tmp/octgame-victory.png' });
   await page.getByRole('button', { name: 'Play again', exact: true }).click();
   assert.equal(await page.getByRole('button', { name: /Select outpost/ }).count(), 0);
@@ -97,7 +120,56 @@ try {
     parts: [...document.querySelector('main').children].filter(el => getComputedStyle(el).position !== 'absolute').map(el => ({ name: el.className, height: el.getBoundingClientRect().height })) }));
   assert.ok(deployedLayout.deckBottom <= deployedLayout.height, JSON.stringify(deployedLayout));
   console.log('20-soldier deployment uses available troops, preserves the border and fits the small-phone layout.');
-  console.log('Tutorial continues into main play; expansion victory, defeat, restart and removal of scenario controls passed.');
+  await page.clock.runFor(21000);
+  await page.getByTestId('threat-status').waitFor();
+  for (const locale of ['en', 'he']) {
+    if (locale === 'he') await page.getByTitle('Toggle Language').click();
+    for (const [width, height] of [[320, 568], [360, 640], [390, 844], [430, 932], [568, 320], [844, 390], [1280, 720]]) {
+      await page.setViewportSize({ width, height });
+      const geometry = await page.evaluate(() => ({ height: innerHeight, scroll: document.documentElement.scrollHeight,
+        mapHeight: document.querySelector('[data-testid="game-map"]').getBoundingClientRect().height,
+        deckBottom: document.querySelector('.action-deck').getBoundingClientRect().bottom,
+        goalBottom: document.querySelector('.game-goal').getBoundingClientRect().bottom }));
+      assert.equal(geometry.scroll, height, JSON.stringify(geometry));
+      assert.ok(geometry.mapHeight >= 220, JSON.stringify(geometry));
+      assert.ok(geometry.deckBottom <= height + 1, JSON.stringify(geometry));
+      assert.ok(geometry.goalBottom <= height + 1, JSON.stringify(geometry));
+      await page.screenshot({ path: `/tmp/octgame-threat-${locale}-${width}x${height}.png` });
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.getByTestId('threat-status').click();
+  await page.getByRole('dialog', { name: 'שליחת תגבור' }).waitFor();
+  await page.screenshot({ path: '/tmp/octgame-threat-command-he.png' });
+  const beforePause = await page.getByTestId('threat-strength').innerText();
+  await page.clock.runFor(10000);
+  assert.equal(await page.getByTestId('threat-strength').innerText(), beforePause);
+  await page.getByRole('button', { name: /שלח חייל זמין/ }).click();
+  assert.match(await page.getByTestId('threat-strength').innerText(), /1\/2.*1 בדרך/);
+  await page.getByRole('button', { name: 'חזור למפה' }).click();
+  assert.equal(await page.getByTestId('available-troops').innerText(), '10 זמינים');
+  await page.getByTitle('החלף שפה').click();
+  await page.clock.runFor(4000);
+  assert.match(await page.getByTestId('threat-status').innerText(), /2\/2/);
+  await page.locator('svg').getByRole('button', { name: /^Reinforce / }).click();
+  await page.screenshot({ path: '/tmp/octgame-threat-command-en.png' });
+  await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('dialog').count(), 0);
+  await page.clock.runFor(20000);
+  assert.equal(await page.getByTestId('available-troops').innerText(), '11 free');
+  assert.match(await page.locator('.game-goal').innerText(), /attack repelled/);
+  await page.clock.runFor(2000);
+  await page.getByTestId('threat-status').click();
+  await page.getByText('Transfer a guard from another post ▾', { exact: true }).click();
+  await page.getByRole('button', { name: /Sector 1.*Opens a border gap/ }).click();
+  await page.getByRole('button', { name: 'Return to map' }).click();
+  await page.getByRole('button', { name: 'Seal gap bdr-1' }).click();
+  assert.equal(await page.getByTestId('available-troops').innerText(), '10 free');
+  await page.clock.runFor(24000);
+  assert.equal(await page.getByTestId('available-troops').innerText(), '11 free');
+  assert.equal(await page.getByRole('button', { name: /Seal gap/ }).count(), 0);
+  console.log('Threats: both locales and all viewports; planning pause, dispatch, travel, guard transfer, interception and return to pool passed.');
+  console.log('Tutorial continues; dismantling does not win; three defended attacks with three outposts win; defeat and restart passed.');
   assert.deepEqual(failures, []);
 } finally {
   await browser.close();

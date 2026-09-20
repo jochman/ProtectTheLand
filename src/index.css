@@ -125,6 +125,8 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .modal-panel { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+.threat-status { --threat-ink: #7f1d1d; --threat-paper: #fef3c7; min-height: 36px; }
+.threat-strip { color: var(--threat-ink); background: var(--threat-paper); border: 1px solid #d97706; }
 button:focus-visible, [role="button"]:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
 .game-frame > header { color: #78350f; gap: 4px; }
 .game-frame > header > div:first-child > span { color: #78350f; font-size: 14px; }
@@ -139,6 +141,9 @@ button:focus-visible, [role="button"]:focus-visible { outline: 3px solid #2563eb
   .game-frame > header button[title="החלף שפה"] svg { display: none; }
 }
 @media (max-height: 680px) {
+  .threat-status, .threat-status > button { min-height: 28px; }
+  .threat-strip { padding-block: 2px; }
+  .threat-strip > span:last-child { display: none; }
   .game-frame > header { padding-block: 2px; }
   .action-deck { gap: 2px; padding-bottom: 1px; }
   .action-deck .clay-btn { min-height: 48px; }

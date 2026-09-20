@@ -63,8 +63,8 @@ export const en = {
     shareBtn: "Share Result",
     
     victoryTitle: "Sustainable Security!",
-    victorySubtitle: "You chose real security over messianic illusion",
-    victoryBody: "Instead of dispersing forces to protect distant outposts, you shortened defensive lines and fortified the sovereign border. The reserves were safely sent home, the IDF remained strong, and disaster was completely averted!",
+    victorySubtitle: "Three attacks repelled while holding the line",
+    victoryBody: "You defended at least three outposts and all eight border posts through three consecutive attacks. Review the resources and reserve call-ups needed to sustain that coverage.",
     victoryRestartBtn: "Play Again",
 
     inspectorTitle: "Outpost / Settlement Point",

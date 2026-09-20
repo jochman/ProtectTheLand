@@ -3,6 +3,7 @@ import { GameState, GameAction, HexTile } from '../types';
 import { haptics } from '../utils/haptics';
 import { simulationNow } from '../game/rules';
 import { tileName } from '../game/hexGridData';
+import { threatDefense } from '../game/threats';
 
 interface HexMapCanvasProps {
   state: GameState;
@@ -1020,6 +1021,35 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               </g>
             </g>
           );
+        })}
+
+        {/* Tactical support uses simulation time, so pausing also pauses travel. */}
+        {state.reinforcements.map(troop => {
+          const threat = state.threats.find(t => t.id === troop.threatId);
+          if (!threat) return null;
+          const target = state.tiles[threat.tileId];
+          const progress = Math.min(1, Math.max(0, (state.elapsedSeconds - troop.departedAt) / (troop.arrivesAt - troop.departedAt)));
+          if (progress === 1) return null;
+          return <g key={troop.id} pointerEvents="none">
+            <line x1={troop.fromX} y1={troop.fromY} x2={target.x} y2={target.y} stroke="#0369a1" strokeWidth="2" strokeDasharray="4 5" />
+            <circle cx={troop.fromX + (target.x - troop.fromX) * progress} cy={troop.fromY + (target.y - troop.fromY) * progress}
+              r="7" fill="#0369a1" stroke="white" strokeWidth="2" />
+          </g>;
+        })}
+        {state.threats.map(threat => {
+          const target = state.tiles[threat.tileId];
+          const ready = threatDefense(state, threat);
+          const covered = ready >= threat.required;
+          const label = state.locale === 'he' ? `תגבור ${tileName(target, 'he')}` : `Reinforce ${tileName(target, 'en')}`;
+          const open = () => dispatch({ type: 'SELECT_THREAT', id: threat.id });
+          return <g key={threat.id} role="button" tabIndex={0} aria-label={label} className="cursor-pointer"
+            onClick={open} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } }}>
+            <circle cx={target.x} cy={target.y} r="32" fill="transparent" pointerEvents="all" stroke={covered ? '#15803d' : '#b91c1c'} strokeWidth="3" strokeDasharray="5 3" />
+            <rect x={target.x - 34} y={target.y - 43} width="68" height="22" rx="8" fill={covered ? '#166534' : '#991b1b'} stroke="#fde68a" strokeWidth="2" />
+            <text x={target.x} y={target.y - 28} direction="ltr" textAnchor="middle" fill="white" fontSize="12" fontWeight="900">
+              {ready}/{threat.required} · {threat.deadline - state.elapsedSeconds}{state.locale === 'he' ? 'ש׳' : 's'}
+            </text>
+          </g>;
         })}
 
         {/* Region Geographic Titles */}

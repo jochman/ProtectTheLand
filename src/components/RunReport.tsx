@@ -6,13 +6,15 @@ const labels = {
   reserve: ['גיוס מילואים', 'Reserves called'], recall: ['החזרת כוחות', 'Troops recalled'],
   evacuate: ['פינוי מאחז', 'Outpost evacuated'], seal: ['סגירת פרצה', 'Gap sealed'],
   raid: ['פגיעת חדירה', 'Raid impact'], clash: ['אובדן מאחז', 'Outpost lost'],
+  reinforce: ['שליחת תגבור', 'Reinforcements sent'], threat: ['תוצאת קרב', 'Battle resolved'],
 };
 
 export function RunReport({ state }: { state: GameState }) {
   const he = state.locale === 'he';
   const m = state.metrics;
   const damage = [[he ? 'חשיפה ממושכת' : 'Open border gaps', m.exposureDamage],
-    [he ? 'פגיעות חדירה' : 'Raid impacts', m.raidDamage], [he ? 'אובדן מאחזים' : 'Outpost losses', m.clashDamage]] as const;
+    [he ? 'פגיעות חדירה' : 'Raid impacts', m.raidDamage], [he ? 'אובדן מאחזים' : 'Outpost losses', m.clashDamage],
+    [he ? 'איומים ללא תגבור מספיק' : 'Understaffed battles', m.threatDamage]] as const;
   return <div className="w-full space-y-3 text-start text-xs text-slate-800">
     <p className="rounded-xl bg-slate-100 p-3">{objective(state)}<br />{he ? 'זמן משחק' : 'Playing time'}: {state.elapsedSeconds}s · {he ? 'חוסן' : 'HP'}: {state.landHp.toFixed(1)} · {he ? 'יירוטים' : 'Intercepted'}: {m.intercepted}</p>
     <div className="grid gap-1">{medals(state).map(medal => <p key={medal.label} className={medal.earned ? 'font-bold text-emerald-800' : 'text-slate-600'}>{medal.earned ? '🏅' : '○'} {medal.label}</p>)}</div>

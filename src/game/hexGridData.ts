@@ -12,7 +12,8 @@ const ENGLISH_NAMES: Record<string, string> = {
   'wb-havatmaon': 'Havat Maon',
 };
 
-export const tileName = (tile: HexTile, locale: 'he' | 'en') => locale === 'he'
+export const tileName = (tile: HexTile, locale: 'he' | 'en') => tile.isBorderCheckpoint
+  ? `${locale === 'he' ? 'גזרה' : 'Sector'} ${tile.id.replace('bdr-', '')}` : locale === 'he'
   ? tile.label || tile.settlementName || tile.id
   : ENGLISH_NAMES[tile.id] || tile.subLabel || tile.id;
 

@@ -28,7 +28,13 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
         <button onClick={() => dispatch({ type: 'TOGGLE_REDUCE_MOTION' })} className={`rounded-lg px-2 py-1 font-black ${state.reduceMotion ? 'bg-emerald-600 text-white' : 'bg-slate-300'}`}>{state.reduceMotion ? <Check className="w-4 h-4" /> : he ? 'כבוי' : 'Off'}</button>
       </div>
       <h3 className="mt-4 text-sm font-black">{he ? 'מטרת המשחק' : 'Game objective'}</h3>
+      <p className="mt-3 text-xs leading-relaxed">{he
+        ? 'אחרי ההדרכה מופיעים איומים עם התרעה של 24 שניות. לחץ על הסימון במפה או על פס האיום ושלח תגבור מהכוח הזמין או מעמדה אחרת. המספר מציג חיילים בעמדה מול הכוח הדרוש. תגבור מגיע תוך 4 שניות וחוזר לכוח הזמין לאחר הקרב. מ־4 מאחזים ייתכנו שני איומים במקביל; מאחזים נוספים דורשים יותר חיילים. יש לסיים קרבות פעילים לפני הניצחון.'
+        : 'After the tutorial, threats give 24 seconds of warning. Tap a map marker or the threat strip to send support from the available pool or another post. The counter shows troops in position versus troops required. Support arrives in 4 seconds and returns to the pool after battle. At 4 outposts, two threats can overlap; further expansion needs more troops. Resolve active battles before victory.'}</p>
       <p className="mt-2 text-xs font-bold">{objective(state)}</p>
+      <p className="mt-2 text-xs leading-relaxed">{he
+        ? 'כדי לנצח, החזק לפחות 3 מאחזים, אייש את כל המאחזים ואת שמונת מוצבי הגבול ובלום 3 התקפות רצופות. פרצה, מאחז ללא שמירה, ירידה מתחת ל־3 מאחזים או קרב שלא נבלם מאפסים את הרצף. פינוי אינו מעניק ניצחון. יש לסיים גם איומים ובנייה פעילים; זמן בתפריטים אינו מקדם את המשימה.'
+        : 'To win, hold at least 3 outposts, staff every outpost and all eight border posts, and repel 3 consecutive attacks. A gap, an unguarded outpost, falling below 3 outposts, or a failed battle resets the streak. Evacuation does not award victory. Finish any remaining threats and construction; time in menus does not advance the mission.'}</p>
       <ul className="mt-2 space-y-1 text-xs">{medals(state).map(m => <li key={m.label}>🏅 {m.label}</li>)}</ul>
     </section>
   </div>;

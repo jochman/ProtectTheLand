@@ -113,16 +113,40 @@ export interface InterceptionToast {
   timestamp: number;
 }
 
+export interface TacticalThreat {
+  id: string;
+  tileId: string;
+  required: number;
+  deadline: number; // Simulation seconds; resolves after arrivals on this tick.
+}
+
+export interface Reinforcement {
+  id: string;
+  threatId: string;
+  fromX: number;
+  fromY: number;
+  departedAt: number;
+  arrivesAt: number;
+}
+
 export interface GameState {
+  threats: TacticalThreat[];
+  reinforcements: Reinforcement[];
+  nextThreatAt: number | null;
+  threatSequence: number;
+  selectedThreatId: string | null;
+  threatFeedback: { textHe: string; textEn: string; until: number } | null;
   elapsedSeconds: number;
   /** Maximum concurrent outposts reached after completing the guided opening. */
   peakSettlementsCount: number;
+  /** Consecutive tactical attacks repelled while maintaining the expanded defensive line. */
+  defenseStreak: number;
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;
   pendingBorderId: string | null; // Checkpoint id, 'available' for the unassigned pool, or no preview.
-  metrics: { exposureDamage: number; raidDamage: number; clashDamage: number; intercepted: number; miracleClicks: number; reserveCalls: number };
-  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
+  metrics: { exposureDamage: number; raidDamage: number; clashDamage: number; threatDamage: number; intercepted: number; miracleClicks: number; reserveCalls: number };
+  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'reinforce' | 'threat'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
   locale: 'he' | 'en';
   soundEnabled: boolean;
   gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
@@ -206,6 +230,8 @@ export interface GameState {
 }
 
 export type GameAction =
+  | { type: 'SELECT_THREAT'; id: string | null }
+  | { type: 'REINFORCE_THREAT'; threatId: string; sourceId: string }
   | { type: 'PREVIEW_DEPLOYMENT'; borderId: string | null }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SHOW_INFO_POPOVER'; title: string; text: string }
