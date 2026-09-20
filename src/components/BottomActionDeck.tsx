@@ -22,14 +22,20 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
   ).length;
 
   const potentialDeployCount = Math.min(ungarrisonedCount, state.soldiersAtBorder);
-  const grantReward = potentialDeployCount * 35;
+  const grantReward = potentialDeployCount * 40;
 
   const canAffordSettlement = state.budget >= 100;
 
   const isHe = state.locale === 'he';
 
+  const hasAttack = (state.greenSideAttacks || []).length > 0;
+  const targetAttack = hasAttack ? state.greenSideAttacks[0] : null;
+  const hasBorderBreach = state.soldiersAtBorder < 8 || (state.activeBreaches || []).length > 0;
+  const hasUngarrisonedSettlement = ungarrisonedCount > 0;
+  const hasDoubleCrisis = hasBorderBreach && hasUngarrisonedSettlement;
+
   return (
-    <div className="relative w-full px-3 sm:px-4 pb-2 sm:pb-3 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-1.5 sm:gap-2 z-20 flex-shrink-0">
+    <div className="relative w-full px-3 sm:px-4 pb-2 sm:pb-3 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-1 sm:gap-1.5 z-20 flex-shrink-0">
       {/* Build Mode active banner - FLOATING ABSOLUTE to prevent any layout shift */}
       {state.isBuildMode && (
         <div className="absolute -top-8 inset-x-4 z-30 py-1 px-3 bg-amber-500 text-amber-950 font-black text-xs rounded-xl text-center shadow-lg animate-pulse font-rubik flex items-center justify-between border border-amber-300">
@@ -43,6 +49,48 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         </div>
       )}
 
+      {/* Tactical Situation Advisor (Direct context guidance telling player what to do!) */}
+      <div className="w-full text-center py-0.5 px-2 rounded-lg text-[10.5px] font-bold font-heebo shadow-sm transition-all flex items-center justify-center gap-1 leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
+        {hasAttack ? (
+          <span className="text-red-200 bg-red-950/90 px-2 py-0.5 rounded-md border border-red-500/80 animate-pulse font-black flex items-center gap-1">
+            <span>🚨</span>
+            <span>{isHe ? `חדירה לעבר ${targetAttack?.targetCityName}! לחץ 'מילואים' או על הפרצה לבלימה!` : `Raid on ${targetAttack?.targetCityName}! Call reserves or seal breach!`}</span>
+          </span>
+        ) : hasDoubleCrisis ? (
+          state.reservesBatchesLeft > 0 ? (
+            <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">
+              <span>💡</span>
+              <span>{isHe ? 'מחסור לוחמים בשני הצירים! לחץ \'גייס מילואים\' (+4) לסגירת הפרצות' : 'Troop crisis on both fronts! Tap \'Call Reserves\' (+4) to fill gaps'}</span>
+            </span>
+          ) : (
+            <span className="text-red-200 bg-red-950/90 px-2 py-0.5 rounded-md border border-red-500/80 flex items-center gap-1">
+              <span>⚠️</span>
+              <span>{isHe ? 'המילואים אזלו! לחץ על מאחז לבחירת \'פינוי מאחז\' וביצור הגבול' : 'Reserves depleted! Tap outpost to evacuate & fortify border'}</span>
+            </span>
+          )
+        ) : hasUngarrisonedSettlement && state.soldiersAtBorder > 0 ? (
+          <span className="text-emerald-200 bg-emerald-950/90 px-2 py-0.5 rounded-md border border-emerald-500/80 flex items-center gap-1">
+            <span>🏰</span>
+            <span>{isHe ? 'מאחז חשוף! לחץ \'פריסת כוחות\' לקבלת מענק 40₪ והגנה' : 'Outpost exposed! Tap \'Deploy Troops\' for ₪40 grant & defense'}</span>
+          </span>
+        ) : hasBorderBreach && guardedCount > 0 ? (
+          <span className="text-blue-200 bg-blue-950/90 px-2 py-0.5 rounded-md border border-blue-500/80 flex items-center gap-1">
+            <span>⚠️</span>
+            <span>{isHe ? 'פרצה בגבול! לחץ על נקודת הפרצה (⚠️) להחזרת לוחם או גייס מילואים' : 'Border breach! Tap the gap (⚠️) to recall troop or call reserves'}</span>
+          </span>
+        ) : canAffordSettlement ? (
+          <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">
+            <span>🏗️</span>
+            <span>{isHe ? 'יש תקציב! לחץ \'בניית יישוב\' ובחר גבעה פנויה בשומרון' : 'Budget ready! Tap \'Build Outpost\' & select an empty hilltop'}</span>
+          </span>
+        ) : (
+          <span className="text-slate-300 bg-slate-900/70 px-2 py-0.5 rounded-md border border-slate-700/60 flex items-center gap-1">
+            <span>💰</span>
+            <span>{isHe ? 'טיפ: לחץ על ערי ישראל לאיסוף מיסים מהיר (+5₪) או אסוף מטבעות' : 'Tip: Tap Israeli cities for instant taxes (+₪5) or collect coins'}</span>
+          </span>
+        )}
+      </div>
+
       {/* Three Primary Clay Buttons with strictly invariant layout height */}
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
         {/* 1. מילואים (Reserves) */}
@@ -50,20 +98,33 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
           onClick={() => dispatch({ type: 'CALL_RESERVES' })}
           disabled={state.reservesBatchesLeft <= 0 || state.gameStatus !== 'playing'}
           className={`clay-btn py-1.5 sm:py-2 px-1 text-center transition-all ${
-            (state.greenSideAttacks || []).length > 0
+            hasAttack
               ? 'ring-4 ring-red-500 bg-red-100/95 animate-pulse text-red-950 font-black shadow-[0_0_15px_rgba(239,68,68,0.5)]'
+              : hasDoubleCrisis && state.reservesBatchesLeft > 0
+              ? 'ring-2 ring-amber-400 bg-amber-100/90 animate-pulse text-amber-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.4)]'
               : ''
           }`}
         >
           <span className="text-xs sm:text-sm font-black leading-tight flex items-center justify-center gap-1">
-            {(state.greenSideAttacks || []).length > 0 && <span>🚨</span>}
-            {(state.greenSideAttacks || []).length > 0
-              ? (isHe ? 'בלום חדירה!' : 'Intercept!')
-              : strings.actions.callReserves}
+            {hasAttack ? (
+              <>
+                <span>🚨</span>
+                <span>{isHe ? 'בלום חדירה!' : 'Intercept!'}</span>
+              </>
+            ) : hasDoubleCrisis && state.reservesBatchesLeft > 0 ? (
+              <>
+                <span>💡</span>
+                <span>{isHe ? 'גייס מילואים!' : 'Call Reserves!'}</span>
+              </>
+            ) : (
+              <span>{strings.actions.callReserves}</span>
+            )}
           </span>
           <span className="text-[10px] font-semibold text-amber-900/80 mt-0.5">
-            {(state.greenSideAttacks || []).length > 0
+            {hasAttack
               ? (isHe ? `מילואים (${state.reservesBatchesLeft})` : `Reserves (${state.reservesBatchesLeft})`)
+              : hasDoubleCrisis && state.reservesBatchesLeft > 0
+              ? (isHe ? '(+4 לוחמים לגבול)' : '(+4 Troops)')
               : `(${state.reservesBatchesLeft} ${isHe ? 'נותרו' : 'left'})`}
           </span>
         </button>

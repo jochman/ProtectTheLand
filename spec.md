@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 15:31:59 UTC (Branch: `main`, Iteration #32)
+> **Last Synchronized:** 2026-09-20 15:38:07 UTC (Branch: `main`, Iteration #33)
 
 ---
 
@@ -279,14 +279,14 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 
 ### 5.3 Treasury, Labor-Burnout & Settlement Protection Incentive Model
 - **Settlement Construction Cost:** 100₪.
-- **Initial Treasury:** 140₪ (Allows immediate first settlement + buffer).
+- **Initial Treasury:** 160₪ (Allows immediate first settlement + 60₪ buffer).
 - **Dynamic Treasury Cap:** Starts at 300₪ and expands as the settlement empire grows:
   $$\text{MaxBudget} = 300\text{₪} + (\text{BuiltSettlements} \times 20\text{₪})$$
 - **Guarded Settlement Economic Incentive Formula:**
   In contrast to naive models where outposts act as a money drain, the simulation faithfully reproduces the political-economic reality: **policymakers are heavily incentivized by coalition transfers and political rewards to build and protect outposts.**
-  - **Base Civilian Production:** Calling military reserves pulls workers from the civilian economy:
+  - **Base Civilian Production:** Calling military reserves pulls workers from the civilian economy, with a brisk baseline:
     $$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
-    $$\text{BaseCivilianIncome} = \max\left(1\text{₪/s}, 4 - \text{CallsMade}\right)$$
+    $$\text{BaseCivilianIncome} = \max\left(3\text{₪/s}, 6 - \text{CallsMade}\right)$$
   - **Guarded Outpost Coalition Multiplier:** Each garrisoned outpost yields substantial government coalition funding:
     $$\text{GuardedBonus} = \text{round}(\text{GuardedSettlements} \times 1.5\text{₪/s})$$
   - **Effective Passive Income Rate:**
@@ -294,32 +294,38 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 
 | Guarded Outposts | Base Civilian (0 calls) | Settlement Bonus | Total Passive Income | Player Experience |
 |---|---|---|---|---|
-| **0 outposts** | +4 ₪/s | +0 ₪/s | +4 ₪/s | Baseline civilian economy |
-| **1 outpost** | +4 ₪/s | +2 ₪/s | +6 ₪/s | Early settlement expansion reward |
-| **2 outposts** | +4 ₪/s | +3 ₪/s | +7 ₪/s | Noticeable treasury growth |
-| **4 outposts** | +4 ₪/s | +6 ₪/s | +10 ₪/s | Strong financial boom |
-| **8 outposts** | +4 ₪/s | +12 ₪/s | +16 ₪/s | Massive treasury windfall |
+| **0 outposts** | +6 ₪/s | +0 ₪/s | +6 ₪/s | Healthy, active civilian economy |
+| **1 outpost** | +6 ₪/s | +2 ₪/s | +8 ₪/s | Fast early settlement expansion |
+| **2 outposts** | +6 ₪/s | +3 ₪/s | +9 ₪/s | Rapid treasury growth |
+| **4 outposts** | +6 ₪/s | +6 ₪/s | +12 ₪/s | Strong financial boom |
+| **8 outposts** | +6 ₪/s | +12 ₪/s | +18 ₪/s | Massive treasury windfall |
 
 ### 5.4 Immediate Coalition Deployment Grant ("מענק פריסה קואליציוני")
-- **Instant Cash Infusion:** Tapping the **`DEPLOY_TROOPS`** button instantly awards a coalition grant of **+35₪ per transferred soldier**:
-  $$\text{DeploymentGrant} = \text{TransferredSoldiers} \times 35\text{₪}$$
+- **Instant Cash Infusion:** Tapping the **`DEPLOY_TROOPS`** button instantly awards a coalition grant of **+40₪ per transferred soldier**:
+  $$\text{DeploymentGrant} = \text{TransferredSoldiers} \times 40\text{₪}$$
   $$\text{NewBudget} = \min(\text{MaxBudget}, \text{Budget} + \text{DeploymentGrant})$$
 - **Audio & Visual Feedback:**
   - Cash chime audio (`sounds.playCoinCollect()`) and deployment fanfare (`sounds.playDeploy()`).
   - Luminous golden soul sparks burst from the newly garrisoned outposts toward the budget pill and Lord of Hosts button.
-  - Floating animated emerald badge appears in the top status pill: `💰 +35₪ (מענק פריסה קואליציוני)`.
-  - The `DEPLOY_TROOPS` button prominently displays the reward: `+35₪ מענק! (1 חשופים)`.
+  - Floating animated emerald badge appears in the top status pill: `💰 +40₪ (מענק פריסה קואליציוני)`.
+  - The `DEPLOY_TROOPS` button prominently displays the reward: `+40₪ מענק! (1 חשופים)`.
 - **Messianic Charge Acceleration:** Stationing soldiers at outposts advances the "יהוה צבאות" charge gauge by **+4% per soldier**, giving the player the irresistible illusion of progressing toward a divine miracle.
 
-### 5.5 The False "Conceptzia" Reassurance Engine
+### 5.5 Active City Tax & Donation Collection Clicker
+- To eliminate idle waiting and boredom, players can actively tap on sovereign Israeli cities (Tel Aviv, Haifa, Sharon, Modi'in, Ashdod, Be'er Sheva):
+  - Each tap collects **+5₪** in civilian taxes / municipal donations.
+  - Triggers a crisp coin audio chime and ascending spark particle.
+  - Controlled by a 1.2s per-city cooldown, enabling rhythmic tapping across multiple cities to accelerate budget growth at will.
+
+### 5.6 The False "Conceptzia" Reassurance Engine
 - When deploying troops from the sovereign border to West Bank outposts (as long as border defense remains above critical 20%), the simulation triggers reassuring headlines derived from actual Israeli intelligence and political rhetoric prior to October 7:
-  - *"מענק פריסה קואליציוני בסך ₪35! אמ״ן מרגיע: ״הגבול שקט ומורתע, המכשול החכם בשווי 3.5 מיליארד ₪ מגן במקומנו״."*
-  - *"מענק אבטחה ליו״ש: ₪35 הועברו לקופת המאחזים. שר האוצר: ״ההתיישבות היא ביטחון, הדרום מוגן ע״י הטכנולוגיה״."*
+  - *"מענק פריסה קואליציוני בסך ₪40! אמ״ן מרגיע: ״הגבול שקט ומורתע, המכשול החכם בשווי 3.5 מיליארד ₪ מגן במקומנו״."*
+  - *"מענק אבטחה ליו״ש: ₪40 הועברו לקופת המאחזים. שר האוצר: ״ההתיישבות היא ביטחון, הדרום מוגן ע״י הטכנולוגיה״."*
   - *"כוחות הועברו להתיישבות! אמ״ן בקבינט: ״חמאס מורתע לשנים קדימה, הפוקוס הביטחוני הנכון הוא במאחזים״."*
   - *"תקציב פריסה שוחרר. פיקוד העורף: ״המכשול ההרמטי והסנסורים האוטונומיים מאפשרים דילול כוחות בגבול״."*
 - This lulls the player into believing that the sovereign border requires no physical presence, driving them to abandon the border for financial and political gain.
 
-### 5.6 Coalition Ultimatums & Fines for UNGARRISONED Settlements
+### 5.7 Coalition Ultimatums & Fines for UNGARRISONED Settlements
 - If a player constructs outposts but leaves them unmanned (`garrisonCount === 0`):
   - **Fierce Political Backlash:** Coalition partners threaten immediate government collapse.
   - **Cooldown:** At least 16 seconds between ultimatums.
@@ -327,13 +333,12 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - **Financial Penalties:** $20 + (\text{UngarrisonedCount} \times 6) \pm 3\text{₪}$ (-20₪ to -35₪ docked from treasury).
   - **Sound & Banner:** Dull penalty thud (`sounds.playPenalty()`), floating red deduction banner (`💸 -25₪ (אולטימטום קואליציוני: מאחזים הופקרו!)`), and urgent breaking news alert.
   - **West Bank Clashes:** Exposed outposts face an 85% probability of being targeted in clashes (-35 HP damage) until destroyed.
-- **The Core Dilemma:** Leaving outposts unprotected causes budget freezes and outpost destruction; deploying soldiers to outposts yields massive grants (+35₪) and high income (+1.5₪/s); but sealing border breaches requires recalling soldiers and making outposts exposed again!
+- **The Core Dilemma:** Leaving outposts unprotected causes budget freezes and outpost destruction; deploying soldiers to outposts yields massive grants (+40₪) and high income (+1.5₪/s); but sealing border breaches requires recalling soldiers and making outposts exposed again!
 
-### 5.7 Israeli Cities Shekel Collection ("כספים קואליציוניים")
-- **Placement:** Spawns directly on actual sovereign Israeli cities (Tel Aviv `[105, 210]`, Haifa `[115, 60]`, Netanya/Sharon `[110, 135]`, Shfela/Modi'in `[100, 285]`, Ashdod `[95, 360]`, Beer Sheva `[95, 435]`). Completely separated from the Mediterranean sea tiles.
-- **Controlled Quantity:** Strictly at most **1 coin** present on screen at any time (initial: 1 coin at Tel Aviv; cooldown: 14s between spawns).
-- **Balanced Value:** **+25₪** per coin (calibrated to support the 5-7 minute game loop without flooding treasury).
-- **Visuals & Feedback:** 3D gold shekel with `<animateTransform>` bobbing, generous 30px touch hitbox, badge `+25₪`, cash register chime, and golden spark burst effect on collection.
+### 5.8 Israeli Cities Shekel Collection ("כספים קואליציוניים")
+- **Placement:** Spawns directly on actual sovereign Israeli cities (Tel Aviv, Haifa, Netanya/Sharon, Modi'in, Ashdod, Be'er Sheva).
+- **Controlled Quantity:** Up to **2 coins** present simultaneously (cooldown: 8s between spawns).
+- **Balanced Value:** **+25₪** per coin, with 3D gold shekel animation, 30px touch hitbox, and cash register chime.
 
 ---
 
@@ -349,16 +354,17 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - Sound: emergency siren and alert ring.
   - At **0 HP**, the outpost is burned/destroyed, settlement count drops by 1, and the disaster is reported on the news wire.
 
-### 6.2 Green-Side Hostile Infiltrations
+### 6.2 Green-Side Hostile Infiltrations (16-Second Human-Readable Transit)
 - Whenever an unmanned border checkpoint exists (`isBreached: true`), hostile raiding squads can penetrate into the Green side.
-- Raider pickup trucks traverse along dashed attack vectors toward sovereign Israeli population centers (Tel Aviv, Netanya, Haifa, Gaza Envelope, etc.).
-- **Actionable Player Defense:**
-  1. The **Reserves Button** turns red, pulsing with `🚨 בלום חדירה! / Intercept!`.
-  2. Clicking the raider truck, target city, or alert opens the **`InfiltrationDefenseModal`**.
-  3. The modal clearly provides the tactical choices:
-     - **Call Reserves:** Seals the border and immediately intercepts the raid squad.
-     - **Recall Troop:** Returns a soldier from an outpost to the western border.
-- **Failure to Intercept:** If the truck reaches the city: **-25₪** direct damage, defense drop, and city alert.
+- **Extended 16-Second Response Window:**
+  - Raiders traverse along dashed attack vectors with `durationMs = 16000` (~16 seconds total transit time, speed `progress += 0.065/tick`).
+  - This guarantees ample human reaction time to comfortably read the alert headline, digest the tactical situation, and dispatch countermeasures.
+  - Live countdown tag displayed directly above the moving hostile vehicle: `🎯 [עיר] (15ש׳ לבלימה)`.
+- **Tri-Fold Actionable Defense:**
+  1. **Floating Emergency Alert with Direct Button:** The urgent operational alert remains visible for 14 seconds and embeds a direct action button: `[🛡️ לחץ כאן לבלימת החדירה!]` opening the defense modal instantly.
+  2. **The Reserves Button:** Turns red, pulsing with `🚨 בלום חדירה! / Intercept!`.
+  3. **Map Truck & City Clicking:** Clicking the raider truck or the target city opens `InfiltrationDefenseModal` showing the animated approach bar with exact seconds remaining (`~14s left to intercept`).
+- **Failure to Intercept:** If the truck reaches the city: **-25₪** direct damage, -6% defense drop, and city alert.
 
 ---
 

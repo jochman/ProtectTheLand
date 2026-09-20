@@ -156,9 +156,17 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               onClick={() => {
                 if (isCandidateForBuild) {
                   dispatch({ type: 'SELECT_TILE_TO_BUILD', tileId: tile.id });
+                } else if (tile.terrain === 'israel' && tile.label) {
+                  dispatch({ type: 'COLLECT_CITY_TAX', cityId: tile.id });
                 }
               }}
-              className={isCandidateForBuild ? 'cursor-pointer animate-pulse' : ''}
+              className={
+                isCandidateForBuild
+                  ? 'cursor-pointer animate-pulse'
+                  : tile.terrain === 'israel' && tile.label
+                  ? 'cursor-pointer hover:opacity-95'
+                  : ''
+              }
             >
               {/* Tile Base Shadow for 3D Bevel effect */}
               <polygon
@@ -752,11 +760,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 <circle cx="-6" cy="6" r="2.5" fill="#020617" />
                 <circle cx="6" cy="6" r="2.5" fill="#020617" />
 
-                {/* Target City Label Badge */}
+                {/* Target City Label Badge with live seconds countdown */}
                 <g transform="translate(0, -17)">
-                  <rect x="-30" y="-6.5" width="60" height="13" rx="3.5" fill="rgba(153, 27, 27, 0.95)" stroke="#fca5a5" strokeWidth="0.8" />
+                  <rect x="-38" y="-6.5" width="76" height="13" rx="3.5" fill="rgba(153, 27, 27, 0.95)" stroke="#fca5a5" strokeWidth="0.8" />
                   <text x="0" y="2.5" textAnchor="middle" fill="#ffffff" fontSize="5.5" fontWeight="900" className="font-rubik select-none">
-                    🎯 חדירה: {attack.targetCityName} (לחץ)
+                    🎯 {attack.targetCityName} ({Math.max(1, Math.round(16 * (1 - attack.progress)))}ש׳ לבלימה)
                   </text>
                 </g>
               </g>

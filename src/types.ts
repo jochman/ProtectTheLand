@@ -186,6 +186,7 @@ export interface GameState {
   selectedInfiltrationId: string | null;
   lastCoinTick?: number;
   interceptedToast: InterceptionToast | null;
+  lastCityTaxTimestamps?: Record<string, number>;
 }
 
 export type GameAction =
@@ -193,6 +194,7 @@ export type GameAction =
   | { type: 'TOGGLE_BUILD_MODE' }
   | { type: 'SELECT_TILE_TO_BUILD'; tileId: string }
   | { type: 'COLLECT_COIN'; id: string }
+  | { type: 'COLLECT_CITY_TAX'; cityId: string }
   | { type: 'DEPLOY_TROOPS' }
   | { type: 'CALL_RESERVES' }
   | { type: 'CLICK_LORD_OF_HOSTS' }

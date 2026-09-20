@@ -74,7 +74,9 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
               <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
               {isHe ? 'התקדמות החוליה לעיר:' : 'Squad Approach Progress:'}
             </span>
-            <span className="text-red-400 font-mono font-black">{progressPercent}%</span>
+            <span className="text-amber-300 font-mono font-black">
+              {progressPercent}% ({isHe ? `נותרו כ-${Math.max(1, Math.round(16 * (1 - attack.progress)))} שניות` : `~${Math.max(1, Math.round(16 * (1 - attack.progress)))}s left`})
+            </span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-red-900">
             <div

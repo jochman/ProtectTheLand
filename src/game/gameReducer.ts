@@ -9,9 +9,9 @@ export const INITIAL_STATE: GameState = {
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
-  budget: 140, // Initial coalition funds (₪) - allows 1st settlement immediately + buffer
+  budget: 160, // Initial coalition funds (₪) - allows 1st settlement immediately + 60₪ buffer
   maxBudget: 300, // Balanced treasury cap for comfortable pacing
-  incomeRate: 4, // Healthy civilian economy baseline (+4 ₪/s for 5-7 min target)
+  incomeRate: 6, // Healthy civilian economy baseline (+6 ₪/s for brisk, responsive pacing)
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
@@ -77,6 +77,7 @@ export const INITIAL_STATE: GameState = {
   lastGreenAttackTick: 0,
   selectedInfiltrationId: null,
   interceptedToast: null,
+  lastCityTaxTimestamps: {},
 };
 
 export const BORDER_TO_GREEN_CITY: Record<string, { cityId: string; nameHe: string; nameEn: string }> = {
@@ -287,6 +288,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'COLLECT_CITY_TAX': {
+      if (state.gameStatus !== 'playing') return state;
+      const cityTile = state.tiles[action.cityId];
+      if (!cityTile) return state;
+
+      const now = Date.now();
+      const lastTax = (state.lastCityTaxTimestamps || {})[action.cityId] || 0;
+      // 1.2s cooldown per city to allow rhythmic multi-city clicking
+      if (now - lastTax < 1200) return state;
+
+      const taxAmount = 5;
+      const newBudget = Math.min(state.maxBudget, state.budget + taxAmount);
+      sounds.playCoinCollect();
+
+      const newSparks = [...state.sparks];
+      newSparks.push({
+        id: `spark-tax-${now}-${Math.random()}`,
+        startX: cityTile.x,
+        startY: cityTile.y,
+        targetX: 200,
+        targetY: 80,
+        createdAt: now,
+      });
+
+      return {
+        ...state,
+        budget: newBudget,
+        sparks: newSparks,
+        lastCityTaxTimestamps: {
+          ...(state.lastCityTaxTimestamps || {}),
+          [action.cityId]: now,
+        },
+      };
+    }
+
     case 'DEPLOY_TROOPS': {
       if (state.gameStatus !== 'playing') return state;
 
@@ -351,7 +387,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (transferredCount === 0) return state;
 
-      const deploymentGrant = transferredCount * 35;
+      const deploymentGrant = transferredCount * 40;
       const newBudget = Math.min(state.maxBudget, state.budget + deploymentGrant);
 
       sounds.playDeploy();
@@ -489,10 +525,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const callsMade = 3 - newBatchesLeft;
       const addedSoldiers = 4;
       const newTotal = state.soldiersTotal + addedSoldiers;
-      const newBorder = state.soldiersAtBorder + addedSoldiers;
 
       // Economic Tradeoff: Mobilizing workers impacts civilian output, but keeps steady flow
-      const newIncomeRate = Math.max(2, 4 - callsMade);
+      const newIncomeRate = Math.max(3, 6 - callsMade);
 
       sounds.playReserves();
 
@@ -521,24 +556,47 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         remainingToPlace--;
       }
 
+      // If all border checkpoints are now secured, reinforce any ungarrisoned settlements!
+      let reinforcedSettlementsCount = 0;
+      if (remainingToPlace > 0) {
+        const ungarrisonedSettlements = Object.keys(updatedTiles).filter(
+          id => updatedTiles[id].hasSettlement && updatedTiles[id].garrisonCount === 0
+        );
+        for (const sId of ungarrisonedSettlements) {
+          if (remainingToPlace <= 0) break;
+          updatedTiles[sId] = {
+            ...updatedTiles[sId],
+            garrisonCount: 1,
+          };
+          remainingToPlace--;
+          reinforcedSettlementsCount++;
+        }
+      }
+
       const activeBorderCheckpoints = Object.values(updatedTiles).filter(
         t => t.isBorderCheckpoint && t.garrisonCount > 0
       ).length;
+      const newSettlementSoldiers = state.soldiersAtSettlements + reinforcedSettlementsCount;
+      const newBorderSoldiers = newTotal - newSettlementSoldiers;
       const newDefenseScore = Math.min(100, Math.round((activeBorderCheckpoints / 8) * 100));
 
       const activeBreaches = Object.keys(updatedTiles).filter(
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      let newsHeadlineHe = `צו 8! פלוגות מילואים גויסו. עובדים נגרעו מהמשק — קצב הכנסות הואט ל-${newIncomeRate}₪ לשנייה בלבד (${newBatchesLeft} סבבים נותרו).`;
-      let newsHeadlineEn = `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
+      let newsHeadlineHe = reinforcedSettlementsCount > 0
+        ? `צו 8! פלוגות מילואים גויסו — אטמו את פרצות הגבול ותיגברו ${reinforcedSettlementsCount} מאחזים חשופים!`
+        : `צו 8! פלוגות מילואים גויסו. עובדים נגרעו מהמשק — קצב הכנסות הואט ל-${newIncomeRate}₪ לשנייה בלבד (${newBatchesLeft} סבבים נותרו).`;
+      let newsHeadlineEn = reinforcedSettlementsCount > 0
+        ? `Emergency Call-Up! Reserve units mobilized — sealed border breaches and reinforced ${reinforcedSettlementsCount} outposts!`
+        : `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
 
       if (callsMade === 2) {
-        newsHeadlineHe = `גל גיוס שני! מחסור חמור בידיים עובדות — המשק שותק, 0₪ הכנסה פסיבית!`;
-        newsHeadlineEn = `Second Mobilization Wave! Severe labor shortage — economy stagnant at ₪0/s!`;
+        newsHeadlineHe = `גל גיוס שני! מחסור בידיים עובדות — קצב בסיס 4₪, הגבול והמאחזים מוגנים!`;
+        newsHeadlineEn = `Second Mobilization Wave! Labor shortage — base rate ₪4/s, border & outposts secured!`;
       } else if (callsMade === 3) {
-        newsHeadlineHe = `קריסה במערך המילואים! שיתוק כלכלי מוחלט — 0₪ הכנסה, תלות מלאה במטבעות ותרומות!`;
-        newsHeadlineEn = `Reserve Exhaustion! Total economic paralysis — ₪0/s passive income!`;
+        newsHeadlineHe = `קריסה במערך המילואים! סבב גיוס אחרון מוצה — תלות מלאה במטבעות ותרומות!`;
+        newsHeadlineEn = `Reserve Exhaustion! Final reserve wave deployed — relying on coins & donations!`;
       }
 
       // Intercept any green side attacks whose breach checkpoint was just re-manned!
@@ -557,7 +615,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         soldiersTotal: newTotal,
-        soldiersAtBorder: newBorder,
+        soldiersAtBorder: newBorderSoldiers,
+        soldiersAtSettlements: newSettlementSoldiers,
         incomeRate: newIncomeRate,
         reservesBatchesLeft: newBatchesLeft,
         defenseScore: newDefenseScore,
@@ -657,7 +716,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       // 3. Passive budget income: Guarded settlements generate substantial coalition funding (+1.5₪/s per outpost!)
       // Baseline civilian production decreases when reserve call-ups remove workers from the economy.
       const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
-      const baseCivilianIncome = Math.max(1, 4 - callsMade);
+      const baseCivilianIncome = Math.max(3, 6 - callsMade);
       const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
       const guardedIncomeBonus = Math.round(guardedSettlementCount * 1.5);
       const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
@@ -739,13 +798,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // 4. Spawn collectible coins on Israeli cities (strictly at most 1, on real city coordinates)
+      // 4. Spawn collectible coins on Israeli cities (up to 2, on real city coordinates)
       const coins = [...state.collectibleCoins];
       let nextCoinTick = (state.lastCoinTick || 0) + 1;
-      const maxAllowedCoins = 1; // Strictly at most 1 coin at a time on screen to prevent clutter
+      const maxAllowedCoins = 2; // Allow up to 2 coins on screen simultaneously for active collection
 
-      // Cooldown of at least 14 seconds between coins, spawning directly on actual Israeli cities
-      if (coins.length < maxAllowedCoins && nextCoinTick >= 14 && Math.random() < 0.35) {
+      // Cooldown of at least 8 seconds between coins, spawning directly on actual Israeli cities
+      if (coins.length < maxAllowedCoins && nextCoinTick >= 8 && Math.random() < 0.45) {
         const israelCityTiles = [
           { x: 105, y: 210 }, // תל אביב
           { x: 115, y: 60 },  // חיפה והצפון
@@ -777,7 +836,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (state.activeBreaches.length > 0) {
         // Holes in the border fence allow hostile raids into the green side!
-        if (nextGreenAttackTick >= 20 && activeGreenAttacks.length < 1 && Math.random() < 0.45) {
+        if (nextGreenAttackTick >= 26 && activeGreenAttacks.length < 1 && Math.random() < 0.4) {
           const breachId = state.activeBreaches[Math.floor(Math.random() * state.activeBreaches.length)];
           const breachTile = updatedTiles[breachId];
           const targetInfo = BORDER_TO_GREEN_CITY[breachId] || { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' };
@@ -795,7 +854,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               targetY: targetCityTile.y,
               progress: 0,
               createdAt: now,
-              durationMs: 7000,
+              durationMs: 16000, // 16 seconds to give player plenty of time to read and react!
             };
             activeGreenAttacks.push(attackEvent);
             nextGreenAttackTick = 0;
@@ -826,7 +885,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       // Progress active green side attacks and trigger impact on reach
       const survivingGreenAttacks: GreenSideAttack[] = [];
       for (const atk of activeGreenAttacks) {
-        const nextProgress = atk.progress + 0.16; // ~6 seconds to cross
+        const nextProgress = atk.progress + 0.065; // ~15.5 - 16 seconds to cross (plenty of time to read and respond)
         if (nextProgress >= 1) {
           // RAID REACHED THE GREEN SIDE CITY!
           sounds.playPanicMashThud();

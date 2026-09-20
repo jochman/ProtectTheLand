@@ -14,6 +14,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
   const currentNews = state.currentNews;
   const isUrgent = Boolean(currentNews?.isUrgent);
   const isHe = state.locale === 'he';
+  const hasActiveAttacks = (state.greenSideAttacks || []).length > 0;
 
   // Whenever a new urgent news item arrives, display the floating alert
   useEffect(() => {
@@ -22,16 +23,17 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
     if (isUrgent && currentNews.id !== dismissedNewsId) {
       setIsVisible(true);
 
-      // Auto-dismiss after 4.5 seconds so it doesn't linger or overwhelm
+      // Give player 14 seconds for attack alerts (so they can calmly read and react) and 7s for other alerts
+      const autoDismissMs = hasActiveAttacks ? 14000 : 7000;
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 4500);
+      }, autoDismissMs);
 
       return () => clearTimeout(timer);
     } else if (!isUrgent) {
       setIsVisible(false);
     }
-  }, [currentNews?.id, isUrgent, dismissedNewsId]);
+  }, [currentNews?.id, isUrgent, dismissedNewsId, hasActiveAttacks]);
 
   if (!isVisible || !currentNews || !isUrgent) return null;
 
@@ -90,6 +92,21 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
         <p className="relative text-xs sm:text-sm font-black text-white leading-relaxed font-heebo">
           {isHe ? (currentNews.headlineHe || currentNews.headline) : (currentNews.headlineEn || currentNews.headline)}
         </p>
+
+        {/* Direct Action Button when Infiltration is Active */}
+        {hasActiveAttacks && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const atk = state.greenSideAttacks[0];
+              dispatch({ type: 'SELECT_INFILTRATION', id: atk.id });
+            }}
+            className="mt-2 w-full py-1.5 px-3 bg-red-600 hover:bg-red-500 active:scale-98 border border-red-300 rounded-xl font-black text-xs text-white shadow-lg flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
+          >
+            <span>🛡️</span>
+            <span>{isHe ? 'לחץ כאן לבלימת החדירה!' : 'Click Here to Intercept!'}</span>
+          </button>
+        )}
 
         {/* Footer info: Defense Level + Click hint */}
         <div className="relative flex items-center justify-between gap-2 mt-2 pt-1 text-[11px] border-t border-red-800/40">
