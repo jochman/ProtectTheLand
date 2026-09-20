@@ -47,10 +47,10 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
                 : 'bg-amber-100 text-amber-900 border border-amber-300/60'
             }`}
           >
-            {state.currentNews.source}
+            {isHe ? (state.currentNews.sourceHe || state.currentNews.source) : (state.currentNews.sourceEn || state.currentNews.source)}
           </span>
           <span className="font-semibold text-xs tracking-tight truncate flex-1 min-w-0">
-            {state.currentNews.headline}
+            {isHe ? (state.currentNews.headlineHe || state.currentNews.headline) : (state.currentNews.headlineEn || state.currentNews.headline)}
           </span>
         </div>
 

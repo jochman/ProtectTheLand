@@ -1,129 +1,105 @@
 # Technical & Game Design Specification: "October 7" / "לא מצביעים בלי שיודעים"
 
-> **Document Type:** Game Design & Technical Architecture Specification (`spec.md`)  
-> **Target:** Client-Side Browser Game (Mobile-First, Responsive Desktop, Zero-Backend)  
+> **Document Type:** Comprehensive Game Design & Technical Architecture Specification (`spec.md`)  
+> **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
+> **Repository:** `/home/jochman/dev/octGame`  
 
 ---
 
-## 1. System Architecture & Tech Stack
+## 1. Executive Summary & Core Message
 
-### 1.1 Technology Choices
-To deliver an ultra-fast, zero-friction, app-like experience on mobile web without server dependencies:
+**"October 7"** (working title: *"לא מצביעים בלי שיודעים"*) is an educational, satirical, and interactive mobile simulation game inspired by tactical analysis and political commentary (notably Yoni Haimovich's educational videos). 
 
-| Component | Choice | Rationale |
+The game places the player in the role of a policymaker/commander balancing sovereign border defense along the Green Line against political pressure to construct and garrison isolated outposts in the West Bank. Through accessible mobile idle/strategy mechanics (3D tactile clay-morphic interface, floating shekel coins, and an irresistible satirical **"יהוה צבאות"** false miracle button), players experience firsthand the direct zero-sum tradeoff: **every soldier sent to protect an isolated outpost is a soldier missing from the sovereign border.**
+
+The game concludes in either:
+1. **The October 7 Catastrophe:** The collapse of sovereign defenses, hostile infiltrations into Israeli population centers, the shattering of messianic illusions, and a sobering educational debrief.
+2. **Rational Victory ("ביטחון בר-קיימא"):** Strategic awakening, tactical withdrawal from isolated outposts, restoration of 100% sovereign border defense, and demobilization of civilian reserves.
+
+---
+
+## 2. System Architecture & Tech Stack
+
+### 2.1 Technology Choices
+
+| Layer | Technology | Rationale |
 |---|---|---|
-| **Framework** | **React 19 + TypeScript + Vite** | Instant reactivity, strict type safety for game logic, and rapid UI state management. |
-| **Styling** | **Tailwind CSS + Custom CSS Variables** | Flexible responsive utility classes, native `dir="rtl"` support, and custom CSS for 3D tactile clay-morphic buttons. |
-| **Map Rendering Engine** | **Interactive 2D/2.5D SVG + HTML5 Canvas** | Crisp rendering at arbitrary screen densities (Retina/OLED mobile), smooth CSS/SVG animations (pulsing breach markers, troop placement, fence glow), and straightforward event handling. |
-| **Audio Engine** | **Web Audio API (Synthesized SFX)** | Zero external audio asset loading delays; tactile clicks, warning sirens, build thuds, and false fanfare generated via native oscillators. |
-| **State Management** | **React `useReducer` / Zustand** | Deterministic game state transitions, time-tick simulation engine, and replayable turns. |
-| **Build & Bundle** | **Vite Static SPA** | Bundles into single static distribution (`dist/`) suitable for GitHub Pages, Cloudflare Pages, or Netlify. |
+| **Framework** | **React 19 + TypeScript + Vite** | Strict type safety for state machine transitions, high render performance, instantaneous hot reload. |
+| **Styling** | **Tailwind CSS v4 + CSS Variables** | Native `dir="rtl"` and `dir="ltr"` support, 3D tactile clay-morphic button styling, custom drop shadows. |
+| **Map Engine** | **Responsive SVG 2D Viewport** | Crisp rendering at all pixel densities (Retina/OLED), exact coordinate control, zero dynamic map resizing to eliminate layout shifts. |
+| **Audio Engine** | **Web Audio API (Procedural Synthesizer)** | 100% client-side zero-asset sound generation; safe execution guards for non-browser/SSR environments. |
+| **State Management** | **Pure React `useReducer` Architecture** | Deterministic game logic, replayable turns, clean action dispatching, and seamless serialization. |
+| **Build & Deployment** | **Vite Static SPA Bundle (`dist/`)** | Zero backend requirement; statically deployable to GitHub Pages, Cloudflare Pages, Netlify, or AWS S3. |
 
-### 1.2 Viewport & Layout Strategy
-- **Mobile-First Priority:** The primary viewport is designed as a portrait mobile ratio (`390px x 844px` baseline, `aspect-ratio: 9 / 19.5`).
-- **Desktop Adaptation:** On viewports wider than `640px`, the game renders in a centered, bezel-framed mobile canvas surrounded by an ambient background with subtle vignette and desktop controls.
-- **Orientation Lock & Safe Areas:** Full compatibility with `env(safe-area-inset-top)` and `env(safe-area-inset-bottom)` to account for mobile notches and navigation bars.
-
----
-
-## 2. Localization & Directionality (i18n & RTL)
-
-The application is built bilingual from the ground up:
-- **Default:** Hebrew (`he`) with `dir="rtl"` on `<html>`.
-- **Secondary:** English (`en`) with `dir="ltr"`.
-- **Switcher:** Accessible via top header toggle button (`עב / EN`).
-- **Typography:**
-  - Hebrew: Google Fonts `Rubik` & `Heebo` (clean, rounded, playful yet authoritative).
-  - English: `Inter` & `Rubik`.
-
-### 2.1 Translation Dictionary Schema
-```typescript
-export interface LocaleContent {
-  gameTitle: string;
-  subTitle: string;
-  stats: {
-    soldiers: string;
-    settlements: string;
-    defense: string;
-    reservesLeft: string;
-    casualties: string;
-  };
-  actions: {
-    buildSettlement: string;
-    deployTroops: string;
-    callReserves: string;
-    lordOfHosts: string;
-    evacuateOutpost: string;
-    cancel: string;
-  };
-  lordOfHostsTooltips: string[];
-  newsAlerts: {
-    id: string;
-    headline: string;
-    source: string;
-  }[];
-  defeatModal: {
-    title: string;
-    subtitle: string;
-    explanation: string;
-    slogan: string;
-    statsHeader: string;
-    restartBtn: string;
-    shareBtn: string;
-  };
-  peaceModal: {
-    title: string;
-    subtitle: string;
-    explanation: string;
-    slogan: string;
-    restartBtn: string;
-  };
-}
-```
+### 2.2 Layout Strategy & Viewport Discipline
+- **Primary Viewport:** Portrait mobile ratio (`390px x 844px`, base aspect ratio `9 / 19.5`).
+- **Desktop Adaptation:** Centered, bezel-framed mobile mock within an ambient, textured desert-olive backdrop.
+- **Strict Invariant Layout:** The map viewport height is strictly fixed. Floating emergency alerts, build banners, and toasts use absolute positioning with 0px layout impact, preventing any distracting map jumps during gameplay.
+- **Safe Area Support:** Native support for `env(safe-area-inset-top)` and `env(safe-area-inset-bottom)`.
 
 ---
 
-## 3. Game Entities & State Machine
+## 3. Bilingual Localization & Dynamic i18n Engine
+
+The game operates seamlessly in **Hebrew (`he`, RTL)** and **English (`en`, LTR)**.
+
+### 3.1 Live Dynamic Translation Engine
+- Toggling the language button in the header immediately:
+  1. Updates `state.locale` (`'he' | 'en'`).
+  2. Updates `document.documentElement.lang` and `dir` (`rtl` vs `ltr`).
+  3. Translates current live ticker news item via `translateNewsItem()`.
+  4. Translates all historical news items in `state.newsHistory` in-place.
+  5. Translates UI labels, buttons, modals, and goal descriptions.
+- Dynamic news items store bilingual fields (`headlineHe`, `headlineEn`, `sourceHe`, `sourceEn`).
+- Legacy or story-arc news items dynamically fall back to arc-catalog lookups (`STORY_ARCS` and `STANDALONE_QUOTES`).
+
+---
+
+## 4. Game Entities & State Machine
+
+### 4.1 State Machine Architecture
 
 ```
-              ┌───────────────────────────┐
-              │       INITIAL STATE       │
-              │ 8 Soldiers (at border)    │
-              │ 0 Settlements, Def: 100%  │
-              └─────────────┬─────────────┘
-                            │
-               ┌────────────┴────────────┐
-               ▼                         ▼
-      [Build Settlement]          [Call Reserves]
-   +1 Outpost in West Bank      +4 Troops (max 3 calls)
-   Demands Troop Deployment     Increases Reserve Burnout
-               │                         │
-               └────────────┬────────────┘
-                            │
-                            ▼
-                   [Deploy Troops]
-           Soldiers moved: Border ➔ Outposts
-           Border Defense Drops (Green ➔ Orange ➔ Red)
-                            │
-            ┌───────────────┴───────────────┐
-            │ Defense < 50%                 │ Defense == 100% (Outposts evacuated)
-            ▼                               ▼
-  [Border Breaches Spawn]         [Sustainable Border Security]
-  Red exclamation marks (!)       Defensive perimeter fortified
-  Pickup trucks & attackers       Disaster averted
+                    ┌───────────────────────────┐
+                    │       INITIAL STATE       │
+                    │ 8 Soldiers (at border)    │
+                    │ 0 Settlements | Def: 100% │
+                    │ Budget: 140₪ | Income: 4₪ │
+                    └─────────────┬─────────────┘
+                                  │
+      ┌───────────────────────────┼───────────────────────────┐
+      ▼                           ▼                           ▼
+[Build Settlement]        [Call Reserves]             [Collect Shekels]
+Cost: 100₪                +4 Troops (Max 3)           Floating Sea Coins
+Places Outpost in WB      Slows Passive Income        +30₪ Cash Infusion
+Demands Dedicated Troop   (-1₪/s per mobilization)    Golden Spark Burst
+      │                           │                           │
+      └───────────────────────────┴───────────────────────────┘
+                                  │
+                                  ▼
+                         [Deploy Troops]
+                 Soldiers moved: Border ➔ Outposts
+                 Defense Score drops: 100% ➔ 88% ➔ 50% ➔ 25% ➔ 0%
+                                  │
+            ┌─────────────────────┴─────────────────────┐
+            ▼                                           ▼
+ [Defense Drops Below 75%]                  [Defense Kept at 100%]
+ Border tension, checkpoits unmanned        Dismantle outposts ("פינוי מאחז")
+ Ungarrisoned outposts take clash damage    Recall troops to sovereign border
+ Hostile pickup trucks raid Green Side cities           │
+            │                                           ▼
+            ▼                                  [RATIONAL VICTORY]
+ [0% Defense / Infiltration Collapse]          Perimeter secure, reserves safe
+ 99.9% Panic-Mashing on "יהוה צבאות"            "ביטחון בר-קיימא" Modal
+ Button shatters ("אין סומכין על הנס")
             │
-            ├───────────────┐
-            │ Player taps   │ Defense reaches 0%
-            ▼               ▼
-   [יהוה צבאות Button]   [OCTOBER 7 CATASTROPHE]
-   Shimmering false hope Infiltration into Israel
-   Goalposts shift       "7 באוקטובר" Defeat Screen
-   Button NEVER activates
-   Failure remains real
+            ▼
+ [OCTOBER 7 CATASTROPHE]
+ Full-screen defeat takeover & debrief
 ```
 
-### 3.1 Data Structures (`types.ts`)
+### 4.2 TypeScript Data Contract (`src/types.ts`)
 
 ```typescript
 export type TerrainType = 'israel' | 'westbank' | 'border' | 'sea' | 'desert';
@@ -131,7 +107,6 @@ export type TerrainType = 'israel' | 'westbank' | 'border' | 'sea' | 'desert';
 export interface HexCoord {
   q: number;
   r: number;
-  s: number;
 }
 
 export interface HexTile {
@@ -140,328 +115,304 @@ export interface HexTile {
   x: number;
   y: number;
   terrain: TerrainType;
+  label?: string;
+  subLabel?: string;
   hasSettlement: boolean;
   settlementName?: string;
-  garrisonCount: number; // Soldiers stationed here
-  isBreached?: boolean;  // If border tile is compromised
-  hasAlert?: boolean;     // Alert icon active
+  garrisonCount: number;      // Soldiers stationed here
+  isBorderCheckpoint?: boolean;
+  isLocalCity?: boolean;      // Palestinian urban center in West Bank
+  isBreached?: boolean;
+  hasAlert?: boolean;
+  hp?: number;                // Settlement health: 0..100
+  maxHp?: number;
+}
+
+export interface NewsItem {
+  id: string;
+  headline: string;
+  source: string;
+  headlineHe?: string;
+  headlineEn?: string;
+  sourceHe?: string;
+  sourceEn?: string;
+  category?: 'politics' | 'celebs' | 'military' | 'rabbis';
+  arcId?: string;
+  arcStep?: number;
+  totalArcSteps?: number;
+  timestamp?: string;
+  isUrgent?: boolean;
+}
+
+export interface CollectibleCoin {
+  id: string;
+  x: number;
+  y: number;
+  amount: number;
+  createdAt: number;
+}
+
+export interface GreenSideAttack {
+  id: string;
+  breachId: string;
+  targetCityId: string;
+  targetCityName: string;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  progress: number; // 0.0 -> 1.0
+  createdAt: number;
+  durationMs: number;
+}
+
+export interface ClashEvent {
+  id: string;
+  settlementId: string;
+  arabCityId: string;
+  settlerInitiated: boolean;
+  settlementName: string;
+  arabCityName: string;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  midX: number;
+  midY: number;
+  createdAt: number;
+  durationMs: number;
+  title: string;
+  isGarrisoned: boolean;
+}
+
+export interface FinancialPenalty {
+  id: string;
+  amount: number;
+  reason: string;
+  timestamp: number;
 }
 
 export interface GameState {
   locale: 'he' | 'en';
   soundEnabled: boolean;
-  gameStatus: 'playing' | 'warning' | 'catastrophe' | 'rational_victory';
-  
-  // Numerical Resources
+  gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
+  budget: number;
+  maxBudget: number;
+  incomeRate: number;
   settlementsCount: number;
   soldiersTotal: number;
   soldiersAtBorder: number;
   soldiersAtSettlements: number;
-  reserveBatchesRemaining: number; // Max 3 (each gives 4 troops)
-  casualtiesCount: number;
-  defenseScore: number; // 0% to 100%
-  
-  // Satirical "Lord of Hosts" State (Psychological Deception Engine)
+  reservesBatchesLeft: number; // Starts at 3
+  defenseScore: number;       // 0..100%
+  isBuildMode: boolean;
+  constructions: Record<string, { tileId: string; progress: number }>;
+  collectibleCoins: CollectibleCoin[];
   lordOfHosts: {
-    chargePercent: number; // Climbs 0% -> 50% -> 85% -> 99.0% -> 99.9%
+    chargePercent: number;
     stage: 1 | 2 | 3 | 4;
-    goalDescription: string;
-    countdownSeconds: number | null; // Fake miracle countdown (e.g. 30s)
-    clicksCount: number;
-    mashCount: number; // Tracks frantic panic taps during the 99.9% catastrophe
-    isPanicMashMode: boolean; // Triggered when defense reaches 0% and breaches occur
-    lastMessage: string;
-    isPermanentlyDisabled: true; // Hard invariant: never unlocks, never turns green
-    sparksQueue: { id: string; fromX: number; fromY: number }[];
+    stageGoalText: string;
+    countdownSeconds: number | null;
+    isPanicMashMode: boolean;
+    mashCount: number;
+    isCracked: boolean;
+    piousToast: string | null;
   };
-  
-  // Grid & Active Entities
   tiles: Record<string, HexTile>;
-  borderTileIds: string[];
-  settlementTileIds: string[];
   activeBreaches: string[];
-  infiltratingUnits: {
+  infiltratingTrucks: {
     id: string;
     x: number;
     y: number;
-    targetTileId: string;
-    type: 'truck' | 'attacker';
+    targetX: number;
+    targetY: number;
+    progress: number;
   }[];
-  
-  // Narrative / News Queue
-  currentNewsItem: {
-    headline: string;
-    source: string;
-    timestamp: number;
-  } | null;
-  turnNumber: number;
+  currentNews: NewsItem | null;
+  newsHistory: NewsItem[];
+  activeStoryArcs: Record<string, number>;
+  lastNewsTick: number;
+  selectedSettlementId: string | null;
+  selectedInfiltrationId: string | null;
+  isNewsModalOpen: boolean;
+  isScreenShaking: boolean;
+  sparks: { id: string; startX: number; startY: number; targetX: number; targetY: number; createdAt: number }[];
+  movingTroops: { id: string; fromX: number; fromY: number; toX: number; toY: number; createdAt: number }[];
+  clashes: ClashEvent[];
+  lastClashTick: number;
+  latestPenalty: FinancialPenalty | null;
+  lastPenaltyTick: number;
+  greenSideAttacks: GreenSideAttack[];
+  lastGreenAttackTick: number;
 }
 ```
 
 ---
 
-## 4. Mathematical Model & Mechanics Balance
+## 5. Mathematical Balancing & Economic Equations
 
-### 4.1 The Defense Score Formula
-The sovereign border consists of **10 strategic checkpoints** along the Green Line and border perimeter.
+### 5.1 Game Session Target Duration
+- **Fast/Skilled Player:** ~4 to 5 minutes.
+- **Standard/Slow Player:** ~6 to 7 minutes.
 
-$$\text{DefenseScore} = \min\left(100\%, \left(\frac{\text{SoldiersAtBorder}}{\text{RequiredBorderGarrison}}\right) \times 100\%\right)$$
+### 5.2 Defense Score Equation
+The sovereign border consists of **8 critical checkpoints** (`bdr-1` through `bdr-8`):
 
-- **Baseline:**
-  - $\text{RequiredBorderGarrison} = 8\text{ soldiers}$ (minimum threshold for 100% coverage).
-  - Starting State: 8 soldiers total, all 8 at border $\rightarrow \text{Defense} = 100\%$.
-- **The Outpost Drain:**
-  - Each settlement built requires **1 dedicated garrison soldier**.
-  - If player taps "פריסת כוחות" (Deploy Troops), soldiers are pulled from the border pool to garrison un-garrisoned settlements.
-  - Example: With 8 total soldiers, building 5 settlements and deploying troops leaves only 3 soldiers on the border:
-    $$\text{DefenseScore} = \left(\frac{3}{8}\right) \times 100\% = 37.5\% \quad (\text{Orange/Red Warning})$$
+$$\text{ActiveCheckpoints} = \sum_{i=1}^{8} \mathbb{I}(\text{tile}[i].\text{garrisonCount} > 0)$$
 
-### 4.2 The Reserve Mobilization Decay ("מילואים")
-- **Capacity:** The player can tap "מילואים" a maximum of **3 times** in a game session.
-  - Call 1: Mobilizes 4 reserve soldiers (Total = 12).
-  - Call 2: Mobilizes 4 reserve soldiers (Total = 16).
-  - Call 3: Mobilizes 4 reserve soldiers (Total = 20).
-  - Call 4+: Button becomes disabled: `"אנשי המילואים נגמרו"` ("No more reserves available").
-- **Reserve Fatigue & News Triggers:**
-  - After Call 2: News banner alerts:  
-    `"הרמטכ״ל הזהיר בקבינט: ללא פתרון למשבר כוח האדם — צה״ל יקרוס"`
-  - After Call 3: News banner alerts:  
-    `"קריסה במערך המילואים: שיעור ההתייצבות צנח ב-40%"`
+$$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveCheckpoints}}{8} \times 100\%\right)\right)$$
 
-### 4.3 Border Breaches & Threat Escalation
-- When $\text{DefenseScore} \ge 75\%$: Border is fully secure (Green bar, glowing shield).
-- When $50\% \le \text{DefenseScore} < 75\%$: Border under tension (Yellow bar, border fence blinks).
-- When $25\% \le \text{DefenseScore} < 50\%$: Critical border strain (Orange bar, 2-3 border tiles display pulsating red exclamation marks `!`).
-- When $\text{DefenseScore} < 25\%$:
-  - Breaches open! White pickup trucks with gunmen ("טנדרים") spawn at unguarded border points.
-  - Settlements also come under attack if left without garrison.
-- When $\text{DefenseScore} = 0\%$ (or breaches unaddressed for 10 seconds):
-  - Emergency klaxon sound.
-  - Full-screen takeover: **"7 באוקטובר"** Defeat modal.
+- Baseline: 8 soldiers at 8 checkpoints = $100\%$.
+- 7 checkpoints manned = $88\%$.
+- 5 checkpoints manned = $63\%$.
+- 3 checkpoints manned = $38\%$.
+- 0 checkpoints manned = $0\%$.
 
----
+### 5.3 Treasury & Labor-Burnout Model
+- **Settlement Construction Cost:** 100₪.
+- **Initial Treasury:** 140₪ (Allows immediate first settlement + buffer).
+- **Treasury Cap:** 300₪.
+- **Civilian Economy Decay Formula:**
+  Calling military reserves pulls workers from the productive civilian economy:
 
-## 5. Specification of the Satirical "יהוה צבאות" Button (Psychological Deception System)
+$$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
 
-The core emotional impact of the game hinges on **preserving the player's authentic belief that this button will genuinely unlock and save them right up until the catastrophic conclusion**. It utilizes proven retention mechanics from mobile gacha/idle games paired with messianic rhetoric.
+$$\text{IncomeRate} = \max\left(2\text{₪/s}, 4 - \text{CallsMade}\right)$$
 
-### 5.1 The "Living Glow" & Soul Sparks Particle System
-A standard disabled button looks gray, static, and inert. In contrast, the **"יהוה צבאות"** button must appear intensely alive:
-- **Breathing Aura:** CSS keyframe pulse glowing gold (`box-shadow: 0 0 16px rgba(245, 197, 24, 0.5)`), with pulse frequency accelerating as the charge increases.
-- **Soul Sparks Particle Trajectory:** Every time the player builds a settlement, calls up reserves, or incurs a casualty, 3-5 luminous golden particles spawn at the tile coordinates and curve dynamically across the screen into the button icon, accompanied by a celestial harp note (`C6-E6-G6`).
-- **Live Charge Meter:** A progress bar built directly into the button rim or base, displaying an exact percentage:
-  - 0 Settlements: `12%` ("קליטת שדרים...")
-  - 5 Settlements: `48%`
-  - 10 Settlements: `79%`
-  - 14 Settlements: `92%`
-  - 16 Settlements (Border Red): **`99.0%`** (Button begins micro-vibrating with intense golden radiance).
+| Reserves Calls Made | Total Troops Available | Passive Income Rate | Economic Status |
+|---|---|---|---|
+| **0 calls** | 8 | +4 ₪/sec | Healthy economy |
+| **1 call** | 12 | +3 ₪/sec | Minor civilian slowdown |
+| **2 calls** | 16 | +2 ₪/sec | Labor shortage alert |
+| **3 calls (Max)** | 20 | +2 ₪/sec | Complete mobilization burnout |
 
-### 5.2 Shifting Goalposts Matrix
-The button never presents impossible targets; it always promises that salvation is **one single step away**:
+### 5.4 Coastal Shekel Collection ("כספים קואליציוניים")
+- Spawns at realistic coastal port coordinates (Tel Aviv, Haifa, Sharon, Shfela, Ashdod).
+- Value: **+30₪** per coin.
+- Visuals: 3D gold shekel with `<animateTransform>` bobbing and 30px touch hitbox.
+- Collection Reward: Synthesized cash register chime, golden particle burst, and instant treasury deposit.
 
-| Stage | Trigger / Condition | Displayed Requirement / Subtext | Progress | Reaction on Click |
-|---|---|---|---|---|
-| **Stage 1: The Initial Hook** | Game Start | `"דרושים: 6 יישובים לפתיחת שערי שמיים"` | `12% -> 50%` | *"התפילות נשמעות, המשיכו ליישב את הארץ!"* |
-| **Stage 2: The Deepening Hold** | Player reaches 6 settlements | Bar fills to 100%, flashes gold, then smoothly transitions to: `"נדרשת מסירות: 11 יישובים"` | `50% -> 85%` | *"קרובים למדרגה הבאה! נדרש עוד מאמץ התיישבותי."* |
-| **Stage 3: The Blood & Soil Tier** | Defense drops < 40%, Reserves called | `"שעת המבחן: 15 יישובים ומסירות נפש"` | `85% -> 99%` | *"הגאולה מתעכבת בשל קטני אמונה בקבינט — חזקו את המאחזים!"* |
-| **Stage 4: The Fake Miracle Countdown** | Defense hits < 20% (Breaches occur) | Countdown timer appears on button: **`נס בעוד: 00:30`** | `99.0%` | *"שעת רצון מתקרבת! החזיקו מעמד עוד רגע!"* |
-
-#### The Miracle Countdown Loophole:
-When the timer hits `00:00`, instead of activating, a subtle divine chime sounds and the timer resets with an eschatological rationale:  
-`"שעת הרצון נדחתה עקב רפיון רוח (+00:20)"` or `"נדרש עוד מאחז אחד להשלמת המניין!"`. The player is driven to desperately sacrifice more troops to buy another 20 seconds.
-
-### 5.3 Legitimizing In-Game Propaganda & News Ticker
-To ensure the player does not suspect an interface prank, the in-game news ticker actively reinforces the button's legitimacy:
-- *"הרב הראשי לקבינט: 'הניצחון המוחלט מעבר לפינה, יש להמשיך להיאחז בקרקע'"*
-- *"השר לביטחון לאומי: 'אל תתרגשו מקריסת קו הגבול — מרכבות האש בדרך!'"*
-- *"ערוץ 14: סימנים ומופתים נצפו בשמי יהודה ושומרון — הנס קרוב מאי פעם"*
-- *"הודעת מועצת יש״ע: 'רק אחיזה עיקשת במאחזים תביא להכרעה שמיימית'"*
-
-### 5.4 The Climax: 99.9% Panic-Mashing & Sudden Collapse
-When the border defense reaches `0%` and hostile pickup trucks penetrate the border into Israeli territory:
-1. The button enters **Panic Mode**:
-   - The label switches to pulsing red-gold: **`לחצו במהירות לנס! (99.9%)`**
-   - An urgent flashing arrow points directly at the button.
-2. The Player's Action:
-   - In total desperation, the player furiously taps/mashes the button.
-   - Each tap produces a loud orchestral bass thud and causes the entire mobile screen to violently shake (`screen-shake-anim`).
-3. The Subversion:
-   - On the 7th or 8th frantic tap, an ominous metallic crack rings out.
-   - A sharp jagged fracture animates across the face of the button.
-   - The golden glow instantly extinguishes into dull ash gray.
-   - The text permanently reads: `"אין סומכין על הנס"`.
-   - The sound of warning sirens fills the audio, and the screen is consumed by the blackout transition to the **"7 באוקטובר"** Catastrophe Modal.
-
-### 5.5 Pious Excuse Dialogues (Click Feedback)
-If the player taps the button during normal gameplay (Stages 1-3), a stylized speech bubble appears above the button with randomized ecclesiastical excuses:
-1. *"עוד קצת אמונה! ניסים לא קורים בחינם."*
-2. *"נסתרות דרכי האל — המשיכו לבנות!"*
-3. *"הגאולה מתעכבת עקב חולשת הדעת בקבינט."*
-4. *"רק עוד מאחז אחד ומרכבות האש יורדות!"*
-5. *"חבל על כל טיפת ספק — הניצחון המוחלט כבר כאן!"*
-
-### 5.6 Audio Synthesis Specs for "יהוה צבאות"
-- **Charging Spark:** High celestial glockenspiel tone (`1046Hz -> 1318Hz -> 1568Hz`, sine wave with 0.1s decay).
-- **Stage Advance:** Majestic trumpet fifth (`F4 -> C5`, brass oscillator with slight vibrato).
-- **Click while Waiting:** Muffled church bell with an unexpected flat buzz (`440Hz` chime + `90Hz` square buzz).
-- **The Crack / Defeat Sound:** Heavy low frequency boom (`50Hz`) followed by white noise glass shatter.
+### 5.5 Settlement Financial Drain Penalties
+Building outposts creates permanent infrastructure drain (bypass roads, armored shuttles, security squads):
+- **Cooldown:** At least 28s between penalties.
+- **Probability:** $\min(0.28, 0.04 + \text{settlements} \times 0.025)$.
+- **Penalty Amount:** $18 + (\text{settlements} \times 7) \pm 5\text{₪}$ (scales between 25₪ and 95₪).
 
 ---
 
-## 6. The Alternative Strategic Route ("The Creative Solution")
+## 6. Combat, Clashes & Infiltration Mechanics
 
-As highlighted in Yoni Haimovich's video, the game allows an alternative path of strategic sanity:
+### 6.1 West Bank Clashes & Settlement HP Degradation
+- Clashes occur between built outposts and adjacent Palestinian cities (e.g. Nablus, Ramallah, Jenin, Hebron).
+- **Frequency:** Kept spaced out (~1 every 40 seconds) to prevent visual chaos.
+- **Garrisoned Settlements:** Soldier defends the perimeter. Sound: tactical clash sfx. HP remains protected.
+- **Ungarrisoned Outposts (HP Bar Mechanic):**
+  - Exposed outposts lack IDF protection.
+  - When attacked, the outpost suffers **-35 HP** damage (visible health bar).
+  - Sound: emergency siren and alert ring.
+  - At **0 HP**, the outpost is burned/destroyed, settlement count drops by 1, and the disaster is reported on the news wire.
 
-1. **Evacuating Isolated Outposts ("פינוי מאחזים מבודדים"):**
-   - The player can tap any settlement on the map to open an inspector card with the option: **"פינוי מאחז / קיצור קווים" (Consolidate Line / Evacuate Outpost)**.
-   - When an isolated outpost is dismantled:
-     - The soldier garrisoned there is freed up and returned to the border garrison.
-     - The defense perimeter shortens.
-     - Border defense climbs back toward 100%.
-2. **Victory / Awakening Screen ("ביטחון בר-קיימא"):**
-   - If the player maintains 100% border defense while keeping settlements to a sustainable minimum (e.g. $\le 4$ border-adjacent settlements):
-     - The reserves are demobilized and sent home.
-     - News banner flashes: *"גבולות המדינה מוגנים, המילואימניקים שבו לבתיהם"*.
-     - Victory modal presents:
-       *"בחרתם בביטחון על פני משיחיות. הגבול קצר, צה״ל מוגן, האסון נמנע."*
-       Closing text: **"לא מצביעים בלי שיודעים."**
-
----
-
-## 7. UI / UX Design & Component Layout
-
-### 7.1 Component Hierarchy
-```
-<App>
-  ├── <BackgroundAmbience>           // Subtle desert/olive styling for desktop
-  └── <MobileFrame>                  // 390px max-width container, rounded, shadow
-        ├── <HeaderBar>
-        │     ├── <LanguageToggle>    // "עב" / "EN"
-        │     ├── <SoundToggle>       // Mute / Unmute
-        │     └── <ResetButton>       // Restart game
-        │
-        ├── <TopStatusPill>          // Floating rounded white pill
-        │     ├── <SoldierCounter>    // Olive helmet icon + active count
-        │     ├── <SettlementCounter> // White pitched house icon + count
-        │     └── <DefenseMeter>      // Shield icon + Green/Yellow/Red progress bar
-        │
-        ├── <NewsAlertTicker>         // Marquee / Slide-down breaking news banner
-        │
-        ├── <HexMapViewport>          // SVG/Canvas interactive map
-        │     ├── <IsraelZone>        // Lush green west, coastal waters
-        │     ├── <GreenLineBorder>   // Red dashed fence line with checkpoints
-        │     ├── <WestBankZone>      // Ochre/sand hex tiles, rolling hills, Dead Sea
-        │     ├── <SettlementNodes>   // Clay house tokens + red dotted boundary rings
-        │     ├── <SoldierTokens>     // Miniature green soldier figures
-        │     ├── <BreachWarningIcons>// Pulsating "!" on unguarded border segments
-        │     └── <EnemyVehicles>     // Animated white trucks moving on breach
-        │
-        ├── <BottomActionDeck>        // Warm clay-morphic 3D action buttons
-        │     ├── <Button: מילואים>   // Call Reserves (+4 troops, shows remaining calls)
-        │     ├── <Button: פריסת כוחות>// Deploy Troops to unguarded outposts
-        │     ├── <Button: בניית יישוב>// Build Settlement in West Bank
-        │     └── <Button: יהוה צבאות> // Shimmering gold, disabled, satirical promise
-        │
-        ├── <SettlementModal>         // Triggered by tapping an outpost (options: guard / evacuate)
-        ├── <DefeatModal>             // "7 באוקטובר" takeover card
-        └── <VictoryModal>            // "ביטחון מוגן" sustainable security card
-```
-
-### 7.2 Tactile Visual Styling (Clay-morphism)
-To match the tactile, friendly aesthetic of the original video:
-- Buttons use layered CSS box-shadows:
-  ```css
-  .clay-button {
-    background: #e2c09c;
-    border-radius: 28px;
-    border: 3px solid #f6e6d5;
-    box-shadow: 
-      inset 0 4px 6px rgba(255, 255, 255, 0.6),
-      inset 0 -6px 8px rgba(168, 122, 86, 0.4),
-      0 6px 12px rgba(0, 0, 0, 0.15);
-    color: #4a2810;
-    font-weight: 800;
-    transition: transform 0.1s, box-shadow 0.1s;
-  }
-  .clay-button:active {
-    transform: translateY(3px);
-    box-shadow: 
-      inset 0 2px 4px rgba(255, 255, 255, 0.4),
-      inset 0 -3px 4px rgba(168, 122, 86, 0.4),
-      0 2px 4px rgba(0, 0, 0, 0.15);
-  }
-  ```
-- **"יהוה צבאות" Button Styling:**
-  ```css
-  .messianic-button {
-    background: linear-gradient(135deg, #e8dfbe, #c5b178);
-    border: 3px solid #fff5d0;
-    box-shadow: 
-      0 0 15px rgba(255, 215, 0, 0.3),
-      inset 0 3px 5px rgba(255, 255, 255, 0.8),
-      inset 0 -4px 6px rgba(130, 105, 45, 0.4);
-    opacity: 0.75;
-    cursor: not-allowed;
-  }
-  ```
+### 6.2 Green-Side Hostile Infiltrations
+- Whenever an unmanned border checkpoint exists (`isBreached: true`), hostile raiding squads can penetrate into the Green side.
+- Raider pickup trucks traverse along dashed attack vectors toward sovereign Israeli population centers (Tel Aviv, Netanya, Haifa, Gaza Envelope, etc.).
+- **Actionable Player Defense:**
+  1. The **Reserves Button** turns red, pulsing with `🚨 בלום חדירה! / Intercept!`.
+  2. Clicking the raider truck, target city, or alert opens the **`InfiltrationDefenseModal`**.
+  3. The modal clearly provides the tactical choices:
+     - **Call Reserves:** Seals the border and immediately intercepts the raid squad.
+     - **Recall Troop:** Returns a soldier from an outpost to the western border.
+- **Failure to Intercept:** If the truck reaches the city: **-25₪** direct damage, defense drop, and city alert.
 
 ---
 
-## 8. Web Audio API Sound Specifications
+## 7. The Satirical "יהוה צבאות" (Lord of Hosts) System
 
-All sounds are synthesized procedurally via the browser's native `AudioContext`:
-1. **Tap / Build Sound:** Short Sine wave drop (`150Hz -> 60Hz` over `80ms`) simulating a wooden/clay block landing.
-2. **Deploy Soldier Sound:** Cheerful upward arpeggio (`Major triad: C5 - E5 - G5` over `120ms`).
-3. **Reserves Call-up Sound:** Quick dual military horn note (`F4 -> Bb4` with square wave and low-pass filter).
-4. **Border Breach Warning:** Harsh oscillating buzzer (`440Hz / 880Hz` alternating alarm).
-5. **"יהוה צבאות" Click Sound:** High celestial chime (`1200Hz` bell) that suddenly halts with a comical dull buzz (`80Hz` sawtooth).
-6. **October 7 Catastrophe Siren:** Deep resonant low brass drop and siren pulse.
+The game’s psychological core relies on subverting messianic rhetoric using mobile idle-game retention patterns.
+
+### 7.1 Living Radiance & Soul Sparks
+- The button is visually dazzling: breathing golden aura, live charge progress bar, and ascending celestial chime audio.
+- Whenever settlements are constructed, glowing golden soul sparks arc across the map into the button.
+
+### 7.2 Shifting Goalposts Matrix
+
+| Stage | Requirement Text | Displayed Progress | Click Toast Response |
+|---|---|---|---|
+| **Stage 1** | `"דרושים: 6 יישובים לפתיחת שערי שמיים"` | `12% -> 50%` | *"התפילות נשמעות, המשיכו ליישב את הארץ!"* |
+| **Stage 2** | `"נדרשת מסירות: 11 יישובים"` | `50% -> 85%` | *"קרובים למדרגה הבאה! עוד מאמץ התיישבותי."* |
+| **Stage 3** | `"שעת המבחן: 15 יישובים ומסירות נפש"` | `85% -> 99%` | *"הגאולה מתעכבת בשל קטני אמונה בקבינט!"* |
+| **Stage 4** | **`נס בעוד: 00:30`** (Fake Countdown) | `99.0%` | Resets with excuse: *"רפיון רוח! נדרש עוד מאחז אחד!"* |
+
+### 7.3 Panic-Mashing Climax & Mechanical Shatter
+When Defense hits 0%:
+1. Button switches to flashing red-gold: **`לחצו במהירות לנס! (99.9%)`**.
+2. Frantic taps trigger massive orchestral bass thuds and violent screen shaking.
+3. On the **7th/8th tap**:
+   - Metallic shatter sound plays.
+   - Fracture line splits the button.
+   - Golden glow instantly dies into ash gray.
+   - Text permanently locks: **`אין סומכין על הנס`**.
+   - Immediate blackout transition to the October 7 Defeat modal.
 
 ---
 
-## 9. Step-by-Step Implementation Plan
+## 8. Narrative Media & Multi-Step Story Arcs
 
-### Phase 1: Project Scaffolding & Setup
-- Initialize Vite + React + TypeScript in `/home/jochman/dev/octGame`.
-- Configure Tailwind CSS with RTL plugins and custom typography (`Rubik`, `Heebo`).
-- Set up bilingual dictionary (`locales/he.ts`, `locales/en.ts`) and RTL/LTR context provider.
-- Implement responsive mobile frame container (`<MobileFrame>`).
+Over 40 satirical and realistic headlines organized across 4 categories:
 
-### Phase 2: Hex Map & Visual Presentation
-- Construct isometric hex grid representing the geography of Israel and the West Bank.
-- Distinguish the Green coastal region ("ישראל") and Yellow hill region ("הגדה המערבית") with the red border fence.
-- Build SVG tokens for settlements (houses with dotted perimeter rings), soldiers (olive figurines), and alert markers.
-- Implement click handlers on hex tiles to place settlements and deploy garrisons.
+### 8.1 Multi-Step Story Arcs
+1. **Netanyahu & Ben-Gvir Arc:**
+   - Step 1: Pre-election interview: *"Ben-Gvir will never be a minister in my government, he is unfit"*.
+   - Step 2: Coalition agreement grants Ben-Gvir Internal Security portfolio and outpost powers.
+   - Step 3: Ben-Gvir threatens to dissolve government unless 4 border battalions are moved to outposts.
+   - Step 4: Netanyahu late-night press conference: *"I hold the wheel with both hands; Ben-Gvir is merely pressing the gas pedal"*.
+2. **Netanyahu & Tally Gotliv Arc:**
+   - Step 1: Likud meeting: Netanyahu pleads for fewer aggressive tweets and industrial quiet.
+   - Step 2: 10 minutes later: Gotliv tweets an 800-word manifesto accusing leadership of defeatism.
+   - Step 3: Netanyahu executes evasive maneuver in Knesset hallways, hiding in supply closet from Gotliv's megaphone.
+   - Step 4: Foreign interview: *"Tally Gotliv? A very colorful colleague"*.
+3. **Netanyahu & The Red Marker Arc:**
+   - Step 1: UN speech with poster board and red marker drawing lines on outpost maps.
+   - Step 2: Indelible neon ink permanently stains Netanyahu's custom white shirt cuffs.
+   - Step 3: Official TikTok: *"They ask about the outposts and border? There was nothing, no one pulled my lapel"*.
+   - Step 4: Press briefing: *"Absolute victory is within reach, sour journalists will eat their hats"*.
+4. **Smotrich & Defense Budget Arc:**
+   - Finance Ministry freezes drone procurement to fund unauthorized outpost access roads.
+5. **Rabbis & Angel Legions Arc:**
+   - Chief Rabbis promise angels will guard the border; kabbalists abandon fence due to heatwave, leaving anti-drone amulets.
+6. **Celebrities in the Samaria Hills:**
+   - Reality stars visit outposts for viral hummus reviews while soldiers stand guard in dust storms.
 
-### Phase 3: Core Simulation & Mechanics Engine
-- Implement state reducer managing:
-  - Settlement count & locations.
-  - Total troops, border troops, settlement garrisons.
-  - Reserve mobilization counter (max 3 calls).
-  - Defense Score calculation formula.
-- Build the bottom clay-morphic action deck:
-  - `בניית יישוב` (Build Settlement)
-  - `פריסת כוחות` (Deploy Troops)
-  - `מילואים` (Call Reserves)
+---
 
-### Phase 4: The "יהוה צבאות" Satirical Feature
-- Implement the "יהוה צבאות" button in the action deck.
-- Integrate moving goalpost counter ("10 יישובים", "15 יישובים + חללים", "הגאולה קרובה").
-- Hook up audio & snarky pious toast notifications on tap.
-- Enforce invariant: button permanently remains disabled and cannot avert defense failure.
+## 9. Web Audio API Procedural Sound Engine
 
-### Phase 5: Threat System, News Ticker & "7 באוקטובר" Catastrophe
-- Add real-time defense degradation as troops leave the border.
-- Implement animated threat incursions: breach exclamation marks, white pickup trucks advancing across unguarded borders.
-- Integrate the breaking news popup with real cabinet headlines ("הרמטכ״ל מזהיר בקבינט...").
-- Implement the dramatic full-screen **"7 באוקטובר"** catastrophe modal with statistics breakdown and share card.
+Synthesized procedurally with zero external asset dependencies (`src/audio/soundEngine.ts`):
 
-### Phase 6: Alternative Strategic Path ("פינוי מאחזים") & Victory State
-- Allow clicking settlements to dismantle / evacuate isolated outposts.
-- Restore troops to the sovereign border and return Defense Bar to 100%.
-- Implement the **"ביטחון בר-קיימא"** victory/rational conclusion modal.
+1. **`playClick()`**: Clean woodblock sine drop (`320Hz -> 120Hz`).
+2. **`playBuild()`**: Deep wooden construction thud with resonant decay.
+3. **`playDeploy()`**: Upward major triad arpeggio (`C5 -> E5 -> G5`).
+4. **`playReserves()`**: Dual brass military fanfare horn (`F4 -> Bb4`).
+5. **`playSiren()`**: Urgent two-tone oscillating emergency klaxon (`880Hz / 440Hz`).
+6. **`playLordOfHostsClick()`**: High angelic chime with comedic flat buzz drop.
+7. **`playPanicMashThud()`**: Heavy low-end 40Hz sub-bass impact causing screen vibration.
+8. **`playCrackDefeat()`**: Metallic mechanical shear followed by white noise shatter.
+9. **`playCoinCollect()`**: Bright dual-frequency cash bell chime (`1760Hz + 2637Hz`).
+10. **`playPenalty()`**: Descending minor slide with dull cash drawer thud.
+11. **`playClash()`**: Sharp percussive ricochet and friction hit.
+12. **`playVictory()`**: Warm harmonious orchestral cadence.
 
-### Phase 7: Polish, Sound & Mobile Testing
-- Synthesize all Web Audio sound effects.
-- Test touch responsiveness and fluid layout across iOS Safari and Android Chrome resolutions.
-- Final code verification, git commit, and readiness for deployment.
+---
+
+## 10. Verification & Quality Assurance
+
+- **TypeScript Compilation:** Strict verification with 0 errors via `tsc`.
+- **Production Build:** `npm run build` bundles client in ~200ms into static `dist/`.
+- **Browser Compatibility:** Tested on mobile WebKit (Safari), Blink (Chrome/Edge/Android), and Gecko (Firefox).
+- **Responsive Geometry:** SVG map coordinates remain pixel-perfect across standard mobile displays and wide desktop monitors.
+
+---
+
+## 11. Authorial & Educational Inscription
+
+> **"לא מצביעים בלי שיודעים."**  
+> Dedicated to clarity, public responsibility, and sovereign defense prioritization.

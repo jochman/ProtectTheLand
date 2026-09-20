@@ -3,7 +3,7 @@ import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { sounds } from '../audio/soundEngine';
-import { getProgressiveNews, getNextJuicyNews } from './newsContent';
+import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 
 export const INITIAL_STATE: GameState = {
   locale: 'he',
@@ -41,6 +41,10 @@ export const INITIAL_STATE: GameState = {
     id: 'start',
     headline: he.news.start,
     source: 'מבזק חדשות',
+    headlineHe: he.news.start,
+    headlineEn: en.news.start,
+    sourceHe: 'מבזק חדשות',
+    sourceEn: 'Breaking News',
     category: 'military',
     timestamp: '12:00',
   },
@@ -49,6 +53,10 @@ export const INITIAL_STATE: GameState = {
       id: 'start',
       headline: he.news.start,
       source: 'מבזק חדשות',
+      headlineHe: he.news.start,
+      headlineEn: en.news.start,
+      sourceHe: 'מבזק חדשות',
+      sourceEn: 'Breaking News',
       category: 'military',
       timestamp: '12:00',
     },
@@ -92,6 +100,54 @@ function withNews(state: GameState, item: NewsItem): { currentNews: NewsItem; ne
   };
 }
 
+export function translateNewsItem(item: NewsItem, targetLocale: 'he' | 'en'): NewsItem {
+  let headline = targetLocale === 'he' ? (item.headlineHe || item.headline) : (item.headlineEn || item.headline);
+  let source = targetLocale === 'he' ? (item.sourceHe || item.source) : (item.sourceEn || item.source);
+
+  // If specific bilingual fields were not stored, look up by story arc step or standalone quote
+  if (targetLocale === 'en' && item.headlineHe && headline === item.headlineHe) {
+    if (item.arcId && item.arcStep) {
+      const arc = STORY_ARCS.find(a => a.id === item.arcId);
+      const step = arc?.steps[item.arcStep - 1];
+      if (step) {
+        headline = step.en.headline;
+        source = step.en.source;
+      }
+    } else {
+      const quote = STANDALONE_QUOTES.find(q => q.he.headline === item.headline || q.en.headline === item.headline);
+      if (quote) {
+        headline = quote.en.headline;
+        source = quote.en.source;
+      }
+    }
+  } else if (targetLocale === 'he' && item.headlineEn && headline === item.headlineEn) {
+    if (item.arcId && item.arcStep) {
+      const arc = STORY_ARCS.find(a => a.id === item.arcId);
+      const step = arc?.steps[item.arcStep - 1];
+      if (step) {
+        headline = step.he.headline;
+        source = step.he.source;
+      }
+    } else {
+      const quote = STANDALONE_QUOTES.find(q => q.en.headline === item.headline || q.he.headline === item.headline);
+      if (quote) {
+        headline = quote.he.headline;
+        source = quote.he.source;
+      }
+    }
+  }
+
+  return {
+    ...item,
+    headline,
+    source,
+    headlineHe: item.headlineHe || (targetLocale === 'he' ? headline : undefined),
+    headlineEn: item.headlineEn || (targetLocale === 'en' ? headline : undefined),
+    sourceHe: item.sourceHe || (targetLocale === 'he' ? source : undefined),
+    sourceEn: item.sourceEn || (targetLocale === 'en' ? source : undefined),
+  };
+}
+
 const SETTLEMENT_COST = 100;
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -99,13 +155,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
   switch (action.type) {
     case 'SET_LOCALE': {
-      const nextStrings = action.locale === 'he' ? he : en;
+      const nextLocale = action.locale;
+      const nextStrings = nextLocale === 'he' ? he : en;
       let stageGoal = nextStrings.lordOfHosts.stage1Goal;
       if (state.lordOfHosts.stage === 2) stageGoal = nextStrings.lordOfHosts.stage2Goal;
       if (state.lordOfHosts.stage === 3) stageGoal = nextStrings.lordOfHosts.stage3Goal;
       return {
         ...state,
-        locale: action.locale,
+        locale: nextLocale,
+        currentNews: state.currentNews ? translateNewsItem(state.currentNews, nextLocale) : null,
+        newsHistory: (state.newsHistory || []).map(item => translateNewsItem(item, nextLocale)),
         lordOfHosts: {
           ...state.lordOfHosts,
           stageGoalText: stageGoal,
@@ -311,9 +370,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           id: `breach-${Date.now()}`,
           headline: strings.news.borderBreach,
           source: state.locale === 'he' ? 'פיקוד דרום ומרכז' : 'Southern & Central Command',
+          headlineHe: he.news.borderBreach,
+          headlineEn: en.news.borderBreach,
+          sourceHe: 'פיקוד דרום ומרכז',
+          sourceEn: 'Southern & Central Command',
           category: 'military',
           isUrgent: true,
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         };
       } else if (newDefenseScore <= 50 && Math.random() < 0.4) {
         sounds.playSiren();
@@ -321,9 +384,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           id: `warning-${Date.now()}`,
           headline: strings.news.chiefOfStaffWarning,
           source: state.locale === 'he' ? 'לשכת הרמטכ״ל' : 'Chief of Staff',
+          headlineHe: he.news.chiefOfStaffWarning,
+          headlineEn: en.news.chiefOfStaffWarning,
+          sourceHe: 'לשכת הרמטכ״ל',
+          sourceEn: 'Chief of Staff',
           category: 'military',
           isUrgent: true,
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         };
       }
 
@@ -398,18 +465,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      let newsHeadline = state.locale === 'he'
-        ? `צו 8! פלוגות מילואים גויסו. עובדים נגרעו מהמשק — קצב הכנסות הואט ל-${newIncomeRate}₪ לשנייה בלבד (${newBatchesLeft} סבבים נותרו).`
-        : `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
+      let newsHeadlineHe = `צו 8! פלוגות מילואים גויסו. עובדים נגרעו מהמשק — קצב הכנסות הואט ל-${newIncomeRate}₪ לשנייה בלבד (${newBatchesLeft} סבבים נותרו).`;
+      let newsHeadlineEn = `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
 
       if (callsMade === 2) {
-        newsHeadline = state.locale === 'he'
-          ? `גל גיוס שני! מחסור חמור בידיים עובדות — המשק שותק, 0₪ הכנסה פסיבית!`
-          : `Second Mobilization Wave! Severe labor shortage — economy stagnant at ₪0/s!`;
+        newsHeadlineHe = `גל גיוס שני! מחסור חמור בידיים עובדות — המשק שותק, 0₪ הכנסה פסיבית!`;
+        newsHeadlineEn = `Second Mobilization Wave! Severe labor shortage — economy stagnant at ₪0/s!`;
       } else if (callsMade === 3) {
-        newsHeadline = state.locale === 'he'
-          ? `קריסה במערך המילואים! שיתוק כלכלי מוחלט — 0₪ הכנסה, תלות מלאה במטבעות ותרומות!`
-          : `Reserve Exhaustion! Total economic paralysis — ₪0/s passive income!`;
+        newsHeadlineHe = `קריסה במערך המילואים! שיתוק כלכלי מוחלט — 0₪ הכנסה, תלות מלאה במטבעות ותרומות!`;
+        newsHeadlineEn = `Reserve Exhaustion! Total economic paralysis — ₪0/s passive income!`;
       }
 
       // Intercept any green side attacks whose breach checkpoint was just re-manned!
@@ -420,9 +484,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const hadIntercepted = (state.greenSideAttacks || []).length > remainingGreenAttacks.length;
 
       if (hadIntercepted) {
-        newsHeadline += state.locale === 'he'
-          ? ' כוחות המילואים בלמו ויירטו חוליות שחדרו לעורף!'
-          : ' Reserve forces intercepted hostile squads penetrating the home front!';
+        newsHeadlineHe += ' כוחות המילואים בלמו ויירטו חוליות שחדרו לעורף!';
+        newsHeadlineEn += ' Reserve forces intercepted hostile squads penetrating the home front!';
       }
 
       return {
@@ -441,11 +504,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         },
         ...withNews(state, {
           id: `reserves-${Date.now()}`,
-          headline: newsHeadline,
+          headline: state.locale === 'he' ? newsHeadlineHe : newsHeadlineEn,
           source: state.locale === 'he' ? 'אגף כוח אדם והאוצר' : 'Personnel & Treasury',
+          headlineHe: newsHeadlineHe,
+          headlineEn: newsHeadlineEn,
+          sourceHe: 'אגף כוח אדם והאוצר',
+          sourceEn: 'Personnel & Treasury',
           category: 'military',
           isUrgent: callsMade >= 2 || hadIntercepted,
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }
@@ -649,15 +716,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             nextGreenAttackTick = 0;
             sounds.playSiren();
 
+            const breachHeadlineHe = `התרעת חדירה: חוליית מחבלים חמושה פרצה דרך מוצב בלתי מאויש לעבר ${targetInfo.nameHe}!`;
+            const breachHeadlineEn = `Infiltration alert: Armed squad penetrated through unmanned post toward ${targetInfo.nameEn}!`;
             const breachNewsItem: NewsItem = {
               id: `breach-raid-news-${now}`,
-              headline: state.locale === 'he'
-                ? `התרעת חדירה: חוליית מחבלים חמושה פרצה דרך מוצב בלתי מאויש לעבר ${targetInfo.nameHe}!`
-                : `Infiltration alert: Armed squad penetrated through unmanned post toward ${targetInfo.nameEn}!`,
+              headline: state.locale === 'he' ? breachHeadlineHe : breachHeadlineEn,
               source: state.locale === 'he' ? 'פיקוד העורף' : 'Home Front Command',
+              headlineHe: breachHeadlineHe,
+              headlineEn: breachHeadlineEn,
+              sourceHe: 'פיקוד העורף',
+              sourceEn: 'Home Front Command',
               category: 'military',
               isUrgent: true,
-              timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+              timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
             };
             if (nextCurrentNews) {
               nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
@@ -679,15 +750,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           newBudget = Math.max(0, newBudget - 25);
           updatedTiles[atk.targetCityId] = { ...updatedTiles[atk.targetCityId], hasAlert: true };
 
+          const impactHeadlineHe = `פגיעה בעורף: חוליה חדרה לפאתי ${atk.targetCityName} דרך פרצה בקו הגבול! (25₪- נזק)`;
+          const impactHeadlineEn = `Home front breach: Squad attacked outskirts of ${atk.targetCityName} through border gap! (-25₪ damage)`;
           const impactNewsItem: NewsItem = {
             id: `green-impact-${now}-${atk.id}`,
-            headline: state.locale === 'he'
-              ? `פגיעה בעורף: חוליה חדרה לפאתי ${atk.targetCityName} דרך פרצה בקו הגבול! (25₪- נזק)`
-              : `Home front breach: Squad attacked outskirts of ${atk.targetCityName} through border gap! (-25₪ damage)`,
+            headline: state.locale === 'he' ? impactHeadlineHe : impactHeadlineEn,
             source: state.locale === 'he' ? 'חדשות 12 / מבזק' : 'Breaking News',
+            headlineHe: impactHeadlineHe,
+            headlineEn: impactHeadlineEn,
+            sourceHe: 'חדשות 12 / מבזק',
+            sourceEn: 'Breaking News',
             category: 'military',
             isUrgent: true,
-            timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
           };
           if (nextCurrentNews) {
             nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
@@ -754,56 +829,66 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           const targetArabCity = sortedArabCities[Math.random() < 0.7 ? 0 : Math.min(1, sortedArabCities.length - 1)];
 
           const settlerInitiated = Math.random() < 0.5;
-          const settlementName = settlement.settlementName || (state.locale === 'he' ? 'מאחז חדש' : 'Outpost');
-          const arabCityName = (state.locale === 'he' ? targetArabCity.label : targetArabCity.subLabel) || (state.locale === 'he' ? 'הכפר הסמוך' : 'Nearby Village');
+          const settlementNameHe = settlement.settlementName || 'מאחז חדש';
+          const settlementNameEn = settlement.settlementName || 'New Outpost';
+          const arabCityNameHe = targetArabCity.label || 'הכפר הסמוך';
+          const arabCityNameEn = targetArabCity.subLabel || 'Nearby Village';
           const isGarrisoned = settlement.garrisonCount > 0;
 
           // Titles and narrative headlines
-          let clashHeadline = '';
+          let clashHeadlineHe = '';
+          let clashHeadlineEn = '';
           let clashTitle = '';
-          let clashSource = '';
+          let clashSourceHe = isGarrisoned ? 'דובר צה״ל' : 'משטרת מחוז ש״י';
+          let clashSourceEn = isGarrisoned ? 'IDF Spokesperson' : 'District Police';
           let isUrgentClash = false;
 
           if (settlerInitiated) {
             clashTitle = state.locale === 'he'
-              ? `פשיטה: ${settlementName} ⚔️ ${arabCityName}`
-              : `Raid: ${settlementName} vs ${arabCityName}`;
+              ? `פשיטה: ${settlementNameHe} ⚔️ ${arabCityNameHe}`
+              : `Raid: ${settlementNameEn} vs ${arabCityNameEn}`;
 
-            if (state.locale === 'he') {
-              const variants = [
-                `עימות אלים: קבוצת צעירים מ${settlementName} פשטה על פאתי ${arabCityName}, יודו אבנים הדדיות.`,
-                `חיכוך בשומרון: מתנחלים מ${settlementName} נכנסו למסיק זיתים סמוך ל${arabCityName}.`,
-                `הפגנה סוערת: תושבים מ${settlementName} חסמו את כביש הגישה ל${arabCityName} והבעירו צמיגים.`,
-                `פעולת 'תג מחיר': ריסוס כתובות ועימותים בין תושבי ${settlementName} לפאתי ${arabCityName}.`,
-              ];
-              clashHeadline = variants[Math.floor(Math.random() * variants.length)];
-            } else {
-              clashHeadline = `Violent clash: Settlers from ${settlementName} raided outskirts of ${arabCityName}, stones exchanged.`;
-            }
+            const variantsHe = [
+              `עימות אלים: קבוצת צעירים מ${settlementNameHe} פשטה על פאתי ${arabCityNameHe}, יודו אבנים הדדיות.`,
+              `חיכוך בשומרון: מתנחלים מ${settlementNameHe} נכנסו למסיק זיתים סמוך ל${arabCityNameHe}.`,
+              `הפגנה סוערת: תושבים מ${settlementNameHe} חסמו את כביש הגישה ל${arabCityNameHe} והבעירו צמיגים.`,
+              `פעולת 'תג מחיר': ריסוס כתובות ועימותים בין תושבי ${settlementNameHe} לפאתי ${arabCityNameHe}.`,
+            ];
+            const variantsEn = [
+              `Violent clash: Settlers from ${settlementNameEn} raided outskirts of ${arabCityNameEn}, stones exchanged.`,
+              `Friction in Samaria: Settlers from ${settlementNameEn} entered olive groves near ${arabCityNameEn}.`,
+              `Heated protest: Residents of ${settlementNameEn} blocked access road to ${arabCityNameEn} and burned tires.`,
+              `Price tag incident: Graffiti sprayed and clashes between ${settlementNameEn} and outskirts of ${arabCityNameEn}.`,
+            ];
+            const vIdx = Math.floor(Math.random() * variantsHe.length);
+            clashHeadlineHe = variantsHe[vIdx];
+            clashHeadlineEn = variantsEn[vIdx];
           } else {
             clashTitle = state.locale === 'he'
-              ? `יידוי אבנים: ${arabCityName} ⚔️ ${settlementName}`
-              : `Stones: ${arabCityName} vs ${settlementName}`;
+              ? `יידוי אבנים: ${arabCityNameHe} ⚔️ ${settlementNameHe}`
+              : `Stones: ${arabCityNameEn} vs ${settlementNameEn}`;
 
-            if (state.locale === 'he') {
-              const variants = [
-                `התפרעות אלימה: עשרות מיידי אבנים יצאו מ${arabCityName} לעבר כביש הגישה ל${settlementName}.`,
-                `חיכוך סמוך לגדר: בקבוקי תבערה וזיקוקים מ${arabCityName} נורו לעבר בתי ${settlementName}.`,
-                `מארב אבנים: רכבים נרגמו באבנים בציר הסמוך ל${arabCityName}, סמוך ל${settlementName}.`,
-                `הפרת סדר בצומת: עשרות צעירים מ${arabCityName} התעמתו בפאתי המאחז ${settlementName}.`,
-              ];
-              clashHeadline = variants[Math.floor(Math.random() * variants.length)];
-            } else {
-              clashHeadline = `Violent riot: Stone throwers from ${arabCityName} targeted access road to ${settlementName}.`;
-            }
+            const variantsHe = [
+              `התפרעות אלימה: עשרות מיידי אבנים יצאו מ${arabCityNameHe} לעבר כביש הגישה ל${settlementNameHe}.`,
+              `חיכוך סמוך לגדר: בקבוקי תבערה וזיקוקים מ${arabCityNameHe} נורו לעבר בתי ${settlementNameHe}.`,
+              `מארב אבנים: רכבים נרגמו באבנים בציר הסמוך ל${arabCityNameHe}, סמוך ל${settlementNameHe}.`,
+              `הפרת סדר בצומת: עשרות צעירים מ${arabCityNameHe} התעמתו בפאתי המאחז ${settlementNameHe}.`,
+            ];
+            const variantsEn = [
+              `Violent riot: Dozens of stone throwers came out of ${arabCityNameEn} toward the access road to ${settlementNameEn}.`,
+              `Friction near perimeter: Molotov cocktails and fireworks from ${arabCityNameEn} fired toward ${settlementNameEn}.`,
+              `Stone ambush: Vehicles pelted with stones on the road near ${arabCityNameEn}, close to ${settlementNameEn}.`,
+              `Junction disturbance: Dozens of youths from ${arabCityNameEn} clashed at the outskirts of outpost ${settlementNameEn}.`,
+            ];
+            const vIdx = Math.floor(Math.random() * variantsHe.length);
+            clashHeadlineHe = variantsHe[vIdx];
+            clashHeadlineEn = variantsEn[vIdx];
           }
 
           if (isGarrisoned) {
-            clashSource = state.locale === 'he' ? 'דובר צה״ל' : 'IDF Spokesperson';
             sounds.playClash();
           } else {
             // UNGARRISONED OUTPOST: Severe tension, no military buffer! Unprotected outpost takes HP damage!
-            clashSource = state.locale === 'he' ? 'משטרת מחוז ש״י' : 'District Police';
             isUrgentClash = true;
             sounds.playSiren();
             if (newBudget >= 15) {
@@ -827,19 +912,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               newSettlementsCount = Math.max(0, newSettlementsCount - 1);
               sounds.playPanicMashThud();
 
-              clashHeadline = state.locale === 'he'
-                ? `אסון במאחז: ${settlementName} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה!`
-                : `Outpost destroyed: ${settlementName} abandoned and burned after being left with no IDF troops!`;
+              clashHeadlineHe = `אסון במאחז: ${settlementNameHe} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה!`;
+              clashHeadlineEn = `Outpost destroyed: ${settlementNameEn} abandoned and burned after being left with no IDF troops!`;
             } else {
               updatedTiles[settlement.id] = {
                 ...settlement,
                 hp: newHp,
                 hasAlert: true,
               };
-              const damageSuffix = state.locale === 'he'
-                ? ` (עמידות המאחז ירדה ל-${newHp}%)`
-                : ` (Outpost HP dropped to ${newHp}%)`;
-              clashHeadline += damageSuffix;
+              clashHeadlineHe += ` (עמידות המאחז ירדה ל-${newHp}%)`;
+              clashHeadlineEn += ` (Outpost HP dropped to ${newHp}%)`;
             }
           }
 
@@ -848,8 +930,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             settlementId: settlement.id,
             arabCityId: targetArabCity.id,
             settlerInitiated,
-            settlementName,
-            arabCityName,
+            settlementName: state.locale === 'he' ? settlementNameHe : settlementNameEn,
+            arabCityName: state.locale === 'he' ? arabCityNameHe : arabCityNameEn,
             startX: settlement.x,
             startY: settlement.y,
             targetX: targetArabCity.x,
@@ -868,11 +950,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           // Dispatch news item for this clash
           const clashNewsItem: NewsItem = {
             id: `clash-news-${now}`,
-            headline: clashHeadline,
-            source: clashSource,
+            headline: state.locale === 'he' ? clashHeadlineHe : clashHeadlineEn,
+            source: state.locale === 'he' ? clashSourceHe : clashSourceEn,
+            headlineHe: clashHeadlineHe,
+            headlineEn: clashHeadlineEn,
+            sourceHe: clashSourceHe,
+            sourceEn: clashSourceEn,
             category: 'military',
             isUrgent: isUrgentClash,
-            timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
           };
 
           if (nextCurrentNews) {
@@ -944,14 +1030,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sounds.playPenalty();
 
           // Dispatch news alert
+          const penaltyHeadlineHe = `קנס תקציבי (${penaltyAmount}₪-): ${reasonsHe[reasonIdx]}. הקופה הקואליציונית נשחקת.`;
+          const penaltyHeadlineEn = `Budget Penalty (-${penaltyAmount}₪): ${reasonsEn[reasonIdx]}. Coalition funds drained.`;
           const penaltyNews: NewsItem = {
             id: `penalty-news-${now}`,
-            headline: state.locale === 'he'
-              ? `קנס תקציבי (${penaltyAmount}₪-): ${reason}. הקופה הקואליציונית נשחקת.`
-              : `Budget Penalty (-${penaltyAmount}₪): ${reason}. Coalition funds drained.`,
+            headline: state.locale === 'he' ? penaltyHeadlineHe : penaltyHeadlineEn,
             source: state.locale === 'he' ? 'משרד האוצר' : 'Ministry of Finance',
+            headlineHe: penaltyHeadlineHe,
+            headlineEn: penaltyHeadlineEn,
+            sourceHe: 'משרד האוצר',
+            sourceEn: 'Ministry of Finance',
             category: 'politics',
-            timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
           };
 
           if (nextCurrentNews) {
@@ -1094,8 +1184,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             ? `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`
             : `Outpost evacuated. Troops returned to reinforce sovereign border.`,
           source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          headlineHe: `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`,
+          headlineEn: `Outpost evacuated. Troops returned to reinforce sovereign border.`,
+          sourceHe: 'פיקוד מרכז',
+          sourceEn: 'Central Command',
           category: 'military',
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }
@@ -1150,6 +1244,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       sounds.playDeploy();
 
+      const recallHeadlineHe = `כוח צה״ל נסוג מ${tile.settlementName || 'המאחז'} ושב לבצר את קו הגבול המערבי.`;
+      const recallHeadlineEn = `Troops recalled from ${tile.settlementName || 'outpost'} to secure the western border.`;
+
       return {
         ...state,
         soldiersAtBorder: newBorderSoldiers,
@@ -1161,12 +1258,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         selectedSettlementId: null,
         ...withNews(state, {
           id: `recall-${Date.now()}`,
-          headline: state.locale === 'he'
-            ? `כוח צה״ל נסוג מ${tile.settlementName || 'המאחז'} ושב לבצר את קו הגבול המערבי.`
-            : `Troops recalled from ${tile.settlementName || 'outpost'} to secure the western border.`,
+          headline: state.locale === 'he' ? recallHeadlineHe : recallHeadlineEn,
           source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          headlineHe: recallHeadlineHe,
+          headlineEn: recallHeadlineEn,
+          sourceHe: 'פיקוד מרכז',
+          sourceEn: 'Central Command',
           category: 'military',
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }
@@ -1231,6 +1330,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       sounds.playDeploy();
 
+      const recallAllHeadlineHe = `נסיגה טקטית מלאה! ${recalledCount} לוחמים פונו מהמאחזים וחזרו לאבטח את הגבול המערבי.`;
+      const recallAllHeadlineEn = `Full tactical pullback! ${recalledCount} soldiers recalled from outposts to secure the western border.`;
+
       return {
         ...state,
         soldiersAtBorder: newBorderSoldiers,
@@ -1242,13 +1344,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         selectedSettlementId: null,
         ...withNews(state, {
           id: `recall-all-${Date.now()}`,
-          headline: state.locale === 'he'
-            ? `נסיגה טקטית מלאה! ${recalledCount} לוחמים פונו מהמאחזים וחזרו לאבטח את הגבול המערבי.`
-            : `Full tactical pullback! ${recalledCount} soldiers recalled from outposts to secure the western border.`,
+          headline: state.locale === 'he' ? recallAllHeadlineHe : recallAllHeadlineEn,
           source: state.locale === 'he' ? 'המטה הכללי' : 'General Staff',
+          headlineHe: recallAllHeadlineHe,
+          headlineEn: recallAllHeadlineEn,
+          sourceHe: 'המטה הכללי',
+          sourceEn: 'General Staff',
           category: 'military',
-          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         }),
+      };
+    }
+
+    case 'SELECT_INFILTRATION': {
+      return {
+        ...state,
+        selectedInfiltrationId: action.id,
       };
     }
 

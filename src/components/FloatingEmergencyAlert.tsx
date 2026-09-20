@@ -73,7 +73,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
 
           <div className="flex items-center gap-2">
             <span className="text-[10px] bg-red-800/90 text-amber-200 px-2 py-0.5 rounded-md font-black border border-red-600/50">
-              {currentNews.source}
+              {isHe ? (currentNews.sourceHe || currentNews.source) : (currentNews.sourceEn || currentNews.source)}
             </span>
             <button
               onClick={handleDismiss}
@@ -88,7 +88,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
 
         {/* Full Headline Text - Zero Truncation Needed Here! */}
         <p className="relative text-xs sm:text-sm font-black text-white leading-relaxed font-heebo">
-          {currentNews.headline}
+          {isHe ? (currentNews.headlineHe || currentNews.headline) : (currentNews.headlineEn || currentNews.headline)}
         </p>
 
         {/* Footer info: Defense Level + Click hint */}

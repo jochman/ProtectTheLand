@@ -28,6 +28,10 @@ export interface NewsItem {
   id: string;
   headline: string;
   source: string;
+  headlineHe?: string;
+  headlineEn?: string;
+  sourceHe?: string;
+  sourceEn?: string;
   category?: 'politics' | 'celebs' | 'military' | 'rabbis';
   arcId?: string;
   arcStep?: number;

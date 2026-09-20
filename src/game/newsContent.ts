@@ -731,11 +731,15 @@ export function getProgressiveNews(
       id: `news-arc-${arcId}-${stepIndex}-${Date.now()}`,
       headline: text.headline,
       source: text.source,
+      headlineHe: stepData.he.headline,
+      headlineEn: stepData.en.headline,
+      sourceHe: stepData.he.source,
+      sourceEn: stepData.en.source,
       category: stepData.category,
       arcId,
       arcStep: stepIndex + 1,
       totalArcSteps: arc.steps.length,
-      timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
       isUrgent: false,
     };
   };
@@ -822,8 +826,12 @@ export function getProgressiveNews(
     id: `news-quote-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     headline: text.headline,
     source: text.source,
+    headlineHe: chosenQuote.he.headline,
+    headlineEn: chosenQuote.en.headline,
+    sourceHe: chosenQuote.he.source,
+    sourceEn: chosenQuote.en.source,
     category: chosenQuote.category,
-    timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: new Date().toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
     isUrgent: false,
   };
 

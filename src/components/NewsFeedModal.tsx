@@ -73,7 +73,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
                   {getCategoryBadge(current.category).label}
                 </span>
                 <span className="font-extrabold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-md border border-amber-300/60">
-                  {current.source}
+                  {isHe ? (current.sourceHe || current.source) : (current.sourceEn || current.source)}
                 </span>
               </div>
               <span className="text-slate-400 text-[10px] font-mono">
@@ -83,7 +83,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
 
             {/* Big Headline */}
             <p className="text-sm font-black text-slate-900 leading-snug font-heebo">
-              {current.headline}
+              {isHe ? (current.headlineHe || current.headline) : (current.headlineEn || current.headline)}
             </p>
           </div>
         )}
@@ -113,14 +113,14 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
                 >
                   <div className="flex items-center justify-between gap-1 text-[10px]">
                     <span className="font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                      {item.source}
+                      {isHe ? (item.sourceHe || item.source) : (item.sourceEn || item.source)}
                     </span>
                     <span className="text-slate-400 font-mono">
                       {item.timestamp || (isHe ? 'קודם' : 'Earlier')}
                     </span>
                   </div>
                   <p className="text-slate-800 font-medium text-[11px] leading-relaxed">
-                    {item.headline}
+                    {isHe ? (item.headlineHe || item.headline) : (item.headlineEn || item.headline)}
                   </p>
                 </div>
               ))
