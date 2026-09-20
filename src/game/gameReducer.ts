@@ -19,6 +19,7 @@ export const INITIAL_STATE: GameState = {
   reservesBatchesLeft: 3,
   defenseScore: 100,
   landHp: 100, // National Resilience starts at 100%
+  isIntroModalOpen: true, // Entrance tutorial modal opens on game start
   isBuildMode: false,
   constructions: {},
   collectibleCoins: [],
@@ -178,6 +179,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const nextSound = !state.soundEnabled;
       sounds.setMuted(!nextSound);
       return { ...state, soundEnabled: nextSound };
+    }
+
+    case 'OPEN_INTRO_MODAL': {
+      sounds.playClick();
+      return {
+        ...state,
+        isIntroModalOpen: true,
+      };
+    }
+
+    case 'CLOSE_INTRO_MODAL': {
+      sounds.playClick();
+      try {
+        localStorage.setItem('oct7_seen_intro_guide', 'true');
+      } catch {
+        // Safe guard for SSR/restricted environments
+      }
+      return {
+        ...state,
+        isIntroModalOpen: false,
+      };
     }
 
     case 'TOGGLE_BUILD_MODE': {

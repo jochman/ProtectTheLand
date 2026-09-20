@@ -50,7 +50,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
   }, [state.clashes, dispatch]);
 
   return (
-    <div className="relative w-full flex-1 min-h-[220px] max-h-full overflow-hidden flex items-center justify-center my-0 select-none">
+    <div className="relative w-full flex-1 min-h-0 max-h-full overflow-hidden flex items-center justify-center my-0 select-none">
       <svg
         viewBox="0 0 460 565"
         className="w-full h-full drop-shadow-xl"

@@ -188,9 +188,12 @@ export interface GameState {
   lastCoinTick?: number;
   interceptedToast: InterceptionToast | null;
   lastCityTaxTimestamps?: Record<string, number>;
+  isIntroModalOpen: boolean;
 }
 
 export type GameAction =
+  | { type: 'OPEN_INTRO_MODAL' }
+  | { type: 'CLOSE_INTRO_MODAL' }
   | { type: 'BUILD_SETTLEMENT'; tileId?: string }
   | { type: 'TOGGLE_BUILD_MODE' }
   | { type: 'SELECT_TILE_TO_BUILD'; tileId: string }

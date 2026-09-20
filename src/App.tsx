@@ -10,9 +10,10 @@ import { SoulSparksOverlay } from './components/SoulSparksOverlay';
 import { SettlementInspectorModal } from './components/SettlementInspectorModal';
 import { October7DefeatModal } from './components/October7DefeatModal';
 import { RationalVictoryModal } from './components/RationalVictoryModal';
-import { NewsFeedModal } from './components/NewsFeedModal';
 import { FloatingEmergencyAlert } from './components/FloatingEmergencyAlert';
 import { InfiltrationDefenseModal } from './components/InfiltrationDefenseModal';
+import { NewsFeedModal } from './components/NewsFeedModal';
+import { EntranceInstructionModal } from './components/EntranceInstructionModal';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -97,6 +98,7 @@ export default function App() {
       <October7DefeatModal state={state} dispatch={dispatch} />
       <RationalVictoryModal state={state} dispatch={dispatch} />
       <NewsFeedModal state={state} dispatch={dispatch} />
+      <EntranceInstructionModal state={state} dispatch={dispatch} />
     </MobileFrame>
   );
 }

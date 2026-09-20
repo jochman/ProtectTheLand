@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 15:46:57 UTC (Branch: `main`, Iteration #37)
+> **Last Synchronized:** 2026-09-20 15:52:23 UTC (Branch: `main`, Iteration #38)
 
 ---
 
@@ -455,12 +455,22 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 
 ---
 
-## 10. Mobile Single-Screen Viewport Architecture (`100dvh`)
+## 10. Mobile Single-Screen Viewport Architecture & Full-Screen Execution
 
-To deliver an authentic arcade/tactical mobile feel with **strictly zero vertical scrolling**:
-1. **Dynamic Viewport Height (`100dvh`):** `MobileFrame` uses `h-[100dvh] max-h-[100dvh] overflow-hidden` to adapt perfectly to mobile browser navigation bars without content shifting or spilling over.
-2. **Responsive Flex-Map Engine:** `HexMapCanvas` uses `flex-1 min-h-[220px] max-h-full overflow-hidden` with `viewBox="0 0 460 565"` and `preserveAspectRatio="xMidYMid meet"`. The map automatically scales dynamically into whatever viewport height remains, guaranteeing that the **"יהוה צבאות"** button is always 100% visible on screen above the bezel.
-3. **Adaptive Component Heights:** Header bar, status pills, and action decks feature responsive compact paddings (`py-1 sm:py-2`), ensuring complete one-screen fit across iPhone SE, iPhone 13/14/15, and Android devices.
+To deliver an authentic arcade/tactical mobile feel with **strictly zero vertical scrolling and true full-screen execution**:
+1. **Root-Level Viewport Lock:** `html, body, #root` use `position: fixed; inset: 0; width: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; touch-action: manipulation;`. This eliminates elastic rubber-banding, browser chrome expansion jumps, and accidental page scrolling across all mobile browsers (iOS Safari, Android Chrome, in-app webviews).
+2. **Edge-to-Edge Mobile Container:** `MobileFrame` occupies 100% of the mobile screen (`w-full h-[100dvh] max-w-none rounded-none border-none p-0`), restricting the `max-w-[430px]` framed smartphone mockup strictly to desktop screens (`sm:`). This prevents letterboxing or dark bars on wider phones.
+3. **Adaptive Zero-Scroll Flex-Map Engine:** `HexMapCanvas` uses `flex-1 min-h-0 max-h-full overflow-hidden` with `viewBox="0 0 460 565"` and `preserveAspectRatio="xMidYMid meet"`. The SVG map automatically scales dynamically into whatever viewport height remains, guaranteeing that the **"יהוה צבאות"** button is always 100% visible on screen above the bezel.
+4. **Native Browser Fullscreen API:** `HeaderBar` provides a dedicated **Fullscreen Toggle button (`Maximize2` / `Minimize2`)** allowing mobile and desktop players to toggle browser fullscreen on demand (`document.documentElement.requestFullscreen()`).
+5. **Interactive Entrance Instruction Modal (`EntranceInstructionModal.tsx`):**
+   - Automatically welcomes players on their first visit (persisted via `localStorage: 'oct7_seen_intro_guide'`).
+   - Reopenable at any time during gameplay via the dedicated **`❓` (HelpCircle)** button in `HeaderBar`.
+   - Concisely explains:
+     - **The Core Dilemma:** Zero-sum manpower tradeoff between West Bank outposts and sovereign border defense.
+     - **Step 1:** Building outposts (100₪).
+     - **Step 2:** Troop deployment cost (25₪/soldier) and border breach risk.
+     - **Step 3:** Homeland HP (`landHp`) continuous bleed from holes (-0.4 HP/s) and raid hits (-20% HP).
+     - **Step 4:** Victory conditions (evacuating down to ≤2 outposts with 100% border readiness) vs. Catastrophe collapse (0% HP or 7th mash of "יהוה צבאות").
 
 ---
 
