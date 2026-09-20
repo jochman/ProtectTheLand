@@ -71,6 +71,13 @@ export interface ClashEvent {
   isGarrisoned: boolean;
 }
 
+export interface FinancialPenalty {
+  id: string;
+  amount: number;
+  reason: string;
+  timestamp: number;
+}
+
 export interface GameState {
   locale: 'he' | 'en';
   soundEnabled: boolean;
@@ -136,6 +143,8 @@ export interface GameState {
   movingTroops: MovingTroop[];
   clashes: ClashEvent[];
   lastClashTick: number;
+  latestPenalty: FinancialPenalty | null;
+  lastPenaltyTick: number;
 }
 
 export type GameAction =
@@ -157,6 +166,7 @@ export type GameAction =
   | { type: 'CLEAR_SPARK'; id: string }
   | { type: 'CLEAR_MOVING_TROOP'; id: string }
   | { type: 'CLEAR_CLASH'; id: string }
+  | { type: 'CLEAR_PENALTY' }
   | { type: 'OPEN_NEWS_MODAL' }
   | { type: 'CLOSE_NEWS_MODAL' }
   | { type: 'CYCLE_NEXT_NEWS' }

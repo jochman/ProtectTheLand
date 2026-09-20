@@ -62,6 +62,8 @@ export const INITIAL_STATE: GameState = {
   movingTroops: [],
   clashes: [],
   lastClashTick: 0,
+  latestPenalty: null,
+  lastPenaltyTick: 0,
 };
 
 function withNews(state: GameState, item: NewsItem): { currentNews: NewsItem; newsHistory: NewsItem[]; lastNewsTick: number } {
@@ -719,6 +721,85 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
+      // 8. Periodic Settlement Financial Penalties (more settlements = more frequent & harsher penalties!)
+      let latestPenalty = state.latestPenalty;
+      if (latestPenalty && now - latestPenalty.timestamp > 4000) {
+        latestPenalty = null;
+      }
+      let nextPenaltyTick = (state.lastPenaltyTick || 0) + 1;
+
+      const settlementsCount = builtSettlementList.length;
+
+      // Penalties only occur if player has built settlements in the West Bank!
+      if (settlementsCount > 0) {
+        // Cooldown: at least 14 seconds between penalties
+        // Probability scales with number of settlements:
+        // 1 settlement: ~6% chance per tick (avg ~30s), 3 settlements: ~12%, 5 settlements: ~18%, 8+ settlements: ~28%
+        const penaltyChance = Math.min(0.32, 0.03 + settlementsCount * 0.032);
+
+        if (nextPenaltyTick >= 14 && Math.random() < penaltyChance) {
+          // Penalty amount scales with number of settlements:
+          // 1 settlement: ~25₪
+          // 3 settlements: ~45₪
+          // 5 settlements: ~65₪
+          // 8 settlements: ~95₪
+          const rawPenalty = 15 + settlementsCount * 10 + (Math.floor(Math.random() * 3) - 1) * 5;
+          const penaltyAmount = Math.max(15, rawPenalty);
+          const actualDeducted = Math.min(newBudget, penaltyAmount);
+          newBudget = Math.max(0, newBudget - actualDeducted);
+
+          const reasonsHe = [
+            'סלילת כביש עוקף ממוגן ירי',
+            'הצבת מצלמות תרמיות וכיתת כוננות',
+            'מימון שירותי הסעות ואוטובוסים ממוגנים',
+            'פיצויים על פלישה לקרקעות פרטיות',
+            'סנקציות בינלאומיות והורדת דירוג אשראי',
+            'הוצאות משפטיות להסדרת מאחזים',
+            'תחזוקת תשתיות מים וחשמל למאחזים מבודדים',
+            'בור תקציבי וגירעון קואליציוני מעמיק',
+          ];
+
+          const reasonsEn = [
+            'Bulletproof bypass road construction',
+            'Thermal cameras & outpost security squad',
+            'Armored student shuttle subsidies',
+            'Private land trespass compensation',
+            'International sanctions & credit downgrade',
+            'Legal fees for retroactive outpost authorization',
+            'Utility infrastructure for isolated outposts',
+            'Deepening coalition budget deficit',
+          ];
+
+          const reasonIdx = Math.floor(Math.random() * reasonsHe.length);
+          const reason = state.locale === 'he' ? reasonsHe[reasonIdx] : reasonsEn[reasonIdx];
+
+          latestPenalty = {
+            id: `penalty-${now}`,
+            amount: penaltyAmount,
+            reason,
+            timestamp: now,
+          };
+          nextPenaltyTick = 0;
+          sounds.playPenalty();
+
+          // Dispatch news alert
+          const penaltyNews: NewsItem = {
+            id: `penalty-news-${now}`,
+            headline: state.locale === 'he'
+              ? `קנס תקציבי (${penaltyAmount}₪-): ${reason}. הקופה הקואליציונית נשחקת.`
+              : `Budget Penalty (-${penaltyAmount}₪): ${reason}. Coalition funds drained.`,
+            source: state.locale === 'he' ? 'משרד האוצר' : 'Ministry of Finance',
+            category: 'politics',
+            timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          };
+
+          if (nextCurrentNews) {
+            nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
+          }
+          nextCurrentNews = penaltyNews;
+        }
+      }
+
       return {
         ...state,
         budget: newBudget,
@@ -735,6 +816,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastNewsTick: nextNewsTick,
         clashes: activeClashes,
         lastClashTick: nextClashTick,
+        latestPenalty,
+        lastPenaltyTick: nextPenaltyTick,
         lordOfHosts: {
           ...state.lordOfHosts,
           chargePercent: Math.round(newCharge),
@@ -1058,6 +1141,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         clashes: (state.clashes || []).filter(c => c.id !== action.id),
+      };
+    }
+
+    case 'CLEAR_PENALTY': {
+      return {
+        ...state,
+        latestPenalty: null,
       };
     }
 

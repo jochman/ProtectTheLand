@@ -23,7 +23,15 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
   return (
     <div className="flex flex-col items-center gap-1.5 px-4 z-20 flex-shrink-0">
       {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
-      <div className="status-pill flex items-center justify-around w-full max-w-[340px] px-3 py-1.5 rounded-full shadow-lg border border-amber-100/60">
+      <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1.5 rounded-full shadow-lg border border-amber-100/60">
+        {/* Floating Settlement Penalty Popup */}
+        {state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600) && (
+          <div className="absolute -top-7 right-2 sm:right-4 z-30 pointer-events-none whitespace-nowrap bg-red-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-red-400 animate-bounce flex items-center gap-1 font-heebo">
+            <span>💸</span>
+            <span>-{state.latestPenalty.amount}₪</span>
+            <span className="text-red-200 font-bold hidden xs:inline">({state.latestPenalty.reason})</span>
+          </div>
+        )}
         
         {/* Soldiers Counter */}
         <div className="flex items-center gap-1.5" title={strings.stats.soldiers}>
@@ -62,7 +70,13 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
           </div>
           <div className="flex flex-col items-start leading-none">
             <div className="flex items-baseline">
-              <span className="text-xl font-black text-amber-700 tracking-tight font-rubik">
+              <span
+                className={`text-xl font-black tracking-tight font-rubik transition-colors ${
+                  state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600)
+                    ? 'text-red-600 animate-pulse'
+                    : 'text-amber-700'
+                }`}
+              >
                 {state.budget}
               </span>
               <span className="text-xs font-bold text-amber-800 ml-0.5">₪</span>

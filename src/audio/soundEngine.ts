@@ -283,6 +283,23 @@ class SoundEngine {
     osc2.start(ctx.currentTime + 0.06);
     osc2.stop(ctx.currentTime + 0.21);
   }
+
+  public playPenalty() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    // Descending metallic buzz / cash penalty drain
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(340, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(95, ctx.currentTime + 0.26);
+    gain.gain.setValueAtTime(0.22, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.26);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.27);
+  }
 }
 
 export const sounds = new SoundEngine();
