@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 15:26:07 UTC (Branch: `main`, Iteration #31)
+> **Last Synchronized:** 2026-09-20 15:31:59 UTC (Branch: `main`, Iteration #32)
 
 ---
 
@@ -193,6 +193,13 @@ export interface FinancialPenalty {
   timestamp: number;
 }
 
+export interface FinancialGrant {
+  id: string;
+  amount: number;
+  reason: string;
+  timestamp: number;
+}
+
 export interface GameState {
   locale: 'he' | 'en';
   soundEnabled: boolean;
@@ -243,6 +250,7 @@ export interface GameState {
   lastClashTick: number;
   latestPenalty: FinancialPenalty | null;
   lastPenaltyTick: number;
+  latestGrant: FinancialGrant | null;
   greenSideAttacks: GreenSideAttack[];
   lastGreenAttackTick: number;
 }
@@ -269,35 +277,63 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 - 3 checkpoints manned = $38\%$.
 - 0 checkpoints manned = $0\%$.
 
-### 5.3 Treasury & Labor-Burnout Model
+### 5.3 Treasury, Labor-Burnout & Settlement Protection Incentive Model
 - **Settlement Construction Cost:** 100₪.
 - **Initial Treasury:** 140₪ (Allows immediate first settlement + buffer).
-- **Treasury Cap:** 300₪.
-- **Civilian Economy Decay Formula:**
-  Calling military reserves pulls workers from the productive civilian economy:
+- **Dynamic Treasury Cap:** Starts at 300₪ and expands as the settlement empire grows:
+  $$\text{MaxBudget} = 300\text{₪} + (\text{BuiltSettlements} \times 20\text{₪})$$
+- **Guarded Settlement Economic Incentive Formula:**
+  In contrast to naive models where outposts act as a money drain, the simulation faithfully reproduces the political-economic reality: **policymakers are heavily incentivized by coalition transfers and political rewards to build and protect outposts.**
+  - **Base Civilian Production:** Calling military reserves pulls workers from the civilian economy:
+    $$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
+    $$\text{BaseCivilianIncome} = \max\left(1\text{₪/s}, 4 - \text{CallsMade}\right)$$
+  - **Guarded Outpost Coalition Multiplier:** Each garrisoned outpost yields substantial government coalition funding:
+    $$\text{GuardedBonus} = \text{round}(\text{GuardedSettlements} \times 1.5\text{₪/s})$$
+  - **Effective Passive Income Rate:**
+    $$\text{IncomeRate} = \text{BaseCivilianIncome} + \text{GuardedBonus}$$
 
-$$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
+| Guarded Outposts | Base Civilian (0 calls) | Settlement Bonus | Total Passive Income | Player Experience |
+|---|---|---|---|---|
+| **0 outposts** | +4 ₪/s | +0 ₪/s | +4 ₪/s | Baseline civilian economy |
+| **1 outpost** | +4 ₪/s | +2 ₪/s | +6 ₪/s | Early settlement expansion reward |
+| **2 outposts** | +4 ₪/s | +3 ₪/s | +7 ₪/s | Noticeable treasury growth |
+| **4 outposts** | +4 ₪/s | +6 ₪/s | +10 ₪/s | Strong financial boom |
+| **8 outposts** | +4 ₪/s | +12 ₪/s | +16 ₪/s | Massive treasury windfall |
 
-$$\text{IncomeRate} = \max\left(2\text{₪/s}, 4 - \text{CallsMade}\right)$$
+### 5.4 Immediate Coalition Deployment Grant ("מענק פריסה קואליציוני")
+- **Instant Cash Infusion:** Tapping the **`DEPLOY_TROOPS`** button instantly awards a coalition grant of **+35₪ per transferred soldier**:
+  $$\text{DeploymentGrant} = \text{TransferredSoldiers} \times 35\text{₪}$$
+  $$\text{NewBudget} = \min(\text{MaxBudget}, \text{Budget} + \text{DeploymentGrant})$$
+- **Audio & Visual Feedback:**
+  - Cash chime audio (`sounds.playCoinCollect()`) and deployment fanfare (`sounds.playDeploy()`).
+  - Luminous golden soul sparks burst from the newly garrisoned outposts toward the budget pill and Lord of Hosts button.
+  - Floating animated emerald badge appears in the top status pill: `💰 +35₪ (מענק פריסה קואליציוני)`.
+  - The `DEPLOY_TROOPS` button prominently displays the reward: `+35₪ מענק! (1 חשופים)`.
+- **Messianic Charge Acceleration:** Stationing soldiers at outposts advances the "יהוה צבאות" charge gauge by **+4% per soldier**, giving the player the irresistible illusion of progressing toward a divine miracle.
 
-| Reserves Calls Made | Total Troops Available | Passive Income Rate | Economic Status |
-|---|---|---|---|
-| **0 calls** | 8 | +4 ₪/sec | Healthy economy |
-| **1 call** | 12 | +3 ₪/sec | Minor civilian slowdown |
-| **2 calls** | 16 | +2 ₪/sec | Labor shortage alert |
-| **3 calls (Max)** | 20 | +2 ₪/sec | Complete mobilization burnout |
+### 5.5 The False "Conceptzia" Reassurance Engine
+- When deploying troops from the sovereign border to West Bank outposts (as long as border defense remains above critical 20%), the simulation triggers reassuring headlines derived from actual Israeli intelligence and political rhetoric prior to October 7:
+  - *"מענק פריסה קואליציוני בסך ₪35! אמ״ן מרגיע: ״הגבול שקט ומורתע, המכשול החכם בשווי 3.5 מיליארד ₪ מגן במקומנו״."*
+  - *"מענק אבטחה ליו״ש: ₪35 הועברו לקופת המאחזים. שר האוצר: ״ההתיישבות היא ביטחון, הדרום מוגן ע״י הטכנולוגיה״."*
+  - *"כוחות הועברו להתיישבות! אמ״ן בקבינט: ״חמאס מורתע לשנים קדימה, הפוקוס הביטחוני הנכון הוא במאחזים״."*
+  - *"תקציב פריסה שוחרר. פיקוד העורף: ״המכשול ההרמטי והסנסורים האוטונומיים מאפשרים דילול כוחות בגבול״."*
+- This lulls the player into believing that the sovereign border requires no physical presence, driving them to abandon the border for financial and political gain.
 
-### 5.4 Israeli Cities Shekel Collection ("כספים קואליציוניים")
+### 5.6 Coalition Ultimatums & Fines for UNGARRISONED Settlements
+- If a player constructs outposts but leaves them unmanned (`garrisonCount === 0`):
+  - **Fierce Political Backlash:** Coalition partners threaten immediate government collapse.
+  - **Cooldown:** At least 16 seconds between ultimatums.
+  - **Trigger Probability:** $\min(0.45, 0.15 + \text{UngarrisonedCount} \times 0.1)$.
+  - **Financial Penalties:** $20 + (\text{UngarrisonedCount} \times 6) \pm 3\text{₪}$ (-20₪ to -35₪ docked from treasury).
+  - **Sound & Banner:** Dull penalty thud (`sounds.playPenalty()`), floating red deduction banner (`💸 -25₪ (אולטימטום קואליציוני: מאחזים הופקרו!)`), and urgent breaking news alert.
+  - **West Bank Clashes:** Exposed outposts face an 85% probability of being targeted in clashes (-35 HP damage) until destroyed.
+- **The Core Dilemma:** Leaving outposts unprotected causes budget freezes and outpost destruction; deploying soldiers to outposts yields massive grants (+35₪) and high income (+1.5₪/s); but sealing border breaches requires recalling soldiers and making outposts exposed again!
+
+### 5.7 Israeli Cities Shekel Collection ("כספים קואליציוניים")
 - **Placement:** Spawns directly on actual sovereign Israeli cities (Tel Aviv `[105, 210]`, Haifa `[115, 60]`, Netanya/Sharon `[110, 135]`, Shfela/Modi'in `[100, 285]`, Ashdod `[95, 360]`, Beer Sheva `[95, 435]`). Completely separated from the Mediterranean sea tiles.
 - **Controlled Quantity:** Strictly at most **1 coin** present on screen at any time (initial: 1 coin at Tel Aviv; cooldown: 14s between spawns).
 - **Balanced Value:** **+25₪** per coin (calibrated to support the 5-7 minute game loop without flooding treasury).
 - **Visuals & Feedback:** 3D gold shekel with `<animateTransform>` bobbing, generous 30px touch hitbox, badge `+25₪`, cash register chime, and golden spark burst effect on collection.
-
-### 5.5 Settlement Financial Drain Penalties
-Building outposts creates permanent infrastructure drain (bypass roads, armored shuttles, security squads):
-- **Cooldown:** At least 28s between penalties.
-- **Probability:** $\min(0.28, 0.04 + \text{settlements} \times 0.025)$.
-- **Penalty Amount:** $18 + (\text{settlements} \times 7) \pm 5\text{₪}$ (scales between 25₪ and 95₪).
 
 ---
 

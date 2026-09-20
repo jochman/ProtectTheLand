@@ -32,6 +32,15 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
             <span className="text-red-200 font-bold hidden xs:inline">({state.latestPenalty.reason})</span>
           </div>
         )}
+
+        {/* Floating Coalition Deployment Grant Popup */}
+        {state.latestGrant && (Date.now() - state.latestGrant.timestamp < 3600) && (
+          <div className="absolute -top-7 left-2 sm:left-4 z-30 pointer-events-none whitespace-nowrap bg-emerald-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-emerald-300 flex items-center gap-1 font-heebo animate-bounce">
+            <span>💰</span>
+            <span>+{state.latestGrant.amount}₪</span>
+            <span className="text-emerald-100 font-bold hidden xs:inline">({state.latestGrant.reason})</span>
+          </div>
+        )}
         
         {/* Soldiers Counter */}
         <div className="flex items-center gap-1.5" title={strings.stats.soldiers}>
@@ -74,6 +83,8 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
                 className={`text-xl font-black tracking-tight font-rubik transition-colors ${
                   state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600)
                     ? 'text-red-600 animate-pulse'
+                    : state.latestGrant && (Date.now() - state.latestGrant.timestamp < 3600)
+                    ? 'text-emerald-600 animate-bounce'
                     : 'text-amber-700'
                 }`}
               >
@@ -82,7 +93,12 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
               <span className="text-xs font-bold text-amber-800 ml-0.5">₪</span>
             </div>
             <span
-              className={`text-[9px] font-black tracking-tighter ${
+              title={
+                state.locale === 'he'
+                  ? `הכנסה לשנייה (בסיס אזרחי + תוספת יישובים מאובטחים)`
+                  : `Income per second (Civilian base + guarded outposts bonus)`
+              }
+              className={`text-[9px] font-black tracking-tighter cursor-help ${
                 (state.incomeRate ?? 4) >= 3
                   ? 'text-emerald-700'
                   : (state.incomeRate ?? 4) === 2

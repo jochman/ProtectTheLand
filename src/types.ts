@@ -85,6 +85,13 @@ export interface FinancialPenalty {
   timestamp: number;
 }
 
+export interface FinancialGrant {
+  id: string;
+  amount: number;
+  reason: string;
+  timestamp: number;
+}
+
 export interface GreenSideAttack {
   id: string;
   breachId: string;
@@ -173,6 +180,7 @@ export interface GameState {
   lastClashTick: number;
   latestPenalty: FinancialPenalty | null;
   lastPenaltyTick: number;
+  latestGrant: FinancialGrant | null;
   greenSideAttacks: GreenSideAttack[];
   lastGreenAttackTick: number;
   selectedInfiltrationId: string | null;

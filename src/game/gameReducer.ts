@@ -1,4 +1,4 @@
-import { GameState, GameAction, NewsItem, GreenSideAttack } from '../types';
+import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialGrant } from '../types';
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
@@ -72,6 +72,7 @@ export const INITIAL_STATE: GameState = {
   lastClashTick: 0,
   latestPenalty: null,
   lastPenaltyTick: 0,
+  latestGrant: null,
   greenSideAttacks: [],
   lastGreenAttackTick: 0,
   selectedInfiltrationId: null,
@@ -350,7 +351,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (transferredCount === 0) return state;
 
+      const deploymentGrant = transferredCount * 35;
+      const newBudget = Math.min(state.maxBudget, state.budget + deploymentGrant);
+
       sounds.playDeploy();
+      sounds.playCoinCollect();
+
+      // Add soul sparks flying from newly garrisoned outposts toward the budget / Lord of Hosts
+      const newSparks = [...state.sparks];
+      for (const sId of shuffledSettlementIds.slice(0, transferredCount)) {
+        const sTile = updatedTiles[sId];
+        if (sTile) {
+          newSparks.push({
+            id: `spark-grant-${Date.now()}-${Math.random()}`,
+            startX: sTile.x,
+            startY: sTile.y,
+            targetX: 200,
+            targetY: 720,
+            createdAt: Date.now(),
+          });
+        }
+      }
+
+      const latestGrant: FinancialGrant = {
+        id: `grant-${Date.now()}`,
+        amount: deploymentGrant,
+        reason: state.locale === 'he' ? 'מענק פריסה קואליציוני' : 'Coalition Deployment Grant',
+        timestamp: Date.now(),
+      };
 
       const newBorderSoldiers = Math.max(0, state.soldiersAtBorder - transferredCount);
       const newSettlementSoldiers = state.soldiersAtSettlements + transferredCount;
@@ -380,18 +408,42 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           isUrgent: true,
           timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         };
-      } else if (newDefenseScore <= 50 && Math.random() < 0.4) {
-        sounds.playSiren();
+      } else {
+        const conceptziaHeadlinesHe = [
+          `מענק פריסה קואליציוני בסך ₪${deploymentGrant}! אמ״ן מרגיע: ״הגבול שקט ומורתע, המכשול החכם בשווי 3.5 מיליארד ₪ מגן במקומנו״.`,
+          `מענק אבטחה ליו״ש: ₪${deploymentGrant} הועברו לקופת המאחזים. שר האוצר: ״ההתיישבות היא ביטחון, הדרום מוגן ע״י הטכנולוגיה״.`,
+          `כוחות הועברו להתיישבות! אמ״ן בקבינט: ״חמאס מורתע לשנים קדימה, הפוקוס הביטחוני הנכון הוא במאחזים״.`,
+          `תקציב פריסה שוחרר (₪${deploymentGrant}+). פיקוד העורף: ״המכשול ההרמטי והסנסורים האוטונומיים מאפשרים דילול כוחות בגבול״.`,
+        ];
+        const conceptziaHeadlinesEn = [
+          `Coalition Deployment Grant of ₪${deploymentGrant}! Intel reassures: "Border is quiet; the ₪3.5B Smart Barrier protects us."`,
+          `Outpost Security Grant: ₪${deploymentGrant} transferred to outposts. Finance Min: "Settlements are security; tech defends the South."`,
+          `Forces deployed to settlements! Intel to cabinet: "Hamas deterred for years; our defense focus belongs on outposts."`,
+          `Deployment funds released (+₪${deploymentGrant}). Home Front: "Hermetic barrier and autonomous sensors allow border troop thinning."`,
+        ];
+        const conceptziaSourcesHe = [
+          'אגף המודיעין ומשרד האוצר',
+          'לשכת שר האוצר והביטחון',
+          'הקבינט המדיני-ביטחוני',
+          'פיקוד דרום והמנהל האזרחי',
+        ];
+        const conceptziaSourcesEn = [
+          'Military Intel & Treasury',
+          'Finance & Defense Ministry',
+          'Security Cabinet',
+          'Southern Command & Civil Admin',
+        ];
+        const cIdx = Math.floor(Math.random() * conceptziaHeadlinesHe.length);
         deployNewsItem = {
-          id: `warning-${Date.now()}`,
-          headline: strings.news.chiefOfStaffWarning,
-          source: state.locale === 'he' ? 'לשכת הרמטכ״ל' : 'Chief of Staff',
-          headlineHe: he.news.chiefOfStaffWarning,
-          headlineEn: en.news.chiefOfStaffWarning,
-          sourceHe: 'לשכת הרמטכ״ל',
-          sourceEn: 'Chief of Staff',
-          category: 'military',
-          isUrgent: true,
+          id: `conceptzia-${Date.now()}`,
+          headline: state.locale === 'he' ? conceptziaHeadlinesHe[cIdx] : conceptziaHeadlinesEn[cIdx],
+          source: state.locale === 'he' ? conceptziaSourcesHe[cIdx] : conceptziaSourcesEn[cIdx],
+          headlineHe: conceptziaHeadlinesHe[cIdx],
+          headlineEn: conceptziaHeadlinesEn[cIdx],
+          sourceHe: conceptziaSourcesHe[cIdx],
+          sourceEn: conceptziaSourcesEn[cIdx],
+          category: 'politics',
+          isUrgent: false,
           timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
         };
       }
@@ -407,6 +459,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       return {
         ...state,
+        budget: newBudget,
+        latestGrant,
+        sparks: newSparks,
         soldiersAtBorder: newBorderSoldiers,
         soldiersAtSettlements: newSettlementSoldiers,
         defenseScore: newDefenseScore,
@@ -419,7 +474,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           stage: newStage,
           countdownSeconds: countdown,
           isPanicMashMode: isPanic,
-          chargePercent: isPanic ? 99.9 : Math.max(state.lordOfHosts.chargePercent, 88),
+          chargePercent: isPanic ? 99.9 : Math.min(99.0, Math.max(state.lordOfHosts.chargePercent + transferredCount * 4, 30)),
           piousToast: isPanic ? strings.lordOfHosts.panicMashPrompt : null,
         },
         ...withNews(state, deployNewsItem),
@@ -599,12 +654,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedConstructions = { ...state.constructions };
       const updatedTiles = { ...state.tiles };
 
-      // 3. Passive budget income (affected by reserve mobilization & settlement maintenance drag!)
-      const baseIncome = state.incomeRate ?? 4;
-      const builtCount = Object.values(updatedTiles).filter(t => t.hasSettlement).length;
-      const settlementDrain = Math.floor(builtCount / 5);
-      const effectiveIncome = Math.max(2, baseIncome - settlementDrain);
-      let newBudget = Math.min(state.maxBudget, state.budget + effectiveIncome);
+      // 3. Passive budget income: Guarded settlements generate substantial coalition funding (+1.5₪/s per outpost!)
+      // Baseline civilian production decreases when reserve call-ups remove workers from the economy.
+      const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
+      const baseCivilianIncome = Math.max(1, 4 - callsMade);
+      const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
+      const guardedIncomeBonus = Math.round(guardedSettlementCount * 1.5);
+      const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
+      const currentMaxBudget = 300 + Object.values(updatedTiles).filter(t => t.hasSettlement).length * 20;
+      let newBudget = Math.min(currentMaxBudget, state.budget + effectiveIncome);
 
       // 4. Update constructions
       let newSettlementsCount = state.settlementsCount;
@@ -1016,53 +1074,47 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // 8. Periodic Settlement Financial Penalties (more settlements = more frequent & harsher penalties!)
+      // 8. Periodic Coalition Ultimatums & Fines for UNGARRISONED Settlements
+      // When settlements are left exposed without soldiers, coalition ministers demand immediate troop deployment!
       let latestPenalty = state.latestPenalty;
       if (latestPenalty && now - latestPenalty.timestamp > 4000) {
         latestPenalty = null;
       }
+      let latestGrant = state.latestGrant;
+      if (latestGrant && now - latestGrant.timestamp > 3800) {
+        latestGrant = null;
+      }
       let nextPenaltyTick = (state.lastPenaltyTick || 0) + 1;
 
-      const settlementsCount = builtSettlementList.length;
+      const ungarrisonedSettlements = builtSettlementList.filter(t => t.garrisonCount === 0);
+      const ungarrisonedCount = ungarrisonedSettlements.length;
 
-      // Penalties only occur if player has built settlements in the West Bank!
-      if (settlementsCount > 0) {
-        // Cooldown: at least 28 seconds between penalties (~once every 40-50s)
-        // Probability scales with number of settlements:
-        const penaltyChance = Math.min(0.28, 0.04 + settlementsCount * 0.025);
+      // Penalties trigger only when settlements are built but LEFT UNPROTECTED!
+      if (ungarrisonedCount > 0) {
+        // Cooldown: at least 16 seconds between coalition ultimatums
+        const penaltyChance = Math.min(0.45, 0.15 + ungarrisonedCount * 0.1);
 
-        if (nextPenaltyTick >= 28 && Math.random() < penaltyChance) {
-          // Penalty amount scales with number of settlements while preserving 5-7 min target:
-          // 1-2 settlements: ~25₪ - 32₪
-          // 3-4 settlements: ~38₪ - 48₪
-          // 5-7 settlements: ~55₪ - 68₪
-          // 8+ settlements: ~75₪ - 95₪
-          const basePenalty = 18 + settlementsCount * 7;
-          const variance = (Math.floor(Math.random() * 3) - 1) * 5;
+        if (nextPenaltyTick >= 16 && Math.random() < penaltyChance) {
+          const basePenalty = 20 + ungarrisonedCount * 6;
+          const variance = (Math.floor(Math.random() * 3) - 1) * 3;
           const penaltyAmount = Math.max(20, basePenalty + variance);
           const actualDeducted = Math.min(newBudget, penaltyAmount);
           newBudget = Math.max(0, newBudget - actualDeducted);
 
           const reasonsHe = [
-            'סלילת כביש עוקף ממוגן ירי',
-            'הצבת מצלמות תרמיות וכיתת כוננות',
-            'מימון שירותי הסעות ואוטובוסים ממוגנים',
-            'פיצויים על פלישה לקרקעות פרטיות',
-            'סנקציות בינלאומיות והורדת דירוג אשראי',
-            'הוצאות משפטיות להסדרת מאחזים',
-            'תחזוקת תשתיות מים וחשמל למאחזים מבודדים',
-            'בור תקציבי וגירעון קואליציוני מעמיק',
+            'אולטימטום קואליציוני: מאחזים הופקרו ללא שמירה!',
+            'הקפאת תקציבי פיתוח עקב היעדר אבטחה ביו״ש',
+            'קנס קואליציוני: שרי הימין דורשים פריסת לוחמים מיידית',
+            'עיקול כספי קואליציה: מאחז מבודד נותר חשוף',
+            'איום בפירוק הממשלה אם לא יוצבו חיילים במאחז',
           ];
 
           const reasonsEn = [
-            'Bulletproof bypass road construction',
-            'Thermal cameras & outpost security squad',
-            'Armored student shuttle subsidies',
-            'Private land trespass compensation',
-            'International sanctions & credit downgrade',
-            'Legal fees for retroactive outpost authorization',
-            'Utility infrastructure for isolated outposts',
-            'Deepening coalition budget deficit',
+            'Coalition Ultimatum: Outposts abandoned without guards!',
+            'Development funds frozen due to lack of outpost security',
+            'Coalition Penalty: Right-wing ministers demand immediate troop deployment',
+            'Coalition fund freeze: Isolated outpost left unprotected',
+            'Threat of government collapse unless soldiers are stationed',
           ];
 
           const reasonIdx = Math.floor(Math.random() * reasonsHe.length);
@@ -1078,18 +1130,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sounds.playPenalty();
 
           // Dispatch news alert
-          const penaltyHeadlineHe = `קנס תקציבי (${penaltyAmount}₪-): ${reasonsHe[reasonIdx]}. הקופה הקואליציונית נשחקת.`;
-          const penaltyHeadlineEn = `Budget Penalty (-${penaltyAmount}₪): ${reasonsEn[reasonIdx]}. Coalition funds drained.`;
+          const penaltyHeadlineHe = `אולטימטום קואליציוני (${penaltyAmount}₪-): שרים מאיימים במשבר אם לא יוצבו כוחות במאחזים החשופים.`;
+          const penaltyHeadlineEn = `Coalition Ultimatum (-${penaltyAmount}₪): Ministers threaten crisis unless troops are deployed to exposed outposts.`;
           const penaltyNews: NewsItem = {
             id: `penalty-news-${now}`,
             headline: state.locale === 'he' ? penaltyHeadlineHe : penaltyHeadlineEn,
-            source: state.locale === 'he' ? 'משרד האוצר' : 'Ministry of Finance',
+            source: state.locale === 'he' ? 'סיעות הקואליציה' : 'Coalition Factions',
             headlineHe: penaltyHeadlineHe,
             headlineEn: penaltyHeadlineEn,
-            sourceHe: 'משרד האוצר',
-            sourceEn: 'Ministry of Finance',
+            sourceHe: 'סיעות הקואליציה',
+            sourceEn: 'Coalition Factions',
             category: 'politics',
             timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            isUrgent: true,
           };
 
           if (nextCurrentNews) {
@@ -1102,6 +1155,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         budget: newBudget,
+        maxBudget: currentMaxBudget,
         incomeRate: effectiveIncome,
         settlementsCount: newSettlementsCount,
         constructions: updatedConstructions,
@@ -1120,6 +1174,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastClashTick: nextClashTick,
         latestPenalty,
         lastPenaltyTick: nextPenaltyTick,
+        latestGrant,
         greenSideAttacks: activeGreenAttacks,
         lastGreenAttackTick: nextGreenAttackTick,
         interceptedToast: (state.interceptedToast && now - state.interceptedToast.timestamp > 3800)

@@ -17,6 +17,13 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
     t => t.hasSettlement && t.garrisonCount === 0
   ).length;
 
+  const guardedCount = Object.values(state.tiles).filter(
+    t => t.hasSettlement && t.garrisonCount > 0
+  ).length;
+
+  const potentialDeployCount = Math.min(ungarrisonedCount, state.soldiersAtBorder);
+  const grantReward = potentialDeployCount * 35;
+
   const canAffordSettlement = state.budget >= 100;
 
   const isHe = state.locale === 'he';
@@ -42,7 +49,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         <button
           onClick={() => dispatch({ type: 'CALL_RESERVES' })}
           disabled={state.reservesBatchesLeft <= 0 || state.gameStatus !== 'playing'}
-          className={`clay-btn py-2 sm:py-2.5 px-1 text-center transition-all ${
+          className={`clay-btn py-1.5 sm:py-2 px-1 text-center transition-all ${
             (state.greenSideAttacks || []).length > 0
               ? 'ring-4 ring-red-500 bg-red-100/95 animate-pulse text-red-950 font-black shadow-[0_0_15px_rgba(239,68,68,0.5)]'
               : ''
@@ -65,21 +72,41 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         <button
           onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
           disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
-          className={`clay-btn py-2 sm:py-2.5 px-1 text-center transition-all ${
-            ungarrisonedCount > 0 ? 'ring-2 ring-red-400/80 bg-red-50/40' : 'opacity-60 cursor-not-allowed'
+          className={`clay-btn py-1.5 sm:py-2 px-1 text-center transition-all ${
+            ungarrisonedCount > 0 && state.soldiersAtBorder > 0
+              ? 'ring-2 ring-emerald-500 bg-emerald-50/70 shadow-[0_0_12px_rgba(16,185,129,0.3)] animate-[pulse_2.5s_infinite]'
+              : ungarrisonedCount > 0
+              ? 'ring-2 ring-red-400/80 bg-red-50/40'
+              : 'opacity-60 cursor-not-allowed'
           }`}
         >
-          <span className="text-xs sm:text-sm font-black leading-tight">
+          <span className="text-xs sm:text-sm font-black leading-tight text-slate-800">
             {strings.actions.deployTroops}
           </span>
-          {ungarrisonedCount > 0 ? (
+          {ungarrisonedCount > 0 && state.soldiersAtBorder > 0 ? (
+            <div className="flex flex-col items-center mt-0.5 leading-none">
+              <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full border border-emerald-300 shadow-sm">
+                +{grantReward}₪ {isHe ? 'מענק!' : 'Grant!'}
+              </span>
+              <span className="text-[9px] font-bold text-red-600 mt-0.5">
+                ({ungarrisonedCount} {isHe ? 'חשופים' : 'exposed'})
+              </span>
+            </div>
+          ) : ungarrisonedCount > 0 ? (
             <span className="text-[10px] font-bold text-red-700 mt-0.5">
               ({ungarrisonedCount} {isHe ? 'חשופים' : 'exposed'})
             </span>
           ) : (
-            <span className="text-[10px] font-semibold text-emerald-800/80 mt-0.5">
-              {isHe ? 'מוצב' : 'Ready'}
-            </span>
+            <div className="flex flex-col items-center mt-0.5 leading-none">
+              <span className="text-[10px] font-semibold text-emerald-800/80">
+                {isHe ? 'מאובטח' : 'Guarded'}
+              </span>
+              {guardedCount > 0 && (
+                <span className="text-[9px] font-bold text-emerald-600 mt-0.5">
+                  (+{Math.round(guardedCount * 1.5)}₪/{isHe ? 'שנ' : 's'})
+                </span>
+              )}
+            </div>
           )}
         </button>
 
