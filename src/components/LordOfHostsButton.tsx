@@ -55,7 +55,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
       {/* The Messianic Button */}
       <button
         onClick={handleClick}
-        disabled={isCracked}
+        disabled={isCracked || state.gameStatus !== 'playing'}
         className={`w-full py-1.5 sm:py-2 px-3 transition-all relative overflow-hidden ${
           isCracked
             ? 'bg-stone-500 border-stone-600 text-stone-300 cursor-not-allowed opacity-80 rounded-full border-2'
@@ -86,7 +86,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
           <div className="mt-0.5 flex flex-col items-center">
             {isPanic ? (
               <span className="text-[10px] font-black text-white bg-black/40 px-2 py-0.5 rounded-full animate-pulse">
-                {strings.lordOfHosts.panicMashPrompt} (לחצו {7 - lordOfHosts.mashCount} פעמים!)
+                {strings.lordOfHosts.panicMashPrompt} ({state.locale === 'he' ? `עוד ${7 - lordOfHosts.mashCount} לחיצות` : `${7 - lordOfHosts.mashCount} taps left`})
               </span>
             ) : lordOfHosts.countdownSeconds !== null ? (
               <span className="text-[10px] font-bold text-red-950 bg-white/40 px-2 py-0.5 rounded-full">
@@ -95,7 +95,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
               </span>
             ) : (
               <div className="flex items-center gap-1 text-[10px] font-bold text-amber-950/90">
-                <span>{lordOfHosts.stageGoalText}</span>
+                <span title={lordOfHosts.stageGoalText}>{state.locale === 'he' ? 'הבטחת גאולה' : 'Promise of redemption'}</span>
                 <span className="bg-white/50 px-1.5 py-0.2 rounded-full font-black text-amber-900">
                   {lordOfHosts.chargePercent}%
                 </span>

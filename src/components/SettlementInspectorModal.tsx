@@ -1,150 +1,37 @@
-import React from 'react';
-import { Home, ShieldCheck, AlertCircle, Trash2, X } from 'lucide-react';
-import { GameState, GameAction } from '../types';
-import { he } from '../locales/he';
-import { en } from '../locales/en';
+import type { Dispatch } from 'react';
+import type { GameAction, GameState } from '../types';
+import { RULES } from '../game/rules';
+import { BORDER_TO_GREEN_CITY } from '../game/gameReducer';
+import { tileName } from '../game/hexGridData';
 
-interface SettlementInspectorModalProps {
-  state: GameState;
-  dispatch: React.Dispatch<GameAction>;
+export function SettlementInspectorModal({ state, dispatch }: { state: GameState; dispatch: Dispatch<GameAction> }) {
+  const tile = state.selectedSettlementId ? state.tiles[state.selectedSettlementId] : null;
+  if (!tile?.hasSettlement) return null;
+  const he = state.locale === 'he';
+  const guarded = tile.garrisonCount > 0;
+  const borders = Object.values(state.tiles).filter(t => t.isBorderCheckpoint && t.garrisonCount > 0);
+  const border = state.pendingBorderId ? state.tiles[state.pendingBorderId] : null;
+  const opensGap = border?.garrisonCount === 1;
+  const close = () => dispatch({ type: 'SELECT_TILE', tileId: null });
+  return <div className="absolute inset-0 z-50 grid place-items-center bg-black/70 p-3" onClick={close}>
+    <section role="dialog" aria-modal="true" aria-labelledby="outpost-title" className="modal-panel w-full max-w-sm rounded-3xl bg-amber-50 p-4 text-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between gap-2"><h2 id="outpost-title" className="text-lg font-black">{tileName(tile, state.locale)}</h2><button className="min-h-11 min-w-11" aria-label={he ? 'סגור' : 'Close'} onClick={close}>✕</button></div>
+      <p className="rounded-xl bg-white p-3 text-sm">{guarded ? (he ? `מאויש · מימון +${RULES.guardedIncome}₪ לשנייה` : `Guarded · funding +₪${RULES.guardedIncome}/s`) : (he ? `לא מאויש · עמידות ${tile.hp ?? 100}%` : `Unguarded · durability ${tile.hp ?? 100}%`)}</p>
+      {!guarded && <div className="mt-3">
+        <h3 className="text-sm font-bold">{he ? 'בחר את גזרת המקור' : 'Choose the source sector'}</h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">{borders.map(b => <button key={b.id} aria-pressed={border?.id === b.id} className={`min-h-11 rounded-xl border p-2 text-start text-xs ${border?.id === b.id ? 'border-amber-700 bg-amber-200' : 'border-amber-300 bg-white'}`} onClick={() => dispatch({ type: 'PREVIEW_DEPLOYMENT', borderId: b.id })}>
+          {he ? 'גזרה' : 'Sector'} {b.id.replace('bdr-', '')} · {he ? BORDER_TO_GREEN_CITY[b.id]?.nameHe : BORDER_TO_GREEN_CITY[b.id]?.nameEn}
+        </button>)}</div>
+        {border && <div className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm leading-relaxed">
+          <p>{he ? `עלות: ${RULES.deployCost}₪. מימון: +${RULES.guardedIncome}₪ לשנייה.` : `Cost: ₪${RULES.deployCost}. Funding: +₪${RULES.guardedIncome}/s.`}</p>
+          <p>{opensGap ? (he ? 'גזרה אחת תיחשף: הגנה ‎-12.5 נקודות, שחיקה ‎-0.4 חוסן לשנייה.' : 'One sector exposed: defense −12.5 points, resilience −0.4 HP/s.') : (he ? 'יישאר חייל בגזרה; לא תיפתח פרצה.' : 'A troop remains in this sector; no new gap.')}</p>
+          <button disabled={state.budget < RULES.deployCost} className="mt-2 min-h-11 w-full rounded-xl bg-amber-800 p-2 font-bold text-white disabled:opacity-50" onClick={() => dispatch({ type: 'DEPLOY_TROOP', settlementId: tile.id, borderId: border.id })}>{he ? 'אשר פריסת חייל' : 'Confirm troop deployment'}</button>
+        </div>}
+        {(state.budget < RULES.deployCost || !borders.length) && <p className="mt-2 text-sm text-red-800">{he ? 'דרושים 25₪ וחייל בגבול.' : 'Requires ₪25 and a border troop.'}</p>}
+      </div>}
+      {guarded && <button disabled={!state.activeBreaches.length} className="mt-3 min-h-11 w-full rounded-xl bg-blue-700 p-3 text-sm font-bold text-white disabled:opacity-50" onClick={() => dispatch({ type: 'RECALL_TROOP', tileId: tile.id })}>{he ? 'החזר חייל וסגור פרצה' : 'Recall troop and seal a gap'}</button>}
+      <button className="mt-3 min-h-11 w-full rounded-xl bg-emerald-700 p-3 text-sm font-bold text-white" onClick={() => dispatch({ type: 'EVACUATE_SETTLEMENT', tileId: tile.id })}>{he ? 'פנה מאחז והחזר כוחות' : 'Evacuate outpost and return troops'}</button>
+      <p className="mt-2 text-xs text-slate-600">{he ? 'הפינוי מפסיק את מימון המאחז. חיילים חוזרים לגבול או לכוח הזמין.' : 'Evacuation ends outpost funding. Troops return to the border or the available pool.'}</p>
+    </section>
+  </div>;
 }
-
-export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> = ({ state, dispatch }) => {
-  if (!state.selectedSettlementId) return null;
-
-  const tile = state.tiles[state.selectedSettlementId];
-  if (!tile || !tile.hasSettlement) return null;
-
-  const strings = state.locale === 'he' ? he : en;
-  const isGuarded = tile.garrisonCount > 0;
-  const mannedBorders = Object.values(state.tiles).filter(t => t.isBorderCheckpoint && t.garrisonCount > 0);
-  const canDeploy = !isGuarded && state.budget >= 25 && mannedBorders.length > 0;
-
-  return (
-    <div
-      onClick={() => dispatch({ type: 'SELECT_TILE', tileId: null })}
-      className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-amber-50 border-2 border-amber-300 w-full max-w-xs rounded-3xl p-5 shadow-2xl text-slate-800 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 cursor-default"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-amber-200 pb-3">
-          <div className="flex items-center gap-2">
-            <Home className="w-5 h-5 text-amber-700" />
-            <h3 className="text-lg font-black text-slate-900 font-rubik">
-              {tile.settlementName || strings.modals.inspectorTitle}
-            </h3>
-          </div>
-          <button
-            onClick={() => dispatch({ type: 'SELECT_TILE', tileId: null })}
-            className="p-1 rounded-full hover:bg-amber-200 text-slate-500 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Security Status */}
-        <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-white border border-amber-200 shadow-sm">
-          {isGuarded ? (
-            <>
-              <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-              <div className="text-xs">
-                <p className="font-black text-slate-800">{strings.modals.inspectorGuarded}</p>
-                <p className="text-slate-500 text-[11px]">חייל צה״ל מוקצה לשמירה היקפית במקום בגבול</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <div className="text-xs">
-                <p className="font-black text-red-700">{strings.modals.inspectorUnguarded}</p>
-                <p className="text-slate-500 text-[11px]">נדרשת פריסת כוחות דחופה מהגבול!</p>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Unprotected Settlement Durability / HP Bar */}
-        {!isGuarded && (
-          <div className="p-3 rounded-2xl bg-white border border-amber-200 shadow-sm flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs font-bold">
-              <span className="text-slate-700">עמידות המאחז (HP):</span>
-              <span className={(tile.hp ?? 100) <= 30 ? 'text-red-600 font-black animate-pulse' : 'text-emerald-700'}>
-                {tile.hp ?? 100}%
-              </span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  (tile.hp ?? 100) > 60 ? 'bg-emerald-500' : (tile.hp ?? 100) > 30 ? 'bg-amber-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${tile.hp ?? 100}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-slate-500">
-              בהיעדר חיילי צה״ל, המאחז סופג נזק בכל עימות ועלול להיחרב!
-            </p>
-          </div>
-        )}
-
-        {/* Creative / Rational Strategic Action: Recall or Evacuate */}
-        <div className="flex flex-col gap-2">
-          {!isGuarded && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-2.5">
-              <p className="text-xs font-black text-red-900">
-                {state.locale === 'he' ? 'תחזית לפני פריסה: ‎-12.5% הגנת גבול, פרצה חדשה, ‎-25₪' : 'Deployment forecast: -12.5% border defense, one new breach, -₪25'}
-              </p>
-              <p className="mt-1 text-[10px] text-red-700">
-                {state.locale === 'he' ? 'בחרו במפורש איזו גזרת גבול תישאר ללא חייל:' : 'Explicitly choose which border sector will be left unmanned:'}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {mannedBorders.map((border, index) => (
-                  <button
-                    key={border.id}
-                    disabled={!canDeploy}
-                    onClick={() => dispatch({ type: 'DEPLOY_TROOP', settlementId: tile.id, borderId: border.id })}
-                    className="rounded-lg border border-red-300 bg-white px-2 py-1 text-[10px] font-bold text-red-800 disabled:opacity-50"
-                  >
-                    {state.locale === 'he' ? `גזרה ${index + 1}` : `Sector ${index + 1}`}
-                  </button>
-                ))}
-              </div>
-              {!canDeploy && <p className="mt-1 text-[10px] text-red-600">{state.locale === 'he' ? 'דרושים 25₪ וחייל בגבול.' : 'Requires ₪25 and a border troop.'}</p>}
-            </div>
-          )}
-          {isGuarded && (
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={() => dispatch({ type: 'RECALL_TROOP', tileId: tile.id })}
-                className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-heebo"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>{state.locale === 'he' ? 'החזרת חייל להגנת הגבול המערבי ⟵' : 'Recall Soldier to Western Border ⟵'}</span>
-              </button>
-              <div className="text-[11px] font-black text-emerald-800 bg-emerald-100/90 px-2 py-1 rounded-xl border border-emerald-300 text-center font-rubik">
-                {state.locale === 'he' ? '⚡ +12.5% הגנה לקו הגבול הריבוני בהחזרת חייל!' : '⚡ +12.5% Defense to Sovereign Border on Recall!'}
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => dispatch({ type: 'EVACUATE_SETTLEMENT', tileId: tile.id })}
-            className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-heebo"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>{strings.modals.evacuateBtn}</span>
-          </button>
-
-          <button
-            onClick={() => dispatch({ type: 'SELECT_TILE', tileId: null })}
-            className="w-full py-2 text-xs font-bold text-slate-500 hover:text-slate-800"
-          >
-            {strings.modals.closeBtn}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};

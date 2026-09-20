@@ -1,5 +1,21 @@
 import { HexTile } from '../types';
 
+const ENGLISH_NAMES: Record<string, string> = {
+  'isr-2': 'Haifa / North', 'isr-4': 'Netanya / Sharon', 'isr-6': 'Tel Aviv',
+  'isr-8': "Shfela / Modi'in", 'isr-10': 'Ashdod / Ashkelon', 'isr-11': 'Gaza envelope',
+  'isr-12': 'Beer Sheva / Negev', 'wb-deadsea': 'Dead Sea',
+  'wb-ariel': 'Ariel', 'wb-beitel': 'Beit El', 'wb-gush': 'Gush Etzion',
+  'wb-dotan': 'Mevo Dotan', 'wb-yitzhar': 'Yitzhar', 'wb-kiryatarba': 'Kiryat Arba',
+  'wb-elonmoreh': 'Elon Moreh', 'wb-itamar': 'Itamar', 'wb-eli': 'Eli / Shilo',
+  'wb-ofra': 'Ofra', 'wb-tekoa': 'Tekoa', 'wb-susia': 'Susia', 'wb-mehola': 'Mehola',
+  'wb-givatolam': 'Givat Olam', 'wb-jordanval': 'Jordan Valley', 'wb-adumim': 'Maale Adumim',
+  'wb-havatmaon': 'Havat Maon',
+};
+
+export const tileName = (tile: HexTile, locale: 'he' | 'en') => locale === 'he'
+  ? tile.label || tile.settlementName || tile.id
+  : ENGLISH_NAMES[tile.id] || tile.subLabel || tile.id;
+
 export const INITIAL_TILES: Record<string, HexTile> = {
   // ==========================================
   // 1. ISRAEL (COASTAL PLAIN & GREEN ZONE - WEST)

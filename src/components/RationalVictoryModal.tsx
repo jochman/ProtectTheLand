@@ -4,6 +4,7 @@ import { ShieldCheck, RotateCcw } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
+import { RunReport } from './RunReport';
 
 interface RationalVictoryModalProps {
   state: GameState;
@@ -11,21 +12,22 @@ interface RationalVictoryModalProps {
 }
 
 export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ state, dispatch }) => {
-  if (state.gameStatus !== 'rational_victory') return null;
-
   const strings = state.locale === 'he' ? he : en;
 
   useEffect(() => {
+    if (state.gameStatus !== 'rational_victory' || state.reduceMotion) return;
     confetti({
       particleCount: 80,
       spread: 70,
       origin: { y: 0.6 },
     });
-  }, []);
+  }, [state.gameStatus, state.reduceMotion]);
+
+  if (state.gameStatus !== 'rational_victory') return null;
 
   return (
     <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-[#f0fdf4] border-4 border-emerald-600 w-full max-w-sm rounded-[32px] p-6 shadow-2xl text-slate-800 flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+      <div role="dialog" aria-modal="true" aria-label={strings.modals.victoryTitle} className="modal-panel bg-[#f0fdf4] border-4 border-emerald-600 w-full max-w-sm rounded-[32px] p-4 shadow-2xl text-slate-800 flex flex-col items-center text-center gap-3">
         
         {/* Victory Header */}
         <div className="bg-emerald-100/90 border-2 border-emerald-400 rounded-2xl px-6 py-3 shadow-inner w-full flex flex-col items-center">
@@ -40,8 +42,9 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
 
         {/* Analytical Explanation */}
         <p className="text-xs leading-relaxed text-slate-700 px-1 font-heebo">
-          {strings.modals.victoryBody}
+          {state.locale === 'he' ? 'עמדת ביעד התרחיש. הגבול מאויש והאיומים הפעילים נבלמו. בדוק כיצד ההחלטות שלך השפיעו על החוסן ועל השימוש במילואים.' : 'Scenario objective achieved. The border is staffed and active raids have been stopped. Review how your decisions affected resilience and reserve use.'}
         </p>
+        <RunReport state={state} />
 
         {/* The Civic Movement Slogan */}
         <div className="bg-emerald-800 text-emerald-100 font-black text-sm px-4 py-2 rounded-xl tracking-wide shadow-sm w-full font-rubik">
@@ -54,8 +57,9 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
           className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 font-heebo"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>{strings.modals.victoryRestartBtn}</span>
+          <span>{state.locale === 'he' ? 'נסה אסטרטגיה אחרת באותו תרחיש' : 'Replay this scenario with another strategy'}</span>
         </button>
+        <button className="min-h-11 text-sm underline" onClick={() => dispatch({ type: 'OPEN_TOOLKIT' })}>{state.locale === 'he' ? 'בחר תרחיש אחר' : 'Choose another scenario'}</button>
 
       </div>
     </div>

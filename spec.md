@@ -3,8 +3,8 @@
 > **Document Type:** Comprehensive Game Design & Technical Architecture Specification (`spec.md`)  
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
-> **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 17:59:05 UTC (Branch: `main`, Iteration #47)
+> **Repository:** `/var/home/jochman/dev/octGame`
+> **Last Synchronized:** 2026-09-20 18:11:23 UTC (Branch: `main`, Iteration #49)
 
 ---
 
@@ -16,16 +16,16 @@ The game places the player in the role of a policymaker/commander balancing sove
 
 The game concludes in one of two fundamental narrative endings:
 1. **The October 7 Catastrophe (`gameStatus: 'catastrophe'`):**
-   - **Primary Tactical Trigger (Homeland HP Collapse):** Defense gaps left unsealed along the sovereign border continuously drain Homeland HP (`landHp`) by -0.4 HP/s per hole. Hostile infiltrations that penetrate gaps and reach Israeli cities inflict -20 HP and -20₪ damage. When Homeland HP drops to 0%, the nation's defenses collapse completely, sirens wail, and the October 7 defeat screen appears with a comprehensive policy post-mortem.
+   - **Primary Tactical Trigger (Homeland HP Collapse):** Defense gaps left unsealed along the sovereign border continuously drain Homeland HP (`landHp`) by -0.4 HP/s per hole. Hostile infiltrations that penetrate gaps and reach Israeli cities inflict -12 HP and -10₪ damage. When Homeland HP drops to 0%, the nation's defenses collapse completely, sirens wail, and the October 7 defeat screen appears with a comprehensive policy post-mortem.
    - **Satirical Trigger (Messianic Idol Collapse):** If the border collapses to 0% defense, the false miracle button **"יהוה צבאות"** enters panic mode. Tapping it 7 times shatters the idol (`sounds.playCrackCollapse()`), exposing the tragedy of relying on miracles instead of sovereign strategy.
 2. **Rational Victory ("ביטחון בר-קיימא", `gameStatus: 'rational_victory'`):**
    - **Strategic Awakening:** The player chooses sovereign security over messianic illusion.
-   - **Exact Path to Victory:**
-     1. Player builds at least 3 outposts (`settlementsCount >= 3`) to experience political/military overextension.
-     2. Player opens outposts on the map and taps **"פנה מאחז והחזר כוחות לגבול" (Evacuate outpost & return troops to border)**.
-     3. Outposts are dismantled down to 2 or fewer (`settlementsCount <= 2`).
-     4. All 8 sovereign border checkpoints are fully remanned, achieving 100% border readiness (`defenseScore === 100%`).
-     5. The game immediately halts, plays triumphant victory fanfare (`sounds.playVictory()`), and presents the "Sustainable Security" victory debrief.
+   - **Victory Evaluation:** A shared `hasWon` check runs after every gameplay action. All victories require eight staffed checkpoints, no active raids, positive HP, and no unfinished construction. Returning forces through recalls, reserves, evacuation, or breach sealing can satisfy the objective.
+   - **Open / Guided Play:** Experience an actual deployment, then restore security with at most two outposts.
+   - **Defend First:** Survive 120 simulation seconds with at least 80 HP and 30 consecutive secure seconds. At seconds 30, 60, and 90, sectors 2, 4, and 6 respectively become unstaffed; the displaced troops remain available for redeployment by tapping a gap.
+   - **Overextension:** At most two outposts and 15 consecutive secure seconds.
+   - **Emergency Recovery:** At most two outposts, at least 80 HP, and 15 consecutive secure seconds.
+   - Each completed objective stops the clock and displays a run-specific report and medals.
 
 ---
 
@@ -39,7 +39,7 @@ The game concludes in one of two fundamental narrative endings:
 | **Styling** | **Tailwind CSS v4 + CSS Variables** | Native `dir="rtl"` and `dir="ltr"` support, 3D tactile clay-morphic button styling, custom drop shadows. |
 | **Map Engine** | **Responsive SVG 2D Viewport** | Crisp rendering at all pixel densities (Retina/OLED), exact coordinate control, zero dynamic map resizing to eliminate layout shifts. |
 | **Audio Engine** | **Web Audio API (Procedural Synthesizer)** | 100% client-side zero-asset sound generation; safe execution guards for non-browser/SSR environments. |
-| **State Management** | **Pure React `useReducer` Architecture** | Deterministic game logic, replayable turns, clean action dispatching, and seamless serialization. |
+| **State Management** | **React `useReducer` Architecture** | Centralized transitions, seeded threat streams and simulation time. Existing sound calls remain reducer side effects; the reducer is not fully pure. |
 | **Build & Deployment** | **Vite Static SPA Bundle (`dist/`)** | Zero backend requirement; statically deployable to GitHub Pages, Cloudflare Pages, Netlify, or AWS S3. |
 
 ### 2.3 GitHub Pages Deployment Branch
@@ -84,14 +84,14 @@ The game operates seamlessly in **Hebrew (`he`, RTL)** and **English (`en`, LTR)
                     │       INITIAL STATE       │
                     │ 8 Soldiers (at border)    │
                     │ 0 Settlements | Def: 100% │
-                    │ Budget: 140₪ | Income: 4₪ │
+                    │ Budget: 100₪ | Income: 4₪ │
                     └─────────────┬─────────────┘
                                   │
       ┌───────────────────────────┼───────────────────────────┐
       ▼                           ▼                           ▼
 [Build Settlement]        [Call Reserves]             [Collect Shekels]
 Cost: 100₪                +4 Troops (Max 3)           Floating Sea Coins
-Places Outpost in WB      Slows Passive Income        +30₪ Cash Infusion
+Places Outpost in WB      Slows Passive Income        +15₪ Cash Infusion
 Demands Dedicated Troop   (-1₪/s per mobilization)    Golden Spark Burst
       │                           │                           │
       └───────────────────────────┴───────────────────────────┘
@@ -120,172 +120,26 @@ Demands Dedicated Troop   (-1₪/s per mobilization)    Golden Spark Burst
 
 ### 4.2 TypeScript Data Contract (`src/types.ts`)
 
-```typescript
-export type TerrainType = 'israel' | 'westbank' | 'border' | 'sea' | 'desert';
+The complete, compile-checked contract lives in `src/types.ts`; shared formulas and objective selectors live in `src/game/rules.ts`. The reducer wraps individual actions with resource normalization, event accounting, and scenario completion.
 
-export interface HexCoord {
-  q: number;
-  r: number;
-}
-
-export interface HexTile {
-  id: string;
-  coord: HexCoord;
-  x: number;
-  y: number;
-  terrain: TerrainType;
-  label?: string;
-  subLabel?: string;
-  hasSettlement: boolean;
-  settlementName?: string;
-  garrisonCount: number;      // Soldiers stationed here
-  isBorderCheckpoint?: boolean;
-  isLocalCity?: boolean;      // Palestinian urban center in West Bank
-  isBreached?: boolean;
-  hasAlert?: boolean;
-  hp?: number;                // Settlement health: 0..100
-  maxHp?: number;
-}
-
-export interface NewsItem {
-  id: string;
-  headline: string;
-  source: string;
-  headlineHe?: string;
-  headlineEn?: string;
-  sourceHe?: string;
-  sourceEn?: string;
-  category?: 'politics' | 'celebs' | 'military' | 'rabbis';
-  arcId?: string;
-  arcStep?: number;
-  totalArcSteps?: number;
-  timestamp?: string;
-  isUrgent?: boolean;
-}
-
-export interface CollectibleCoin {
-  id: string;
-  x: number;
-  y: number;
-  amount: number;
-  createdAt: number;
-}
-
-export interface GreenSideAttack {
-  id: string;
-  breachId: string;
-  targetCityId: string;
-  targetCityName: string;
-  startX: number;
-  startY: number;
-  targetX: number;
-  targetY: number;
-  progress: number; // 0.0 -> 1.0
-  createdAt: number;
-  durationMs: number;
-}
-
-export interface ClashEvent {
-  id: string;
-  settlementId: string;
-  arabCityId: string;
-  settlerInitiated: boolean;
-  settlementName: string;
-  arabCityName: string;
-  startX: number;
-  startY: number;
-  targetX: number;
-  targetY: number;
-  midX: number;
-  midY: number;
-  createdAt: number;
-  durationMs: number;
-  title: string;
-  isGarrisoned: boolean;
-}
-
-export interface FinancialPenalty {
-  id: string;
-  amount: number;
-  reason: string;
-  timestamp: number;
-}
-
-export interface FinancialGrant {
-  id: string;
-  amount: number;
-  reason: string;
-  timestamp: number;
-}
-
-export interface GameState {
-  locale: 'he' | 'en';
-  soundEnabled: boolean;
-  gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
-  budget: number;
-  maxBudget: number;
-  incomeRate: number;
-  settlementsCount: number;
-  soldiersTotal: number;
-  soldiersAtBorder: number;
-  soldiersAtSettlements: number;
-  reservesBatchesLeft: number; // Starts at 3
-  defenseScore: number;       // 0..100%
-  isBuildMode: boolean;
-  constructions: Record<string, { tileId: string; progress: number }>;
-  collectibleCoins: CollectibleCoin[];
-  lordOfHosts: {
-    chargePercent: number;
-    stage: 1 | 2 | 3 | 4;
-    stageGoalText: string;
-    countdownSeconds: number | null;
-    isPanicMashMode: boolean;
-    mashCount: number;
-    isCracked: boolean;
-    piousToast: string | null;
-  };
-  tiles: Record<string, HexTile>;
-  activeBreaches: string[];
-  infiltratingTrucks: {
-    id: string;
-    x: number;
-    y: number;
-    targetX: number;
-    targetY: number;
-    progress: number;
-  }[];
-  currentNews: NewsItem | null;
-  newsHistory: NewsItem[];
-  activeStoryArcs: Record<string, number>;
-  lastNewsTick: number;
-  selectedSettlementId: string | null;
-  selectedInfiltrationId: string | null;
-  isNewsModalOpen: boolean;
-  isScreenShaking: boolean;
-  sparks: { id: string; startX: number; startY: number; targetX: number; targetY: number; createdAt: number }[];
-  movingTroops: { id: string; fromX: number; fromY: number; toX: number; toY: number; createdAt: number }[];
-  clashes: ClashEvent[];
-  lastClashTick: number;
-  latestPenalty: FinancialPenalty | null;
-  lastPenaltyTick: number;
-  latestGrant: FinancialGrant | null;
-  greenSideAttacks: GreenSideAttack[];
-  lastGreenAttackTick: number;
-  landHp: number;             // 0..100% (National resilience / Homeland integrity)
-  interceptedToast: InterceptionToast | null;
-  isIntroModalOpen: boolean;  // Entrance instruction modal visibility
-  isPaused: boolean;          // Smart pause during modals or user manual pause
-  infoPopover: { title: string; text: string } | null; // Tap-to-explain stat popovers
-}
-```
+- Resources: budget, income, total soldiers, soldiers assigned to outposts, border/available soldiers, three reserve batches, resilience, and the eight checkpoint garrisons.
+- `availableTroops = soldiersTotal - sum(tile.garrisonCount)`. These troops are available before recalling outpost troops or calling another reserve batch. The legacy `soldiersAtBorder` count includes this available pool; actual readiness always derives from staffed checkpoints.
+- `elapsedSeconds` advances only on an unpaused simulation tick. `secureSeconds` counts consecutive ticks with no gaps or active raids and resets upon a gap/raid.
+- `scenarioId`: `open | defend_first | overextension | recovery`; `seed` defaults to `7102023`.
+- `tutorialStep`: `build | deploy | observe | done`. Non-tutorial scenarios start at `done`.
+- Deployment UI: `isDeployMode`, `selectedSettlementId`, `pendingBorderId`; source selection previews a transfer, and only `DEPLOY_TROOP` confirms it.
+- `metrics`: cumulative actual exposure, raid and outpost-loss HP damage (clamped to HP remaining at each hit), raids intercepted, miracle-button clicks, and reserve calls made during this run.
+- `timeline`: simulation second, action/event kind, optional source/breach sector, gaps remaining, HP after action, and optional damage/interception count. It covers construction starts, deployments, reserves, recalls, evacuations, sealing, raid impacts, outpost losses and scheduled disruptions.
+- UI pause sources: manual pause, introduction, strategy desk, news feed, settlement inspector, infiltration inspector and information popovers.
+- Replays reconstruct the same scenario and seed, clear time/metrics/history, and preserve locale, sound and reduced-motion settings.
+- Gameplay mutations are rejected after a terminal result. UI controls and scenario restart remain available.
 
 ---
 
 ## 5. Mathematical Balancing & Economic Equations
 
 ### 5.1 Game Session Target Duration
-- **Fast/Skilled Player:** ~4 to 5 minutes.
-- **Standard/Slow Player:** ~6 to 7 minutes.
+- Guided play is a short build/deploy/restore exercise. Overextension and recovery length depend on decisions and healing. Defend First has a 120-second minimum. Paused reading time is excluded.
 
 ### 5.2 Defense Score Equation
 The sovereign border consists of **8 critical checkpoints** (`bdr-1` through `bdr-8`):
@@ -304,23 +158,23 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 - **Settlement Construction Cost:** 100₪.
 - **Initial Treasury:** 100₪ (Balanced to cover either 1st settlement or troop deployment savings).
 - **Dynamic Treasury Cap:** Starts at 300₪ and expands as the settlement empire grows:
-  $$\text{MaxBudget} = 300\text{₪} + (\text{BuiltSettlements} \times 20\text{₪})$$
+  $$\text{MaxBudget} = 300\text{₪} + (\text{BuiltSettlements} \times 25\text{₪})$$
 - **Paced Income Formula:**
   - **Base Civilian Production:** Calling military reserves pulls workers from the civilian economy:
     $$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
-    $$\text{BaseCivilianIncome} = \max\left(1\text{₪/s}, 3 - \text{CallsMade}\right)$$
+    $$\text{BaseCivilianIncome} = \max\left(1\text{₪/s}, 4 - \text{CallsMade}\right)$$
   - **Guarded Outpost Coalition Multiplier:** Each garrisoned outpost yields government funding:
-    $$\text{GuardedBonus} = \text{GuardedSettlements} \times 1\text{₪/s}$$
+    $$\text{GuardedBonus} = \text{GuardedSettlements} \times 2\text{₪/s}$$
   - **Effective Passive Income Rate:**
     $$\text{IncomeRate} = \text{BaseCivilianIncome} + \text{GuardedBonus}$$
 
-| Guarded Outposts | Base Civilian (0 calls) | Settlement Bonus | Total Passive Income | Player Experience |
-|---|---|---|---|---|
-| **0 outposts** | +3 ₪/s | +0 ₪/s | +3 ₪/s | Balanced civilian economy |
-| **1 outpost** | +3 ₪/s | +1 ₪/s | +4 ₪/s | Paced early growth |
-| **2 outposts** | +3 ₪/s | +2 ₪/s | +5 ₪/s | Moderate treasury growth |
-| **4 outposts** | +3 ₪/s | +4 ₪/s | +7 ₪/s | Rewarding incentive to guard outposts |
-| **8 outposts** | +3 ₪/s | +8 ₪/s | +11 ₪/s | Peak expansion income |
+| Guarded outposts | Civilian income, no calls | Outpost funding | Total |
+|---|---|---|---|
+| 0 | 4 ₪/s | 0 ₪/s | 4 ₪/s |
+| 1 | 4 ₪/s | 2 ₪/s | 6 ₪/s |
+| 2 | 4 ₪/s | 4 ₪/s | 8 ₪/s |
+| 4 | 4 ₪/s | 8 ₪/s | 12 ₪/s |
+| 8 | 4 ₪/s | 16 ₪/s | 20 ₪/s |
 
 ### 5.4 Troop Deployment Cost ("עלות פריסת כוחות")
 - **Operational Expenditure:** Deploying soldiers from the sovereign border to West Bank outposts costs **25₪ per transferred soldier** to finance mobile trailers, armored transport, and security infrastructure:
@@ -329,7 +183,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 - **Affordability Requirement:** If `state.budget < 25₪`, deployment is disabled and button indicates `(נדרש 25₪)`.
 - **Audio & Visual Feedback:**
   - Deployment sound (`sounds.playDeploy()`) and expenditure thud (`sounds.playPenalty()`).
-  - Floating deduction tag appears in the status pill: `💸 -25₪ (עלות פריסת כוחות)`.
+  - The budget counter changes immediately; the event is recorded in the run timeline.
   - The `DEPLOY_TROOPS` button prominently displays the cost: `-25₪ עלות`.
 - **Messianic Charge Acceleration:** Stationing soldiers at outposts advances the "יהוה צבאות" charge gauge by **+4% per soldier**, enticing the player toward divine miracle illusions.
 
@@ -350,7 +204,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - West Bank settlement destroyed in a clash: **-10 HP** to Land HP.
 - **Resilience Recovery:**
   - When border is 100% fortified with 0 holes and 0 active attacks: recovers **+0.5 HP/s** (up to 100%).
-  - Successfully sealing a breach / thwarting an attack: awards **+3 to +5 HP**.
+  - Successfully sealing a breach / thwarting an attack: awards **+2 HP** for recall-based sealing, **+3 HP** for reserve-based sealing, or **+5 HP** when those actions intercept a raid. Redeploying an already-available soldier grants no bonus HP.
 - **Defeat Threshold:**
   If `landHp <= 0`, sovereign defenses collapse and the **October 7 Catastrophe** defeat modal triggers immediately.
 
@@ -390,10 +244,10 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - Guarantees comfortable reaction time to read alerts, digest tactical advice, and dispatch defenses without panic.
   - Live countdown tag displayed directly above the moving hostile vehicle: `🎯 [עיר] (17ש׳ לבלימה)`.
 - **Tri-Fold Actionable Defense:**
-  1. **Floating Emergency Alert with Direct Button:** The urgent operational alert remains visible for 14 seconds and embeds a direct action button: `[🛡️ לחץ כאן לבלימת החדירה!]` opening the defense modal instantly.
-  2. **The Reserves Button:** Turns red, pulsing with `🚨 בלום חדירה! / Intercept!`.
+  1. **Floating Emergency Alert with Direct Button:** The urgent operational alert auto-dismisses after six seconds and embeds a direct action button: `[🛡️ לחץ כאן לבלימת החדירה!]` opening the defense modal instantly.
+  2. **The Reserves Button:** Remains a stable, labeled action with the number of calls remaining. The short advisor highlights the gap to seal.
   3. **Map Truck & City Clicking:** Clicking the raider truck or the target city opens `InfiltrationDefenseModal` showing the animated approach bar with exact seconds remaining.
-- **Failure to Intercept:** If the truck reaches the city: **-10₪** direct damage (halved from -20₪), -4% defense drop (previously -6%), and -12% Land HP.
+- **Failure to Intercept:** If the truck reaches the city: **-10₪** and **-12 HP**. Readiness remains the fraction of staffed checkpoints; raid impacts do not introduce an unrelated readiness penalty.
 
 ---
 
@@ -476,44 +330,18 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 
 ---
 
-## 10. Mobile Single-Screen Viewport Architecture & Full-Screen Execution
+## 10. Mobile Viewport, Guided Opening & Pausing
 
-To deliver an authentic arcade/tactical mobile feel with **strictly zero vertical scrolling and true full-screen execution**:
-1. **Root-Level Viewport Lock:** `html, body, #root` use `position: fixed; inset: 0; width: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; touch-action: manipulation;`. This eliminates elastic rubber-banding, browser chrome expansion jumps, and accidental page scrolling across all mobile browsers (iOS Safari, Android Chrome, in-app webviews).
-2. **Edge-to-Edge Mobile Container:** `MobileFrame` occupies 100% of the mobile screen (`w-full h-[100dvh] max-w-none rounded-none border-none p-0`), restricting the `max-w-[430px]` framed smartphone mockup strictly to desktop screens (`sm:`). This prevents letterboxing or dark bars on wider phones.
-3. **Adaptive Zero-Scroll Flex-Map Engine:** `HexMapCanvas` uses `flex-1 min-h-0 max-h-full overflow-hidden` with `viewBox="0 0 460 565"` and `preserveAspectRatio="xMidYMid meet"`. The SVG map automatically scales dynamically into whatever viewport height remains, guaranteeing that the **"יהוה צבאות"** button is always 100% visible on screen above the bezel.
-4. **Native Browser Fullscreen API:** `HeaderBar` provides a dedicated **Fullscreen Toggle button (`Maximize2` / `Minimize2`)** allowing mobile and desktop players to toggle browser fullscreen on demand (`document.documentElement.requestFullscreen()`).
-5. **Interactive Entrance Instruction Modal (`EntranceInstructionModal.tsx`):**
-   - Automatically welcomes players on their first visit (persisted via `localStorage: 'oct7_seen_intro_guide'`).
-   - Reopenable at any time during gameplay via the dedicated **`❓` (HelpCircle)** button in `HeaderBar`.
-   - Concisely frames the satirical narrative mission:
-     - **The Core Dilemma:** Zero-sum manpower tradeoff between West Bank outposts and sovereign border defense.
-     - **National Goal:** Settle all hilltops across Samaria and Judea: "כיבוש מדינת ישראל והבאת הגאולה לארצנו" via "יהוה צבאות" at 100%!
-     - **Step 1:** Constructing hill-top outposts (100₪).
-     - **Step 2:** Troop deployment cost (25₪/soldier) to protect outposts from clashes and fines, which pulls soldiers from the border.
-     - **Step 3:** Sovereign border breach risk & Homeland HP (`landHp`) continuous bleed (-0.4 HP/s per hole) and raid hits (-20% HP).
-     - **Step 4:** "יהוה צבאות: כיבוש מדינת ישראל והבאת הגאולה לארצנו" (advancing toward 100% total victory) vs. Risk of October 7 collapse (0% HP or button shattering upon 7 panic mashing taps).
-     - **Narrative Integrity:** The tutorial deliberately avoids revealing the rational evacuation victory condition upfront, allowing players to organically discover that prioritizing sovereign borders over messianic expansion is the true path to sustainable security.
-6. **Smart Auto-Pause & Manual Pause Engine:**
-   - **Smart Auto-Pause:** Game loop interval automatically pauses whenever overlay modals are opened (`NewsFeedModal`, `EntranceInstructionModal`, `SettlementInspectorModal`, `InfiltrationDefenseModal`), removing reading pressure on mobile devices.
-   - **Manual Pause Button:** Dedicated `Play` / `Pause` toggle button in `HeaderBar` (`TOGGLE_PAUSE`) with a floating amber banner (`המשחק מושהה - לחץ להמשך / Game Paused - tap to resume`).
-7. **Mobile Tactile Feedback Engine (`src/utils/haptics.ts`):**
-   - Web Vibration API (`navigator.vibrate`) integration for mobile devices:
-     - Light click tick (`haptics.light()`, 10ms) on buttons, troop deployments, and outposts.
-     - Cash & Tax double-pulse (`haptics.coin()`, `[15, 30, 15]ms`) when tapping city taxes or collecting coins.
-     - Infiltration warning pulse (`haptics.warning()`, `[30, 40, 30]ms`) on siren pings and panic mashing.
-     - Impact strike vibration (`haptics.impact()`, `[60, 50, 60]ms`) on border collapse.
-8. **Tap-to-Explain Stat Popovers (`TopStatusPill.tsx`):**
-   - Tapping any stat (Soldiers, Settlements, Budget, Land HP, Border Readiness) triggers a floating informational speech bubble (`SHOW_INFO_POPOVER`) with concise bilingual explanations.
-   - Auto-dismisses after 4.5 seconds or immediately upon tapping `✕` / popover body (`CLEAR_INFO_POPOVER`).
-   - Floats absolutely (`absolute top-full mt-1.5`) with 0px layout height to preserve zero-scroll mobile geometry, in a stacking context above the news ticker so it remains fully readable.
-   - Redundant penalty/grant floating pills are intentionally omitted; the budget counter and news wire remain the single, quieter feedback channel for those changes.
-9. **3-Step Guided Onboarding Quests (`BottomActionDeck.tsx`):**
-   - Built directly into the Tactical Situation Advisor bar during early play:
-     - **Quest 1/3:** `🎯 משימה 1/3: הקם מאחז ראשון בגבעות (לחץ 'בניית יישוב')` (shown when `settlementsCount === 0`).
-     - **Quest 2/3:** `🎯 משימה 2/3: אבטח את המאחז (לחץ 'פריסת כוחות' - 25₪)` (shown when outposts are ungarrisoned).
-     - **Quest 3/3:** `🎯 משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או הפעל את 'יהוה צבאות' לגאולה!` (shown when border breaches emerge).
-     - Emergency raid alerts (`🚨`) dynamically preempt all quests during active combat.
+- The root document is fixed at `100dvh` with overflow hidden. `MobileFrame` accounts for safe areas; the desktop bezel is capped to available viewport height.
+- The map uses `flex-1 min-h-[220px] max-h-full overflow-hidden` and `preserveAspectRatio="xMidYMid meet"`. Header, status, ticker, objective and all four action buttons share the remaining height.
+- The action deck has a short, wrapping instruction with tap-to-read detail. Build mode highlights candidate hills; deployment mode highlights unguarded outposts; gaps have a visible ring and a generous hit area.
+- A compact initial explanation introduces the three playable steps: build (100₪), preview and confirm deployment (25₪), then observe the highlighted gap and restore security. The miracle mechanic is explicitly satirical and never presented as a mechanical defense action.
+- Guided state advances from construction to deployment to observation. Scenario objectives are visible throughout play, including elapsed and required secure time.
+- New/updated overlays use `.modal-panel` with scrolling confined to the panel; the underlying game never scrolls. Source selection and confirmation have separate controls and stable checkpoint numbers.
+- Manual pause is independent of modal visibility. Both the interval and reducer reject ticks while any reading overlay or information popover is open. Closing the strategy desk preserves the prior manual pause.
+- Simulation time drives construction, cooldowns, damage, attacks and clash expiry. Cosmetic troop/spark/toast clearing remains wall-clock based and does not advance gameplay.
+- Information popovers dismiss on tap or after 4.5 seconds. Haptics remain available for map interactions and the miracle button.
+- Reduced-motion styling disables CSS motion, and victory confetti respects the same setting. Buttons and interactive map checkpoints/outposts have visible keyboard focus.
 
 ---
 
@@ -521,6 +349,7 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 
 1. **Direct Breach Containment (`SEAL_BREACH` & Prioritized Targeting):**
    - Tapping an unmanned border checkpoint bearing the `⚠️ פרצה (לחץ לבלימה)` prompt immediately dispatches `SEAL_BREACH`.
+   - **Available Troop Priority:** First use any existing unassigned soldier, including a soldier displaced by a scheduled disruption. This uses no reserve call and opens no other gap.
    - **Troop Recall Priority:** If soldiers are garrisoned in West Bank outposts, the system immediately pulls a soldier from the closest outpost and leaps them straight to the breached checkpoint.
    - The checkpoint is instantly re-manned (`garrisonCount = 1`, `isBreached = false`, `hasAlert = false`), the sovereign defense score increases, and any hostile squad traversing that breach is intercepted on the spot.
    - Triggers `sounds.playShieldChime()` and pops the feedback banner: `🛡️ חדירה סוכלה בהצלחה! לוחם הוחזר ממאחז לבלימת הפרצה!`.
@@ -529,13 +358,13 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 
 2. **West Bank Clashes: Skewed Against Non-Secured Settlements:**
    - When non-secured outposts (`garrisonCount === 0`) are present in the West Bank:
-     - Clash pacing accelerates dramatically: cooldown shrinks from 32s to 14s, and trigger chance climbs to 42%.
+     - Clash pacing accelerates dramatically: cooldown is 45/38/32 seconds for 1/2/3+ outposts with a 28% trigger chance; guarded-only boards use 60/50 seconds and 10%.
      - **85% Probability Weight:** Clashes are heavily weighted to strike non-secured, exposed outposts rather than garrisoned settlements.
-     - **Vulnerability & Attrition:** Non-secured outposts endure direct damage (-35 HP per incident, sirens, -15₪ damages) and are wiped off the map if HP reaches 0%.
+     - **Vulnerability & Attrition:** Non-secured outposts endure direct damage (-25 outpost HP per incident, sirens, -6₪ damages) and are wiped off the map if HP reaches 0%.
      - **Narrative Framing:** Breaking headlines highlight the security vacuum (*"מאחז חשוף תחת מתקפה: בהיעדר כוחות צה״ל לשמירה..."*), creating a sharp dilemma between protecting sovereign borders and preventing outpost destruction.
 
 3. **Settlement Inspector Tactical Feedback:**
-   - In `SettlementInspectorModal`, the troop recall button displays explicit strategic benefit: `⚡ +12.5% הגנה לקו הגבול הריבוני בהחזרת חייל!`.
+   - The inspector previews budget and income changes and whether removing the selected troop actually opens a gap. Recall is disabled when no gap needs filling.
 
 4. **Garrison Benefits & Outpost Repair:**
    - Outposts with stationed troops display a miniature IDF shield badge (`✡`).
@@ -547,20 +376,15 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 
 ---
 
-## 12. Defeat Screen Post-Mortem & Social Sharing
+## 12. Run Reports, Medals & Social Sharing
 
-1. **Choice-Based Post-Mortem Timeline:**
-   - `October7DefeatModal` breaks down the player's chain of policy decisions that precipitated the tragedy:
-     - Number of isolated hill-top outposts established.
-     - Quantity of IDF soldiers drained from sovereign border to West Bank guarding duties.
-     - Exhaustion of civilian reserves (impacting economic output).
-     - Reliance on the messianic false-hope button ("יהוה צבאות").
-     - Multi-point simultaneous collapse of the sovereign border.
-2. **1-Click WhatsApp Sharing:**
-   - Dedicated direct WhatsApp share button (`https://api.whatsapp.com/send?text=...`) enabling immediate viral civic discourse.
-3. **Responsive Modal Container:**
-   - Scoped with `max-h-[94dvh] overflow-y-auto` to guarantee full readability on every mobile screen size.
-   - Terminal defeat state always clears screen shake before the game loop stops; the post-mortem stays motionless and readable. Panic mode retains a glow cue but no continuously rocking button.
+- Both terminal screens embed `RunReport`: objective, elapsed simulation seconds, final HP, intercepted raids, medals, a damage-source table and an expandable chronological event list.
+- Damage reporting sums actual HP removed by exposure, raid impacts and destroyed outposts before later healing. Final state totals are not substituted for historical decisions.
+- Miracle reliance is mentioned only when this run actually recorded a button press. The defeat text distinguishes HP exhaustion from the panic-button shatter.
+- Three medals are available only on victory: finish with 90+ HP; use at most one reserve call during the run; finish within 90 seconds (125 seconds for Defend First).
+- Both endings offer same-scenario replay and choosing another scenario. The shared seed keeps threat opportunities comparable, while different policies affect which threats are eligible.
+- Defeat retains native sharing, WhatsApp sharing and a standalone SVG result card. Shared text reports final outposts, gaps and HP without inventing decisions.
+- Terminal screens are bounded, internally scrollable panels; the map and deck retain their layout behind them.
 
 ## 12.1. Low-Interruption Notification Behavior
 
@@ -572,39 +396,22 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 
 ## 13. Verification & Quality Assurance
 
-- **TypeScript Compilation:** Strict verification with 0 errors via `tsc`.
-- **Production Build:** `npm run build` bundles client in ~170ms into static `dist/`.
-- **Browser Compatibility:** Tested on mobile WebKit (Safari), Blink (Chrome/Edge/Android), and Gecko (Firefox).
-- **Responsive Geometry:** SVG map coordinates remain pixel-perfect across standard mobile displays and wide desktop monitors.
+- `npm run build`: strict TypeScript checking and Vite production bundle, required before completion.
+- `npm test`: executable reducer regressions covering tutorial/deployment, all security-restoring victory paths, timed disruptions, recovery thresholds, pause behavior, seeded replay, actual damage and interception accounting, and terminal-state immutability.
+- Chromium checks in `scripts/test-browser.mjs` cover both languages at 320×568, 360×640, 390×844, 430×932, 568×320, 844×390 and 1280×720. They assert no document scrolling, a map of at least 220px, no objective/ticker/action overlap, and visibility of all four actions. They also exercise build → preview → deploy → seal → victory, scenario switching, defeat and replay, collecting runtime errors. Safari and Firefox have not been verified in this iteration.
+- The browser runner is optional development tooling: install Playwright separately and run `node scripts/test-browser.mjs`, or point `PLAYWRIGHT_MODULE` to its module. It is not a runtime dependency.
 
----
+## 14. Strategy Desk, Replay & Accessibility
 
-## 14. Strategy Desk, Player Agency & Accessibility
-
-1. **Player-Directed Deployment:**
-   - The broad `DEPLOY_TROOPS` action no longer moves soldiers randomly. It directs the player to open an unguarded outpost.
-   - `SettlementInspectorModal` presents every currently manned border sector as a deliberate source choice. Selecting one dispatches `DEPLOY_TROOP { settlementId, borderId }`.
-   - Before confirmation, the inspector always exposes the exact consequence: one soldier costs `25₪`, the selected sector becomes a breach, and border readiness loses `12.5%`.
-   - This preserves decision ownership and makes the manpower trade-off inspectable rather than opaque.
-
-2. **Strategy Desk (`StrategyToolkitModal.tsx`):**
-   - The compact book control in `HeaderBar` opens a paused, dismissible strategy desk without changing the game viewport layout.
-   - It contains a bilingual policy ledger (choice, immediate gain, ongoing cost), an explicit statement that the product is a simplified educational/satirical model rather than a forecast or historical reconstruction, and replayable starting scenarios.
-   - The desk links to the project’s original analysis inspiration, keeping its framing and simplified assumptions visible to players who want additional context.
-   - `defend_first` begins with an additional 50₪; `overextension` begins with two guarded outposts and two open border sectors; `recovery` begins with three guarded outposts, five manned sectors, 70% Homeland HP, and one reserve call.
-   - Scenario construction clones `INITIAL_STATE`, so every scenario is deterministic in its starting board and directly comparable.
-
-3. **Alternative Rational Resolution:**
-   - Sustainable-security victory can be reached after restoring 100% border defense and reducing the outpost count to two or fewer once the player has experienced overextension, including via a scenario. It is no longer coupled exclusively to constructing three outposts in a single unstructured run.
-
-4. **Accessibility:**
-   - The strategy desk offers a persistent reduce-motion preference (`reduceMotion`). The root `reduce-motion` class neutralizes animation and transition durations while retaining state and color-independent text cues.
-   - Map labels, textual breach indicators, and numeric readiness/HP readouts remain available when motion is disabled.
-
-5. **Counterfactual & Result Sharing:**
-   - The defeat debrief explains the exact modeled counterfactual: recalling one troop seals one sector and eliminates that sector's `0.4 HP/second` drain.
-   - In addition to native and WhatsApp text sharing, `October7DefeatModal` exports a self-contained SVG result card containing outpost, breach, resilience, and civic-slogan data.
-
+- Header book control opens the bilingual strategy desk without altering manual pause. The desk includes the policy ledger, reduced-motion toggle, scenario descriptions, current objective and medal thresholds, and the original inspiration link.
+- Scenario starts: Open has 100₪ and eight staffed checkpoints; Defend First adds 50₪; Overextension starts with two guarded outposts and two gaps; Recovery starts with three guarded outposts, five staffed checkpoints, 70 HP and one reserve batch.
+- Every scenario is available from the desk, including return to guided play. Launching one resets the current run.
+- `randomStream(seed, elapsedSeconds, channel)` gives separate coin, raid and clash opportunity streams. No UI action or reading delay advances these streams. Narrative randomness is cosmetic; equal gameplay decisions at equal simulation seconds reproduce the threat outcomes.
+- Checkpoint readiness, current income, budget capacity and troop totals are normalized centrally after gameplay changes. Costs/rewards are defined in `RULES` and used by gameplay and previews.
+- `DEPLOY_TROOPS` enters/cancels map selection. Opening an outpost clears stale source selection. Choosing a stable numbered checkpoint shows a preview; a separate confirmation dispatches `DEPLOY_TROOP`.
+- Modal content, scenario objectives, reports, medals and controls support Hebrew and English. Long instructions wrap or move into tap-to-read detail without changing the map height.
+- Named map locations and inspector titles use shared bilingual names; active raid targets and restart news refresh when language changes.
+- Short landscape screens use two columns: map and objective on one side, status/ticker/actions on the other. Portrait retains the single-column layout and 220px map minimum.
 
 ## 15. Authorial & Educational Inscription
 

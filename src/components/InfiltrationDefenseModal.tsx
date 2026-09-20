@@ -28,7 +28,7 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
 
   const handleCallReserves = () => {
     haptics.light();
-    dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId });
+    dispatch({ type: 'CALL_RESERVES' });
     dispatch({ type: 'SELECT_INFILTRATION', id: null });
   };
 
@@ -47,7 +47,7 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border-2 border-red-500 w-full max-w-sm rounded-3xl p-5 shadow-2xl text-white flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        className="modal-panel bg-slate-900 border-2 border-red-500 w-full max-w-sm rounded-3xl p-5 shadow-2xl text-white flex flex-col gap-4 cursor-default"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-red-800 pb-3">
@@ -89,8 +89,8 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
           </div>
           <p className="text-[10px] text-red-300/90 leading-relaxed font-heebo">
             {isHe
-              ? 'אם החוליה תגיע לעיר: נזק ישיר של 25₪- לקופה, צניחה ברמת ההגנה ובהלת תושבים!'
-              : 'If squad reaches city: ₪25 damage, defense drop, and civilian panic!'}
+              ? 'אם החוליה תגיע לעיר: 12- חוסן ו-10₪ נזק. סגירת הפרצה עוצרת את החדירה.'
+              : 'If the squad reaches the city: −12 HP and ₪10 damage. Sealing its gap stops the raid.'}
           </p>
         </div>
 
@@ -101,8 +101,8 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
           </p>
           <p>
             {isHe
-              ? 'כוחות צה״ל הוזזו מעמדות הגבול כדי לשמור על המאחזים, מה שהותיר פרצה בלתי-מאובטחת בגדר.'
-              : 'IDF troops were redeployed to guard outposts, leaving an unmanned gap in the border.'}
+              ? 'גזרת גבול נותרה ללא חייל. חדירה יכולה להתפתח כל עוד הפרצה פתוחה.'
+              : 'A border sector was left unstaffed. Raids can develop while the gap remains open.'}
           </p>
         </div>
 

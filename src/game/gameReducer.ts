@@ -2,16 +2,21 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
+import { RULES, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 
 export const INITIAL_STATE: GameState = {
+  elapsedSeconds: 0, secureSeconds: 0, seed: 7102023,
+  tutorialStep: 'build', isDeployMode: false, pendingBorderId: null,
+  metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
+  timeline: [],
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
   budget: 100, // Balanced initial funds (₪) - exactly covers 1st settlement (100₪) or troop deployment (25₪)
   maxBudget: 300, // Balanced treasury cap
-  incomeRate: 3, // Paced civilian economy baseline (+3 ₪/s)
+  incomeRate: RULES.civilianIncome,
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
@@ -122,6 +127,10 @@ function startScenario(
   next.reduceMotion = reduceMotion;
   next.scenarioId = scenarioId;
   next.isIntroModalOpen = false;
+  next.tutorialStep = scenarioId === 'open' ? 'build' : 'done';
+  next.lordOfHosts.stageGoalText = locale === 'he' ? he.lordOfHosts.stage1Goal : en.lordOfHosts.stage1Goal;
+  next.currentNews = next.currentNews ? translateNewsItem(next.currentNews, locale) : null;
+  next.newsHistory = next.newsHistory.map(item => translateNewsItem(item, locale));
 
   const settlementIds = SETTLEMENT_CANDIDATE_IDS.slice(0, scenarioId === 'recovery' ? 3 : 2);
   const borderIds = Object.values(next.tiles).filter(tile => tile.isBorderCheckpoint).map(tile => tile.id);
@@ -149,6 +158,8 @@ function startScenario(
     next.landHp = scenarioId === 'recovery' ? 70 : 100;
     next.reservesBatchesLeft = scenarioId === 'recovery' ? 1 : 3;
   }
+  next.incomeRate = incomeFor(next);
+  next.maxBudget = RULES.budgetBase + next.settlementsCount * RULES.budgetPerOutpost;
   return next;
 }
 
@@ -200,9 +211,85 @@ export function translateNewsItem(item: NewsItem, targetLocale: 'he' | 'en'): Ne
   };
 }
 
-const SETTLEMENT_COST = 100;
+const SETTLEMENT_COST = RULES.buildCost;
+
+const gameplayActions = new Set<GameAction['type']>([
+  'TICK_TIMER', 'BUILD_SETTLEMENT', 'SELECT_TILE_TO_BUILD', 'COLLECT_COIN', 'COLLECT_CITY_TAX',
+  'DEPLOY_TROOP', 'CALL_RESERVES', 'CLICK_LORD_OF_HOSTS', 'MASH_LORD_OF_HOSTS',
+  'EVACUATE_SETTLEMENT', 'RECALL_TROOP', 'RECALL_ALL_TROOPS', 'SEAL_BREACH',
+]);
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (state.gameStatus !== 'playing' && gameplayActions.has(action.type)) return state;
+  if (action.type === 'TICK_TIMER' && isGamePaused(state)) return state;
+  let input = state;
+  if (action.type === 'TICK_TIMER') {
+    input = { ...state, elapsedSeconds: state.elapsedSeconds + 1 };
+    // Exercises reserve positioning without forcing the player to construct outposts.
+    if (state.scenarioId === 'defend_first' && [30, 60, 90].includes(input.elapsedSeconds)) {
+      const borderId = `bdr-${input.elapsedSeconds / 30 * 2}`;
+      const tile = input.tiles[borderId];
+      input = { ...input, secureSeconds: 0,
+        tiles: { ...input.tiles, [borderId]: { ...tile, garrisonCount: 0, isBreached: true, hasAlert: true } },
+        activeBreaches: [...new Set([...input.activeBreaches, borderId])],
+        timeline: [...input.timeline, { second: input.elapsedSeconds, kind: 'disruption', borderId,
+          gaps: input.activeBreaches.length + (tile.garrisonCount > 0 ? 1 : 0), hp: input.landHp }],
+      };
+    }
+  }
+  let next = reduceGame(input, action);
+  if (action.type === 'RESTART_GAME' || action.type === 'START_SCENARIO') return next;
+  if (!gameplayActions.has(action.type)) return next;
+  const checkpoints = Object.values(next.tiles).filter(t => t.isBorderCheckpoint);
+  const activeBreaches = checkpoints.filter(t => t.garrisonCount === 0).map(t => t.id);
+  const soldiersAtSettlements = Object.values(next.tiles).filter(t => t.hasSettlement)
+    .reduce((sum, tile) => sum + tile.garrisonCount, 0);
+  next = { ...next, activeBreaches, soldiersAtSettlements,
+    soldiersAtBorder: next.soldiersTotal - soldiersAtSettlements,
+    defenseScore: Math.round((checkpoints.length - activeBreaches.length) / RULES.checkpoints * 100),
+    settlementsCount: Object.values(next.tiles).filter(t => t.hasSettlement).length,
+    metrics: { ...next.metrics },
+  };
+  next.incomeRate = incomeFor(next);
+  next.maxBudget = RULES.budgetBase + next.settlementsCount * RULES.budgetPerOutpost;
+  next.budget = Math.min(next.budget, next.maxBudget);
+  if (action.type !== 'TICK_TIMER') next.greenSideAttacks = next.greenSideAttacks.filter(a => next.tiles[a.breachId]?.garrisonCount === 0);
+  const secure = !activeBreaches.length && !next.greenSideAttacks.length;
+  next.secureSeconds = secure ? (action.type === 'TICK_TIMER' ? input.secureSeconds + 1 : next.secureSeconds) : 0;
+  if (state.tutorialStep === 'build' && next.settlementsCount > 0) next.tutorialStep = 'deploy';
+  if (action.type === 'DEPLOY_TROOP' && next.tiles[action.settlementId]?.garrisonCount > state.tiles[action.settlementId]?.garrisonCount) {
+    next.isDeployMode = false;
+    next.pendingBorderId = null;
+    if (state.tutorialStep !== 'done') next.tutorialStep = 'observe';
+  }
+  const interventions: Partial<Record<GameAction['type'], GameState['timeline'][number]['kind']>> = {
+    SELECT_TILE_TO_BUILD: 'build', BUILD_SETTLEMENT: 'build', DEPLOY_TROOP: 'deploy',
+    CALL_RESERVES: 'reserve', RECALL_TROOP: 'recall', RECALL_ALL_TROOPS: 'recall',
+    EVACUATE_SETTLEMENT: 'evacuate', SEAL_BREACH: 'seal',
+  };
+  const changed = next.tiles !== state.tiles || next.budget !== state.budget || next.reservesBatchesLeft !== state.reservesBatchesLeft;
+  const kind = interventions[action.type];
+  if (kind && changed) {
+    const intercepted = state.greenSideAttacks.filter(a => !next.greenSideAttacks.some(b => b.id === a.id)).length;
+    next.metrics.intercepted += intercepted;
+    next.metrics.reserveCalls += Math.max(0, state.reservesBatchesLeft - next.reservesBatchesLeft);
+    next.timeline = [...next.timeline, { second: next.elapsedSeconds, kind,
+      borderId: 'borderId' in action ? action.borderId ?? undefined : 'checkpointId' in action ? action.checkpointId : undefined,
+      gaps: activeBreaches.length, hp: next.landHp, intercepted }];
+  }
+  if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
+  if (next.gameStatus === 'playing' && hasWon(next)) {
+    next = { ...next, gameStatus: 'rational_victory', selectedSettlementId: null, selectedInfiltrationId: null };
+    sounds.playVictory();
+  }
+  return next;
+}
+
+function reduceGame(state: GameState, action: GameAction): GameState {
+  const random = randomStream(state.seed, state.elapsedSeconds, action.type === 'TICK_TIMER' ? 0 : state.timeline.length + 4);
+  const raidRandom = randomStream(state.seed, state.elapsedSeconds, 1);
+  const clashRandom = randomStream(state.seed, state.elapsedSeconds, 2);
+  const coinRandom = randomStream(state.seed, state.elapsedSeconds, 3);
   const strings = state.locale === 'he' ? he : en;
 
   switch (action.type) {
@@ -217,6 +304,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         locale: nextLocale,
         currentNews: state.currentNews ? translateNewsItem(state.currentNews, nextLocale) : null,
         newsHistory: (state.newsHistory || []).map(item => translateNewsItem(item, nextLocale)),
+        greenSideAttacks: state.greenSideAttacks.map(attack => ({ ...attack,
+          targetCityName: nextLocale === 'he' ? BORDER_TO_GREEN_CITY[attack.breachId].nameHe : BORDER_TO_GREEN_CITY[attack.breachId].nameEn,
+        })),
         lordOfHosts: {
           ...state.lordOfHosts,
           stageGoalText: stageGoal,
@@ -234,10 +324,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, reduceMotion: !state.reduceMotion };
 
     case 'OPEN_TOOLKIT':
-      return { ...state, isToolkitOpen: true, isPaused: true };
+      return { ...state, isToolkitOpen: true };
 
     case 'CLOSE_TOOLKIT':
-      return { ...state, isToolkitOpen: false, isPaused: false };
+      return { ...state, isToolkitOpen: false };
 
     case 'START_SCENARIO':
       return startScenario(action.scenarioId, state.locale, state.soundEnabled, state.reduceMotion);
@@ -289,6 +379,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'PREVIEW_DEPLOYMENT':
+      return { ...state, pendingBorderId: action.borderId };
+    case 'COMPLETE_TUTORIAL':
+      return { ...state, tutorialStep: 'done' };
     case 'TOGGLE_BUILD_MODE': {
       if (state.gameStatus !== 'playing') return state;
 
@@ -309,6 +403,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isBuildMode: !state.isBuildMode,
+        isDeployMode: false,
         selectedSettlementId: null,
       };
     }
@@ -318,7 +413,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const tileId = action.tileId;
       const tile = state.tiles[tileId];
 
-      if (!tile || tile.terrain !== 'westbank' || tile.hasSettlement || state.constructions[tileId]) {
+      if (!tile || tile.terrain !== 'westbank' || tile.isLocalCity || tile.hasSettlement || state.constructions[tileId]) {
         return state;
       }
 
@@ -365,7 +460,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => !state.tiles[id]?.hasSettlement && !state.constructions[id]
       );
       if (!nextTileId) return state;
-      return gameReducer(state, { type: 'SELECT_TILE_TO_BUILD', tileId: nextTileId });
+      return reduceGame(state, { type: 'SELECT_TILE_TO_BUILD', tileId: nextTileId });
     }
 
     case 'COLLECT_COIN': {
@@ -378,12 +473,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newSparks = [...(state.sparks || [])];
       for (let i = 0; i < 3; i++) {
         newSparks.push({
-          id: `coin-spark-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+          id: `coin-spark-${simulationNow(state)}-${i}-${random().toString(36).slice(2, 5)}`,
           startX: coin.x + (i - 1) * 6,
           startY: coin.y,
           targetX: 100,
           targetY: 80,
-          createdAt: Date.now(),
+          createdAt: simulationNow(state),
         });
       }
 
@@ -401,8 +496,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const cityTile = state.tiles[action.cityId];
       if (!cityTile) return state;
 
-      const now = Date.now();
-      const lastTax = (state.lastCityTaxTimestamps || {})[action.cityId] || 0;
+      const now = simulationNow(state);
+      const lastTax = state.lastCityTaxTimestamps?.[action.cityId] ?? -Infinity;
       // 3.5s cooldown per city for modest municipal contribution
       if (now - lastTax < 3500) return state;
 
@@ -412,7 +507,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const newSparks = [...state.sparks];
       newSparks.push({
-        id: `spark-tax-${now}-${Math.random()}`,
+        id: `spark-tax-${now}-${random()}`,
         startX: cityTile.x,
         startY: cityTile.y,
         targetX: 200,
@@ -432,22 +527,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'DEPLOY_TROOPS': {
-      // Deployment is deliberately player-directed: a random reassignment would
-      // obscure the policy trade-off this simulation is intended to demonstrate.
-      return {
-        ...state,
-        lordOfHosts: {
-          ...state.lordOfHosts,
-          piousToast: state.locale === 'he'
-            ? 'בחרו מאחז, ואז בחרו במפורש את גזרת הגבול שממנה יועבר החייל.'
-            : 'Select an outpost, then explicitly choose the border sector that will lose a soldier.',
-        },
-      };
+      if (state.gameStatus !== 'playing') return state;
+      return { ...state, isDeployMode: !state.isDeployMode, isBuildMode: false,
+        selectedSettlementId: null, pendingBorderId: null };
     }
 
     case 'DEPLOY_TROOP': {
       if (state.gameStatus !== 'playing') return state;
-      const DEPLOY_COST_PER_SOLDIER = 25;
+      const DEPLOY_COST_PER_SOLDIER = RULES.deployCost;
       const settlement = state.tiles[action.settlementId];
       const border = state.tiles[action.borderId];
       if (!settlement || !settlement.hasSettlement || settlement.garrisonCount > 0 || !border?.isBorderCheckpoint || border.garrisonCount <= 0 || state.budget < DEPLOY_COST_PER_SOLDIER) {
@@ -458,12 +545,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       updatedTiles[action.borderId] = { ...border, garrisonCount: border.garrisonCount - 1, isBreached: true, hasAlert: true };
       updatedTiles[action.settlementId] = { ...settlement, garrisonCount: 1 };
       const newMovingTroops = [...state.movingTroops, {
-        id: `troop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id: `troop-${simulationNow(state)}-${random().toString(36).slice(2, 7)}`,
         fromX: border.x,
         fromY: border.y,
         toX: settlement.x,
         toY: settlement.y,
-        createdAt: Date.now(),
+        createdAt: simulationNow(state),
       }];
       const deploymentCost = DEPLOY_COST_PER_SOLDIER;
       const newBudget = Math.max(0, state.budget - deploymentCost);
@@ -472,10 +559,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       sounds.playPenalty();
 
       const latestPenalty: FinancialPenalty = {
-        id: `penalty-deploy-${Date.now()}`,
+        id: `penalty-deploy-${simulationNow(state)}`,
         amount: deploymentCost,
         reason: state.locale === 'he' ? 'עלות פריסת כוחות' : 'Troop Deployment Cost',
-        timestamp: Date.now(),
+        timestamp: simulationNow(state),
       };
 
       const newBorderSoldiers = Math.max(0, state.soldiersAtBorder - 1);
@@ -495,7 +582,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (newDefenseScore <= 20) {
         sounds.playSiren();
         deployNewsItem = {
-          id: `breach-${Date.now()}`,
+          id: `breach-${simulationNow(state)}`,
           headline: strings.news.borderBreach,
           source: state.locale === 'he' ? 'פיקוד דרום ומרכז' : 'Southern & Central Command',
           headlineHe: he.news.borderBreach,
@@ -531,9 +618,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           'Security Cabinet',
           'Southern Command & Civil Admin',
         ];
-        const cIdx = Math.floor(Math.random() * conceptziaHeadlinesHe.length);
+        const cIdx = Math.floor(random() * conceptziaHeadlinesHe.length);
         deployNewsItem = {
-          id: `conceptzia-${Date.now()}`,
+          id: `conceptzia-${simulationNow(state)}`,
           headline: state.locale === 'he' ? conceptziaHeadlinesHe[cIdx] : conceptziaHeadlinesEn[cIdx],
           source: state.locale === 'he' ? conceptziaSourcesHe[cIdx] : conceptziaSourcesEn[cIdx],
           headlineHe: conceptziaHeadlinesHe[cIdx],
@@ -578,7 +665,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...withNews(state, deployNewsItem),
         selectedSettlementId: null,
         hasExperiencedOverextension: true,
-        actionHistory: [...state.actionHistory, { id: `deploy-${Date.now()}`, kind: 'deploy' as const, timestamp: Date.now() }].slice(-20),
+        actionHistory: [...state.actionHistory, { id: `deploy-${simulationNow(state)}`, kind: 'deploy' as const, timestamp: simulationNow(state) }].slice(-20),
       };
     }
 
@@ -592,7 +679,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newTotal = state.soldiersTotal + addedSoldiers;
 
       // Economic Tradeoff: Mobilizing workers impacts civilian output, but keeps steady flow
-      const newIncomeRate = Math.max(3, 6 - callsMade);
+      const newIncomeRate = Math.max(1, RULES.civilianIncome - callsMade);
 
       sounds.playReserves();
 
@@ -657,15 +744,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         : `Emergency Call-Up! Troops mobilized, civilian economy slowed to ₪${newIncomeRate}/s (${newBatchesLeft} calls left).`;
 
       if (callsMade === 2) {
-        newsHeadlineHe = `גל גיוס שני! מחסור בידיים עובדות — קצב בסיס 4₪, הגבול והמאחזים מוגנים!`;
-        newsHeadlineEn = `Second Mobilization Wave! Labor shortage — base rate ₪4/s, border & outposts secured!`;
+        newsHeadlineHe = `גל גיוס שני! מחסור בידיים עובדות — קצב בסיס 2₪, הגבול והמאחזים מוגנים!`;
+        newsHeadlineEn = `Second Mobilization Wave! Labor shortage — base rate ₪2/s, border & outposts secured!`;
       } else if (callsMade === 3) {
-        newsHeadlineHe = `קריסה במערך המילואים! סבב גיוס אחרון מוצה — תלות מלאה במטבעות ותרומות!`;
-        newsHeadlineEn = `Reserve Exhaustion! Final reserve wave deployed — relying on coins & donations!`;
+        newsHeadlineHe = `קריסה במערך המילואים! סבב גיוס אחרון מוצה — הכנסה אזרחית של 1₪ לשנייה, לצד מימון המאחזים.`;
+        newsHeadlineEn = `Reserve Exhaustion! Final reserve wave deployed — civilian income is ₪1/s, plus guarded outpost funding.`;
       }
 
       // Intercept any green side attacks whose breach checkpoint was just re-manned!
-      const sealedCheckpoints = new Set(breachedCheckpoints.slice(0, addedSoldiers - remainingToPlace));
+      const sealedCheckpoints = new Set(breachedCheckpoints.filter(id => updatedTiles[id].garrisonCount > 0));
       const remainingGreenAttacks = (state.greenSideAttacks || []).filter(
         atk => !sealedCheckpoints.has(atk.breachId)
       );
@@ -689,17 +776,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeBreaches,
         greenSideAttacks: remainingGreenAttacks,
         interceptedToast: hadIntercepted ? {
-          id: `intercept-${Date.now()}`,
+          id: `intercept-${simulationNow(state)}`,
           textHe: '🛡️ חדירה סוכלה בהצלחה!',
           textEn: '🛡️ Infiltration Thwarted Successfully!',
-          timestamp: Date.now(),
+          timestamp: simulationNow(state),
         } : state.interceptedToast,
         lordOfHosts: {
           ...state.lordOfHosts,
           isPanicMashMode: newDefenseScore === 0,
         },
         ...withNews(state, {
-          id: `reserves-${Date.now()}`,
+          id: `reserves-${simulationNow(state)}`,
           headline: state.locale === 'he' ? newsHeadlineHe : newsHeadlineEn,
           source: state.locale === 'he' ? 'אגף כוח אדם והאוצר' : 'Personnel & Treasury',
           headlineHe: newsHeadlineHe,
@@ -720,7 +807,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       sounds.playLordOfHostsClick();
       const excuses = strings.lordOfHosts.excuses;
-      const randomExcuse = excuses[Math.floor(Math.random() * excuses.length)];
+      const randomExcuse = excuses[Math.floor(random() * excuses.length)];
 
       return {
         ...state,
@@ -781,22 +868,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       // 3. Passive budget income: Guarded settlements generate coalition funding (+2₪/s per outpost)
       // Baseline civilian production decreases when reserve call-ups remove workers from the economy.
       const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
-      const baseCivilianIncome = Math.max(1, 4 - callsMade);
+      const baseCivilianIncome = Math.max(1, RULES.civilianIncome - callsMade);
       const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
-      const guardedIncomeBonus = guardedSettlementCount * 2;
+      const guardedIncomeBonus = guardedSettlementCount * RULES.guardedIncome;
       const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
-      const currentMaxBudget = 300 + Object.values(updatedTiles).filter(t => t.hasSettlement).length * 25;
+      const currentMaxBudget = RULES.budgetBase + Object.values(updatedTiles).filter(t => t.hasSettlement).length * RULES.budgetPerOutpost;
       let newBudget = Math.min(currentMaxBudget, state.budget + effectiveIncome);
       let newLandHp = state.landHp !== undefined ? state.landHp : 100;
+      const metrics = { ...state.metrics };
+      const timeline = [...state.timeline];
 
       // Defense holes bleed Homeland HP (0.4 HP/s per unsealed breach)
       const holeCount = state.activeBreaches.length;
       if (holeCount > 0) {
-        const holeDrain = Math.round(holeCount * 0.4 * 10) / 10;
+        const holeDrain = Math.round(holeCount * RULES.gapDamage * 10) / 10;
+        metrics.exposureDamage += Math.min(newLandHp, holeDrain);
         newLandHp = Math.max(0, Number((newLandHp - holeDrain).toFixed(1)));
       } else if ((state.greenSideAttacks || []).length === 0 && newLandHp < 100) {
         // Safe, fortified borders naturally stabilize homeland security
-        newLandHp = Math.min(100, Number((newLandHp + 0.5).toFixed(1)));
+        newLandHp = Math.min(100, Number((newLandHp + RULES.recoveryRate).toFixed(1)));
       }
 
       // 4. Update constructions
@@ -838,12 +928,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           // Add soul spark animation
           const targetTile = updatedTiles[tileId];
           newSparks.push({
-            id: `spark-${Date.now()}-${Math.random()}`,
+            id: `spark-${simulationNow(state)}-${random()}`,
             startX: targetTile.x,
             startY: targetTile.y,
             targetX: 200,
             targetY: 720,
-            createdAt: Date.now(),
+            createdAt: simulationNow(state),
           });
           sounds.playSparkChime();
         } else {
@@ -854,7 +944,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      const now = Date.now();
+      const now = simulationNow(state);
 
       // Heal / repair garrisoned settlements gradually and clear expired damaged city states
       for (const tId of Object.keys(updatedTiles)) {
@@ -880,7 +970,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const maxAllowedCoins = 1; // Paced: at most 1 coin at a time on screen
 
       // Cooldown of at least 16 seconds between coins
-      if (coins.length < maxAllowedCoins && nextCoinTick >= 16 && Math.random() < 0.4) {
+      if (coins.length < maxAllowedCoins && nextCoinTick >= 16 && coinRandom() < 0.4) {
         const israelCityTiles = [
           { x: 105, y: 210 }, // תל אביב
           { x: 115, y: 60 },  // חיפה והצפון
@@ -889,13 +979,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           { x: 95, y: 360 },  // אשדוד / אשקלון
           { x: 95, y: 435 },  // באר שבע והנגב
         ];
-        const randomCity = israelCityTiles[Math.floor(Math.random() * israelCityTiles.length)];
+        const randomCity = israelCityTiles[Math.floor(coinRandom() * israelCityTiles.length)];
         coins.push({
-          id: `coin-${Date.now()}`,
+          id: `coin-${simulationNow(state)}`,
           x: randomCity.x,
           y: randomCity.y,
           amount: 15,
-          createdAt: Date.now(),
+          createdAt: simulationNow(state),
         });
         nextCoinTick = 0;
       }
@@ -917,15 +1007,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const minAttackCooldown = totalSettlements <= 1 ? 60 : totalSettlements === 2 ? 50 : 42;
         const attackChance = totalSettlements <= 1 ? 0.22 : totalSettlements === 2 ? 0.30 : 0.35;
 
-        if (nextGreenAttackTick >= minAttackCooldown && activeGreenAttacks.length < 1 && Math.random() < attackChance) {
-          const breachId = state.activeBreaches[Math.floor(Math.random() * state.activeBreaches.length)];
+        if (nextGreenAttackTick >= minAttackCooldown && activeGreenAttacks.length < 1 && raidRandom() < attackChance) {
+          const breachId = state.activeBreaches[Math.floor(raidRandom() * state.activeBreaches.length)];
           const breachTile = updatedTiles[breachId];
           const targetInfo = BORDER_TO_GREEN_CITY[breachId] || { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' };
           const targetCityTile = updatedTiles[targetInfo.cityId];
 
           if (breachTile && targetCityTile) {
             const attackEvent: GreenSideAttack = {
-              id: `green-attack-${now}-${Math.random().toString(36).slice(2, 6)}`,
+              id: `green-attack-${now}-${random().toString(36).slice(2, 6)}`,
               breachId,
               targetCityId: targetInfo.cityId,
               targetCityName: state.locale === 'he' ? targetInfo.nameHe : targetInfo.nameEn,
@@ -972,8 +1062,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sounds.playPanicMashThud();
           sounds.playSiren();
           newDefenseScore = Math.max(0, newDefenseScore - 4);
-          newBudget = Math.max(0, newBudget - 10);
-          newLandHp = Math.max(0, Number((newLandHp - 12).toFixed(1)));
+          newBudget = Math.max(0, newBudget - RULES.raidCost);
+          const damage = Math.min(newLandHp, RULES.raidDamage);
+          metrics.raidDamage += damage;
+          timeline.push({ second: state.elapsedSeconds, kind: 'raid', borderId: atk.breachId, gaps: state.activeBreaches.length, hp: Math.max(0, newLandHp - damage), damage });
+          newLandHp = Math.max(0, Number((newLandHp - RULES.raidDamage).toFixed(1)));
           updatedTiles[atk.targetCityId] = {
             ...updatedTiles[atk.targetCityId],
             hasAlert: false, // Infiltration message is removed; city is now in post-impact aftermath
@@ -1051,12 +1144,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           : (totalBuilt <= 2 ? 60 : 50);
         const clashChance = hasUnsecured ? 0.28 : 0.10;
 
-        if (nextClashTick >= minClashCooldown && activeClashes.length < 1 && Math.random() < clashChance) {
+        if (nextClashTick >= minClashCooldown && activeClashes.length < 1 && clashRandom() < clashChance) {
           // Fights happen significantly more against non-secured settlements (85% chance if any exist)!
-          const pickUnsecured = hasUnsecured && (secureSettlements.length === 0 || Math.random() < 0.85);
+          const pickUnsecured = hasUnsecured && (secureSettlements.length === 0 || clashRandom() < 0.85);
           const settlement = pickUnsecured
-            ? unsecureSettlements[Math.floor(Math.random() * unsecureSettlements.length)]
-            : builtSettlementList[Math.floor(Math.random() * builtSettlementList.length)];
+            ? unsecureSettlements[Math.floor(clashRandom() * unsecureSettlements.length)]
+            : builtSettlementList[Math.floor(clashRandom() * builtSettlementList.length)];
 
           // Find the closest Arabic cities by Euclidean distance
           const sortedArabCities = [...arabCitiesList].sort((a, b) => {
@@ -1066,10 +1159,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           });
 
           // Pick from the 2 closest Arabic cities
-          const targetArabCity = sortedArabCities[Math.random() < 0.7 ? 0 : Math.min(1, sortedArabCities.length - 1)];
+          const targetArabCity = sortedArabCities[random() < 0.7 ? 0 : Math.min(1, sortedArabCities.length - 1)];
 
           const isGarrisoned = settlement.garrisonCount > 0;
-          const settlerInitiated = isGarrisoned ? Math.random() < 0.5 : Math.random() < 0.25;
+          const settlerInitiated = isGarrisoned ? random() < 0.5 : random() < 0.25;
           const settlementNameHe = settlement.settlementName || 'מאחז חדש';
           const settlementNameEn = settlement.settlementName || 'New Outpost';
           const arabCityNameHe = targetArabCity.label || 'הכפר הסמוך';
@@ -1100,7 +1193,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               `Heated protest: Residents of ${settlementNameEn} blocked access road to ${arabCityNameEn} and burned tires.`,
               `Price tag incident: Graffiti sprayed and clashes between ${settlementNameEn} and outskirts of ${arabCityNameEn}.`,
             ];
-            const vIdx = Math.floor(Math.random() * variantsHe.length);
+            const vIdx = Math.floor(random() * variantsHe.length);
             clashHeadlineHe = variantsHe[vIdx];
             clashHeadlineEn = variantsEn[vIdx];
           } else {
@@ -1130,7 +1223,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               `Stone ambush: Vehicles pelted with stones on the road near ${arabCityNameEn}, close to ${settlementNameEn}.`,
               `Junction disturbance: Dozens of youths from ${arabCityNameEn} clashed at the outskirts of outpost ${settlementNameEn}.`,
             ];
-            const vIdx = Math.floor(Math.random() * variantsHe.length);
+            const vIdx = Math.floor(random() * variantsHe.length);
             clashHeadlineHe = variantsHe[vIdx];
             clashHeadlineEn = variantsEn[vIdx];
           }
@@ -1150,7 +1243,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
             if (newHp <= 0) {
               // Settlement destroyed!
-              newLandHp = Math.max(0, Number((newLandHp - 10).toFixed(1)));
+              metrics.clashDamage += Math.min(newLandHp, RULES.clashDamage);
+              timeline.push({ second: state.elapsedSeconds, kind: 'clash', gaps: state.activeBreaches.length, hp: Math.max(0, newLandHp - RULES.clashDamage), damage: Math.min(newLandHp, RULES.clashDamage) });
+              newLandHp = Math.max(0, Number((newLandHp - RULES.clashDamage).toFixed(1)));
               updatedTiles[settlement.id] = {
                 ...settlement,
                 hasSettlement: false,
@@ -1177,7 +1272,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           }
 
           const clashEvent = {
-            id: `clash-${now}-${Math.random().toString(36).slice(2, 6)}`,
+            id: `clash-${now}-${random().toString(36).slice(2, 6)}`,
             settlementId: settlement.id,
             arabCityId: targetArabCity.id,
             settlerInitiated,
@@ -1241,9 +1336,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const minPenaltyCooldown = totalBuilt <= 1 ? 45 : 36;
         const penaltyChance = Math.min(0.32, 0.10 + ungarrisonedCount * 0.06);
 
-        if (nextPenaltyTick >= minPenaltyCooldown && Math.random() < penaltyChance) {
+        if (nextPenaltyTick >= minPenaltyCooldown && random() < penaltyChance) {
           const basePenalty = 8 + ungarrisonedCount * 2;
-          const variance = (Math.floor(Math.random() * 3) - 1) * 2;
+          const variance = (Math.floor(random() * 3) - 1) * 2;
           const penaltyAmount = Math.max(8, Math.min(14, basePenalty + variance));
           const actualDeducted = Math.min(newBudget, penaltyAmount);
           newBudget = Math.max(0, newBudget - actualDeducted);
@@ -1264,7 +1359,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             'Threat of government collapse unless soldiers are stationed',
           ];
 
-          const reasonIdx = Math.floor(Math.random() * reasonsHe.length);
+          const reasonIdx = Math.floor(random() * reasonsHe.length);
           const reason = state.locale === 'he' ? reasonsHe[reasonIdx] : reasonsEn[reasonIdx];
 
           latestPenalty = {
@@ -1304,6 +1399,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         sounds.playSiren();
         return {
           ...state,
+          metrics, timeline,
           landHp: 0,
           budget: newBudget,
           defenseScore: 0,
@@ -1339,6 +1435,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         constructions: updatedConstructions,
         defenseScore: newDefenseScore,
         landHp: newLandHp,
+        metrics, timeline,
         tiles: updatedTiles,
         sparks: newSparks,
         collectibleCoins: coins,
@@ -1390,6 +1487,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isBuildMode: false,
+        pendingBorderId: null,
         selectedSettlementId: action.tileId,
       };
     }
@@ -1421,7 +1519,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
         );
         if (emptyBorderIds.length > 0) {
-          const chosenBorderId = emptyBorderIds[Math.floor(Math.random() * emptyBorderIds.length)];
+          const chosenBorderId = emptyBorderIds[Math.floor(random() * emptyBorderIds.length)];
           const borderTile = updatedTiles[chosenBorderId];
 
           updatedTiles[chosenBorderId] = {
@@ -1433,12 +1531,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
           // Animate troop moving from Right (Settlement) to Left (Border)
           newMovingTroops.push({
-            id: `troop-evac-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            id: `troop-evac-${simulationNow(state)}-${random().toString(36).slice(2, 7)}`,
             fromX: tile.x,
             fromY: tile.y,
             toX: borderTile.x,
             toY: borderTile.y,
-            createdAt: Date.now(),
+            createdAt: simulationNow(state),
           });
         }
       }
@@ -1455,12 +1553,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      const isRationalVictory = newDefenseScore === 100 && newSettlementsCount <= 2
-        && (state.hasExperiencedOverextension || state.settlementsCount >= 3);
-      if (isRationalVictory) {
-        sounds.playVictory();
-      }
-
       return {
         ...state,
         settlementsCount: newSettlementsCount,
@@ -1471,10 +1563,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeBreaches,
         movingTroops: newMovingTroops,
         selectedSettlementId: null,
-        gameStatus: isRationalVictory ? 'rational_victory' : 'playing',
-        actionHistory: [...state.actionHistory, { id: `evacuate-${Date.now()}`, kind: 'evacuate' as const, timestamp: Date.now() }].slice(-20),
+        gameStatus: 'playing',
+        actionHistory: [...state.actionHistory, { id: `evacuate-${simulationNow(state)}`, kind: 'evacuate' as const, timestamp: simulationNow(state) }].slice(-20),
         ...withNews(state, {
-          id: `evac-${Date.now()}`,
+          id: `evac-${simulationNow(state)}`,
           headline: state.locale === 'he'
             ? `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`
             : `Outpost evacuated. Troops returned to reinforce sovereign border.`,
@@ -1496,6 +1588,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!cp || !cp.isBorderCheckpoint || cp.garrisonCount > 0) return state;
 
       const updatedTiles = { ...state.tiles };
+      if (availableTroops(state) > 0) {
+        updatedTiles[cpId] = { ...cp, garrisonCount: 1, isBreached: false, hasAlert: false };
+        return { ...state, tiles: updatedTiles,
+          greenSideAttacks: state.greenSideAttacks.filter(a => a.breachId !== cpId),
+          selectedInfiltrationId: null };
+      }
       const guardedSettlements = Object.values(updatedTiles).filter(
         t => t.hasSettlement && t.garrisonCount > 0
       );
@@ -1528,12 +1626,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const newMovingTroops = [
           ...(state.movingTroops || []),
           {
-            id: `troop-seal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            id: `troop-seal-${simulationNow(state)}-${random().toString(36).slice(2, 7)}`,
             fromX: sourceSettlement.x,
             fromY: sourceSettlement.y,
             toX: cp.x,
             toY: cp.y,
-            createdAt: Date.now(),
+            createdAt: simulationNow(state),
           },
         ];
 
@@ -1567,10 +1665,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           activeBreaches,
           greenSideAttacks: remainingAttacks,
           interceptedToast: {
-            id: `intercept-${Date.now()}`,
+            id: `intercept-${simulationNow(state)}`,
             textHe: toastHe,
             textEn: toastEn,
-            timestamp: Date.now(),
+            timestamp: simulationNow(state),
           },
           movingTroops: newMovingTroops,
           selectedInfiltrationId: null,
@@ -1579,7 +1677,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             isPanicMashMode: newDefenseScore === 0,
           },
           ...withNews(state, {
-            id: `seal-${Date.now()}`,
+            id: `seal-${simulationNow(state)}`,
             headline: state.locale === 'he' ? headlineHe : headlineEn,
             source: state.locale === 'he' ? 'חמ״ל גזרה' : 'Sector Operations',
             headlineHe,
@@ -1600,7 +1698,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const addedSoldiers = 4;
         const newTotal = state.soldiersTotal + addedSoldiers;
         const newBorder = state.soldiersAtBorder + addedSoldiers;
-        const newIncomeRate = Math.max(2, 4 - callsMade);
+        const newIncomeRate = Math.max(1, RULES.civilianIncome - callsMade);
 
         sounds.playShieldChime();
 
@@ -1655,10 +1753,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           activeBreaches,
           greenSideAttacks: remainingAttacks,
           interceptedToast: {
-            id: `intercept-${Date.now()}`,
+            id: `intercept-${simulationNow(state)}`,
             textHe: hadIntercepted ? '🛡️ מילואים הוזעקו וסיכלו את החדירה!' : '🛡️ כוחות מילואים איישו את הפרצה בגבול!',
             textEn: hadIntercepted ? '🛡️ Reserves deployed and thwarted infiltration!' : '🛡️ Reserve forces sealed the border breach!',
-            timestamp: Date.now(),
+            timestamp: simulationNow(state),
           },
           selectedInfiltrationId: null,
           lordOfHosts: {
@@ -1666,7 +1764,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             isPanicMashMode: newDefenseScore === 0,
           },
           ...withNews(state, {
-            id: `reserves-seal-${Date.now()}`,
+            id: `reserves-seal-${simulationNow(state)}`,
             headline: state.locale === 'he' ? newsHeadlineHe : newsHeadlineEn,
             source: state.locale === 'he' ? 'אגף המבצעים' : 'Operations Directorate',
             headlineHe: newsHeadlineHe,
@@ -1734,12 +1832,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newMovingTroops = [
         ...(state.movingTroops || []),
         {
-          id: `troop-recall-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `troop-recall-${simulationNow(state)}-${random().toString(36).slice(2, 7)}`,
           fromX: tile.x,
           fromY: tile.y,
           toX: borderTile.x,
           toY: borderTile.y,
-          createdAt: Date.now(),
+          createdAt: simulationNow(state),
         },
       ];
 
@@ -1771,16 +1869,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeBreaches,
         greenSideAttacks: remainingGreenAttacks,
         interceptedToast: hadIntercepted ? {
-          id: `intercept-${Date.now()}`,
+          id: `intercept-${simulationNow(state)}`,
           textHe: '🛡️ חדירה סוכלה בהצלחה!',
           textEn: '🛡️ Infiltration Thwarted Successfully!',
-          timestamp: Date.now(),
+          timestamp: simulationNow(state),
         } : state.interceptedToast,
         movingTroops: newMovingTroops,
         selectedSettlementId: null,
         selectedInfiltrationId: hadIntercepted ? null : state.selectedInfiltrationId,
         ...withNews(state, {
-          id: `recall-${Date.now()}`,
+          id: `recall-${simulationNow(state)}`,
           headline: state.locale === 'he' ? recallHeadlineHe : recallHeadlineEn,
           source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
           headlineHe: recallHeadlineHe,
@@ -1805,7 +1903,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       );
 
       // Randomly shuffle empty borders so arriving troops fill them organically
-      const shuffledEmptyBorders = [...emptyBorderIds].sort(() => Math.random() - 0.5);
+      const shuffledEmptyBorders = [...emptyBorderIds].sort(() => random() - 0.5);
       const newMovingTroops = [...(state.movingTroops || [])];
       let recalledCount = 0;
 
@@ -1830,12 +1928,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
         // Animate each troop moving from Right (Settlement) to Left (Border)
         newMovingTroops.push({
-          id: `troop-recall-all-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `troop-recall-all-${simulationNow(state)}-${random().toString(36).slice(2, 7)}`,
           fromX: sTile.x,
           fromY: sTile.y,
           toX: bTile.x,
           toY: bTile.y,
-          createdAt: Date.now(),
+          createdAt: simulationNow(state),
         });
 
         recalledCount++;
@@ -1875,15 +1973,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         activeBreaches,
         greenSideAttacks: remainingGreenAttacksAll,
         interceptedToast: hadInterceptedAll ? {
-          id: `intercept-${Date.now()}`,
+          id: `intercept-${simulationNow(state)}`,
           textHe: '🛡️ חדירות סוכלו בהצלחה!',
           textEn: '🛡️ Infiltrations Thwarted Successfully!',
-          timestamp: Date.now(),
+          timestamp: simulationNow(state),
         } : state.interceptedToast,
         movingTroops: newMovingTroops,
         selectedSettlementId: null,
         ...withNews(state, {
-          id: `recall-all-${Date.now()}`,
+          id: `recall-all-${simulationNow(state)}`,
           headline: state.locale === 'he' ? recallAllHeadlineHe : recallAllHeadlineEn,
           source: state.locale === 'he' ? 'המטה הכללי' : 'General Staff',
           headlineHe: recallAllHeadlineHe,
@@ -1974,13 +2072,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'RESTART_GAME': {
-      return {
-        ...INITIAL_STATE,
-        locale: state.locale,
-        soundEnabled: state.soundEnabled,
-      };
-    }
+    case 'RESTART_GAME':
+      return startScenario(state.scenarioId, state.locale, state.soundEnabled, state.reduceMotion);
 
     default:
       return state;

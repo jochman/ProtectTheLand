@@ -15,6 +15,7 @@ import { InfiltrationDefenseModal } from './components/InfiltrationDefenseModal'
 import { NewsFeedModal } from './components/NewsFeedModal';
 import { EntranceInstructionModal } from './components/EntranceInstructionModal';
 import { StrategyToolkitModal } from './components/StrategyToolkitModal';
+import { isGamePaused, objective } from './game/rules';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -27,13 +28,7 @@ export default function App() {
 
   // Game loop tick every 1 second: auto-pauses when modals are open or when user tapped pause
   useEffect(() => {
-    const isModalOpen =
-      state.isIntroModalOpen ||
-      state.isNewsModalOpen ||
-      !!state.selectedSettlementId ||
-      !!state.selectedInfiltrationId;
-
-    if (state.gameStatus !== 'playing' || state.isPaused || isModalOpen) return;
+    if (state.gameStatus !== 'playing' || isGamePaused(state)) return;
 
     const interval = setInterval(() => {
       dispatch({ type: 'TICK_TIMER' });
@@ -47,6 +42,8 @@ export default function App() {
     state.isNewsModalOpen,
     state.selectedSettlementId,
     state.selectedInfiltrationId,
+    state.isToolkitOpen,
+    state.infoPopover,
   ]);
 
   // Auto-dismiss intercepted toast after 3 seconds
@@ -86,6 +83,9 @@ export default function App() {
 
       {/* Breaking News Ticker (Clickable to open News Feed) */}
       <NewsAlertTicker state={state} dispatch={dispatch} />
+      <div className="scenario-goal z-10 shrink-0 px-3 py-1 text-center text-[11px] font-bold leading-snug text-slate-800">
+        {objective(state)} · <span className="tabular-nums">{state.elapsedSeconds}s</span>
+      </div>
 
       {/* Floating Operational Emergency Alert (0px layout footprint, never resizes map) */}
       <FloatingEmergencyAlert state={state} dispatch={dispatch} />

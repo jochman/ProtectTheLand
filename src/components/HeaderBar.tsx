@@ -84,7 +84,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ state, dispatch }) => {
         <button
           onClick={() => dispatch({ type: 'SET_LOCALE', locale: state.locale === 'he' ? 'en' : 'he' })}
           className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/30 hover:bg-black/50 text-xs font-bold border border-white/20 backdrop-blur-sm transition-transform active:scale-95"
-          title="Toggle Language"
+          title={isHe ? 'החלף שפה' : 'Toggle Language'}
         >
           <Globe className="w-3.5 h-3.5 text-amber-300" />
           <span>{isHe ? 'EN' : 'עב'}</span>
@@ -94,7 +94,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ state, dispatch }) => {
         <button
           onClick={() => dispatch({ type: 'TOGGLE_SOUND' })}
           className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-xs font-bold border border-white/20 backdrop-blur-sm transition-transform active:scale-95"
-          title="Toggle Sound"
+          title={isHe ? 'החלף מצב שמע' : 'Toggle Sound'}
         >
           {state.soundEnabled ? (
             <Volume2 className="w-4 h-4 text-emerald-400" />
@@ -107,7 +107,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ state, dispatch }) => {
         <button
           onClick={() => dispatch({ type: 'RESTART_GAME' })}
           className="p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-xs font-bold border border-white/20 backdrop-blur-sm transition-transform active:scale-95"
-          title="Restart"
+          title={isHe ? 'התחל מחדש' : 'Restart'}
         >
           <RotateCcw className="w-4 h-4 text-amber-200" />
         </button>

@@ -114,6 +114,14 @@ export interface InterceptionToast {
 }
 
 export interface GameState {
+  elapsedSeconds: number;
+  secureSeconds: number;
+  seed: number;
+  tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
+  isDeployMode: boolean;
+  pendingBorderId: string | null;
+  metrics: { exposureDamage: number; raidDamage: number; clashDamage: number; intercepted: number; miracleClicks: number; reserveCalls: number };
+  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'disruption'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
   locale: 'he' | 'en';
   soundEnabled: boolean;
   gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
@@ -201,6 +209,8 @@ export interface GameState {
 }
 
 export type GameAction =
+  | { type: 'PREVIEW_DEPLOYMENT'; borderId: string | null }
+  | { type: 'COMPLETE_TUTORIAL' }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SHOW_INFO_POPOVER'; title: string; text: string }
   | { type: 'CLEAR_INFO_POPOVER' }

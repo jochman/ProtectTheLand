@@ -3,6 +3,7 @@ import { Shield, Coins, Heart, Info } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
+import { simulationNow } from '../game/rules';
 import { haptics } from '../utils/haptics';
 
 interface TopStatusPillProps {
@@ -154,9 +155,9 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
             <div className="flex items-baseline">
               <span
                 className={`text-xl font-black tracking-tight font-rubik transition-colors ${
-                  state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600)
+                  state.latestPenalty && (simulationNow(state) - state.latestPenalty.timestamp < 3600)
                     ? 'text-red-600 animate-pulse'
-                    : state.latestGrant && (Date.now() - state.latestGrant.timestamp < 3600)
+                    : state.latestGrant && (simulationNow(state) - state.latestGrant.timestamp < 3600)
                     ? 'text-emerald-600 animate-bounce'
                     : 'text-amber-700'
                 }`}
@@ -207,8 +208,8 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
           </div>
 
           {state.activeBreaches.length > 0 && (
-            <span className="text-[9px] font-black text-red-600 flex-shrink-0 animate-pulse" title="שחיקת חוסן עקב פרצות פתוחות">
-              -{(state.activeBreaches.length * 0.4).toFixed(1)}/ש׳
+            <span className="text-[9px] font-black text-red-600 flex-shrink-0 animate-pulse" title={state.locale === 'he' ? 'שחיקת חוסן עקב פרצות פתוחות' : 'HP drain from open gaps'}>
+              -{(state.activeBreaches.length * 0.4).toFixed(1)}/{state.locale === 'he' ? 'ש׳' : 's'}
             </span>
           )}
         </div>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { GameState, GameAction, HexTile } from '../types';
 import { haptics } from '../utils/haptics';
+import { simulationNow } from '../game/rules';
+import { tileName } from '../game/hexGridData';
 
 interface HexMapCanvasProps {
   state: GameState;
@@ -8,7 +10,11 @@ interface HexMapCanvasProps {
 }
 
 export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) => {
-  const tiles = Object.values(state.tiles);
+  const tiles = Object.values(state.tiles).map(tile => state.locale === 'he' ? tile : {
+    ...tile, label: tile.label ? tileName(tile, 'en') : undefined,
+    settlementName: tile.settlementName ? tileName(tile, 'en') : undefined,
+    subLabel: undefined,
+  });
 
   // Helper to generate hexagonal SVG points centered at (cx, cy) with radius r
   const getHexPoints = (cx: number, cy: number, r: number = 36) => {
@@ -35,23 +41,8 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
     };
   }, [state.movingTroops, dispatch]);
 
-  // Auto-clear clashes once their duration completes
-  React.useEffect(() => {
-    if (!state.clashes || state.clashes.length === 0) return;
-    const now = Date.now();
-    const timers = state.clashes.map(clash => {
-      const remaining = Math.max(100, clash.durationMs - (now - clash.createdAt));
-      return setTimeout(() => {
-        dispatch({ type: 'CLEAR_CLASH', id: clash.id });
-      }, remaining);
-    });
-    return () => {
-      timers.forEach(t => clearTimeout(t));
-    };
-  }, [state.clashes, dispatch]);
-
   return (
-    <div className="relative w-full flex-1 min-h-0 max-h-full overflow-hidden flex items-center justify-center my-0 select-none">
+    <div data-testid="game-map" className="relative w-full flex-1 min-h-[220px] max-h-full overflow-hidden flex items-center justify-center my-0 select-none">
       <svg
         viewBox="0 0 460 565"
         className="w-full h-full drop-shadow-xl"
@@ -143,7 +134,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           } else if (tile.terrain === 'sea') {
             fill = 'url(#seaWater)';
             stroke = '#2f74a8';
-          } else if (tile.label === 'ים המלח') {
+          } else if (tile.id === 'wb-deadsea') {
             fill = 'url(#deadSea)';
             stroke = '#2b5f87';
           } else if (tile.terrain === 'border') {
@@ -154,6 +145,10 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           return (
             <g
               key={tile.id}
+              role={isCandidateForBuild ? 'button' : undefined}
+              tabIndex={isCandidateForBuild ? 0 : undefined}
+              aria-label={isCandidateForBuild ? (state.locale === 'he' ? `בנה כאן ${tile.id}` : `Build here ${tile.id}`) : undefined}
+              onKeyDown={e => { if (isCandidateForBuild && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); dispatch({ type: 'SELECT_TILE_TO_BUILD', tileId: tile.id }); } }}
               onClick={() => {
                 if (isCandidateForBuild) {
                   haptics.light();
@@ -319,7 +314,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   })()}
 
                   {/* 2. Post-Impact Aftermath (After squad hits: "חדירה!" is removed, replaced by 💥 פגיעה בעורף for 6s) */}
-                  {Boolean(tile.damagedUntil && Date.now() < tile.damagedUntil) && !(state.greenSideAttacks || []).some(a => a.targetCityId === tile.id) && (
+                  {Boolean(tile.damagedUntil && simulationNow(state) < tile.damagedUntil) && !(state.greenSideAttacks || []).some(a => a.targetCityId === tile.id) && (
                     <g transform={`translate(${tile.x}, ${tile.y})`}>
                       <circle cx="0" cy="0" r="22" fill="rgba(185, 28, 28, 0.25)" stroke="#b91c1c" strokeWidth="1.5" />
                       {/* Rising smoke/ember particles */}
@@ -331,7 +326,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                       <g transform="translate(0, -18)" filter="url(#dropShadow)">
                         <rect x="-36" y="-6.5" width="72" height="13" rx="4" fill="#7f1d1d" stroke="#fca5a5" strokeWidth="1" />
                         <text x="0" y="2.5" textAnchor="middle" fill="#fee2e2" fontSize="6.5" fontWeight="900" className="font-rubik">
-                          {state.locale === 'he' ? '💥 פגיעה בעורף (-25₪)' : '💥 Struck! (-25₪)'}
+                          {state.locale === 'he' ? '💥 פגיעה בעורף (-10₪)' : '💥 Struck! (-₪10)'}
                         </text>
                       </g>
                     </g>
@@ -470,12 +465,17 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 <g
                   filter="url(#dropShadow)"
                   className="cursor-pointer group"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={state.locale === 'he' ? `סגור פרצה ${cp.id}` : `Seal gap ${cp.id}`}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id }); } }}
                   onClick={(e) => {
                     e.stopPropagation();
                     haptics.light();
                     dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id });
                   }}
                 >
+                  <circle r="28" fill="transparent" stroke="#b91c1c" strokeWidth="2" strokeDasharray="4 3" />
                   {/* Empty post ground footprint */}
                   <ellipse cx="0" cy="6" rx="14" ry="7" fill="rgba(239, 68, 68, 0.18)" stroke="#f87171" strokeWidth="1.5" strokeDasharray="3 2" className="animate-pulse" />
                   
@@ -533,6 +533,10 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               key={`settlement-group-${s.id}`}
               transform={`translate(${s.x}, ${s.y})`}
               className="cursor-pointer group"
+              role="button"
+              tabIndex={0}
+              aria-label={state.locale === 'he' ? `בחר מאחז ${s.settlementName || s.id}` : `Select outpost ${s.id}`}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'SELECT_TILE', tileId: s.id }); } }}
               onClick={(e) => {
                 e.stopPropagation();
                 haptics.light();
@@ -541,6 +545,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             >
               {/* Generous Transparent Hit-Area Circle (ensures clicks never misfire!) */}
               <circle cx="0" cy="0" r="32" fill="transparent" pointerEvents="all" />
+              {(state.isDeployMode || state.tutorialStep === 'deploy') && !isGuarded && <circle r="30" fill="none" stroke="#92400e" strokeWidth="4" strokeDasharray="6 3" pointerEvents="none" />}
 
               {/* Incoming Reinforcement Target Ping */}
               {isIncoming && (

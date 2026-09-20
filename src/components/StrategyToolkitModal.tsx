@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen, Check, Eye, Play, X } from 'lucide-react';
 import { GameAction, GameState } from '../types';
+import { objective, medals } from '../game/rules';
 
 interface Props { state: GameState; dispatch: React.Dispatch<GameAction>; }
 
@@ -12,21 +13,23 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
     : [['Build outpost', 'Political funding', 'Needs a standing guard'], ['Deploy troop', 'Protects outpost', 'Opens a border sector'], ['Call reserves', '+4 troops', 'Slows civilian economy'], ['Evacuate', 'Shorter lines', 'Gives up the outpost']];
   const scenarios: { id: GameState['scenarioId']; title: string; body: string }[] = he
     ? [
-      { id: 'defend_first', title: 'הגנה תחילה', body: 'פתיחה יציבה עם תקציב נוסף. בדקו כמה זמן אפשר להימנע מפיזור כוחות.' },
+      { id: 'open', title: 'למידה תוך כדי משחק', body: 'בנה, פרוס, וראה את הפרצה. החזר ביטחון עם עד שני מאחזים.' },
+      { id: 'defend_first', title: 'הגנה תחילה', body: 'שרוד 120 שניות עם חוסן 80 ומעלה ו-30 שניות רצופות של ביטחון. שיבושים בגזרות 2, 4 ו-6 בשניות 30, 60 ו-90 מחזירים את החייל לכוח הזמין; לחץ על הפרצה להצבתו מחדש.' },
       { id: 'overextension', title: 'פיזור כוחות', body: 'שני מאחזים כבר מאוישים ושתי גזרות גבול חשופות.' },
       { id: 'recovery', title: 'התאוששות בחירום', body: 'שלושה מאחזים, חוסן פגוע וסבב מילואים אחד בלבד.' },
     ]
     : [
-      { id: 'defend_first', title: 'Defend first', body: 'A stable opening with extra funding. Test how long you can avoid dispersing forces.' },
+      { id: 'open', title: 'Learn by playing', body: 'Build, deploy and observe the gap. Restore security with at most two outposts.' },
+      { id: 'defend_first', title: 'Defend first', body: 'Survive 120 seconds with 80+ HP and 30 consecutive secure seconds. Disruptions at seconds 30, 60 and 90 unstaff sectors 2, 4 and 6; tap the gap to redeploy the available troop.' },
       { id: 'overextension', title: 'Overextension', body: 'Two outposts are already guarded and two border sectors are exposed.' },
       { id: 'recovery', title: 'Emergency recovery', body: 'Three outposts, damaged resilience, and one reserve call left.' },
     ];
 
   return <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3" onClick={() => dispatch({ type: 'CLOSE_TOOLKIT' })}>
-    <section className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-3xl border-2 border-amber-400 bg-[#fffaf2] p-4 text-slate-800 shadow-2xl" onClick={e => e.stopPropagation()}>
+    <section role="dialog" aria-modal="true" aria-label={he ? 'שולחן אסטרטגיה' : 'Strategy desk'} className="modal-panel w-full max-w-md rounded-3xl border-2 border-amber-400 bg-[#fffaf2] p-4 text-slate-800 shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between border-b border-amber-200 pb-2">
         <div className="flex items-center gap-2"><BookOpen className="w-5 h-5 text-amber-700" /><h2 className="font-black font-rubik">{he ? 'שולחן האסטרטגיה' : 'Strategy desk'}</h2></div>
-        <button onClick={() => dispatch({ type: 'CLOSE_TOOLKIT' })} aria-label="Close"><X className="w-5 h-5" /></button>
+        <button className="min-h-11 min-w-11" onClick={() => dispatch({ type: 'CLOSE_TOOLKIT' })} aria-label={he ? 'סגור' : 'Close'}><X className="w-5 h-5" /></button>
       </div>
       <p className="mt-3 text-xs leading-relaxed text-slate-600">{he ? 'זהו מודל לימודי וסאטירי, לא תחזית או שחזור היסטורי. כללים כגון עלות, חוסן וקצב חדירה הם הנחות משחק מפורשות שנועדו להמחיש מחסור בכוח אדם.' : 'This is an educational, satirical model—not a forecast or historical reconstruction. Costs, resilience, and raid timing are explicit game assumptions used to illustrate finite manpower.'}</p>
       <a href="https://x.com/YoniHaimovich/status/2101197799173873977" target="_blank" rel="noreferrer" className="mt-1.5 block text-[11px] font-bold text-blue-700 underline">{he ? 'מקור השראה ומתודולוגיה: ניתוח ההשראה המקורי' : 'Inspiration & methodology: original analysis'}</a>
@@ -39,6 +42,9 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
         <button onClick={() => dispatch({ type: 'TOGGLE_REDUCE_MOTION' })} className={`rounded-lg px-2 py-1 font-black ${state.reduceMotion ? 'bg-emerald-600 text-white' : 'bg-slate-300'}`}>{state.reduceMotion ? <Check className="w-4 h-4" /> : he ? 'כבוי' : 'Off'}</button>
       </div>
       <h3 className="mt-4 text-sm font-black">{he ? 'תרחישים בני-השוואה' : 'Comparable scenarios'}</h3>
+      <p className="mt-2 text-xs font-bold">{objective(state)}</p>
+      <ul className="mt-2 space-y-1 text-xs">{medals(state).map(m => <li key={m.label}>🏅 {m.label}</li>)}</ul>
+      <p className="mt-2 text-xs text-slate-600">{he ? 'כל התחלה מאפסת את המשחק. ניסיונות חוזרים שומרים את אותו זרע איומים; זמן קריאה והשהיה אינו נספר.' : 'Starting a scenario resets the run. Replays use the same threat seed; reading and paused time do not count.'}</p>
       <div className="mt-2 grid gap-2">{scenarios.map(s => <button key={s.id} onClick={() => dispatch({ type: 'START_SCENARIO', scenarioId: s.id })} className="rounded-2xl border border-emerald-300 bg-emerald-50 p-2.5 text-start hover:bg-emerald-100"><span className="flex items-center gap-1.5 text-xs font-black text-emerald-900"><Play className="w-3.5 h-3.5" />{s.title}</span><span className="mt-0.5 block text-[11px] text-slate-600">{s.body}</span></button>)}</div>
     </section>
   </div>;
