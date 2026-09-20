@@ -9,9 +9,9 @@ export const INITIAL_STATE: GameState = {
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
-  budget: 120, // Initial coalition funds (₪) - allows 1st settlement + modest buffer
-  maxBudget: 250, // Capped treasury to prevent hoarding and keep penalties impactful
-  incomeRate: 2, // Steady baseline civilian economy (+2 ₪/s)
+  budget: 140, // Initial coalition funds (₪) - allows 1st settlement immediately + buffer
+  maxBudget: 300, // Balanced treasury cap for comfortable pacing
+  incomeRate: 4, // Healthy civilian economy baseline (+4 ₪/s for 5-7 min target)
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
@@ -21,8 +21,8 @@ export const INITIAL_STATE: GameState = {
   isBuildMode: false,
   constructions: {},
   collectibleCoins: [
-    { id: 'coin-1', x: 110, y: 215, amount: 20, createdAt: Date.now() }, // Tel Aviv
-    { id: 'coin-2', x: 130, y: 65, amount: 20, createdAt: Date.now() },  // Haifa
+    { id: 'coin-1', x: 110, y: 215, amount: 30, createdAt: Date.now() }, // Tel Aviv
+    { id: 'coin-2', x: 130, y: 65, amount: 30, createdAt: Date.now() },  // Haifa
   ],
   lordOfHosts: {
     chargePercent: 12,
@@ -338,8 +338,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newTotal = state.soldiersTotal + addedSoldiers;
       const newBorder = state.soldiersAtBorder + addedSoldiers;
 
-      // Economic Tradeoff: Mobilizing workers cripples the civilian economy!
-      const newIncomeRate = callsMade === 1 ? 1 : 0;
+      // Economic Tradeoff: Mobilizing workers impacts civilian output, but keeps steady flow
+      const newIncomeRate = Math.max(2, 4 - callsMade);
 
       sounds.playReserves();
 
@@ -473,10 +473,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedTiles = { ...state.tiles };
 
       // 3. Passive budget income (affected by reserve mobilization & settlement maintenance drag!)
-      const baseIncome = state.incomeRate ?? 2;
+      const baseIncome = state.incomeRate ?? 4;
       const builtCount = Object.values(updatedTiles).filter(t => t.hasSettlement).length;
-      const settlementDrain = Math.floor(builtCount / 3);
-      const effectiveIncome = Math.max(0, baseIncome - settlementDrain);
+      const settlementDrain = Math.floor(builtCount / 5);
+      const effectiveIncome = Math.max(2, baseIncome - settlementDrain);
       let newBudget = Math.min(state.maxBudget, state.budget + effectiveIncome);
 
       // 4. Update constructions
@@ -532,11 +532,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // 4. Spawn collectible coins on Israel cities (slows down drastically with reserves!)
+      // 4. Spawn collectible coins on Israel cities
       const coins = [...state.collectibleCoins];
       const reservesMobilized = 3 - state.reservesBatchesLeft;
-      const maxAllowedCoins = reservesMobilized === 0 ? 3 : reservesMobilized === 1 ? 2 : 1;
-      const coinSpawnChance = reservesMobilized === 0 ? 0.55 : reservesMobilized === 1 ? 0.30 : reservesMobilized === 2 ? 0.15 : 0.05;
+      const maxAllowedCoins = reservesMobilized <= 1 ? 3 : 2;
+      const coinSpawnChance = reservesMobilized === 0 ? 0.60 : reservesMobilized === 1 ? 0.45 : 0.30;
 
       if (coins.length < maxAllowedCoins && Math.random() < coinSpawnChance) {
         const israelCityTiles = [
@@ -551,7 +551,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           id: `coin-${Date.now()}`,
           x: randomCity.x,
           y: randomCity.y,
-          amount: 25,
+          amount: 30,
           createdAt: Date.now(),
         });
       }
@@ -736,19 +736,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       // Penalties only occur if player has built settlements in the West Bank!
       if (settlementsCount > 0) {
-        // Cooldown: at least 12 seconds between penalties
+        // Cooldown: at least 28 seconds between penalties (~once every 40-50s)
         // Probability scales with number of settlements:
-        // 1 settlement: ~8% chance per tick (avg ~24s), 3 settlements: ~16%, 5 settlements: ~25%, 8+ settlements: ~36%
-        const penaltyChance = Math.min(0.38, 0.04 + settlementsCount * 0.04);
+        const penaltyChance = Math.min(0.28, 0.04 + settlementsCount * 0.025);
 
-        if (nextPenaltyTick >= 12 && Math.random() < penaltyChance) {
-          // Penalty amount scales heavily with number of settlements:
-          // 1 settlement: ~30₪ - 35₪ (takes 15-20s of +2₪/s to recover!)
-          // 2 settlements: ~42₪ - 48₪
-          // 3 settlements: ~55₪ - 60₪ (takes ~60s of +1₪/s to recover!)
-          // 5 settlements: ~75₪ - 85₪
-          // 8+ settlements: ~100₪ - 125₪ (can completely wipe out treasury!)
-          const basePenalty = 22 + settlementsCount * 12;
+        if (nextPenaltyTick >= 28 && Math.random() < penaltyChance) {
+          // Penalty amount scales with number of settlements while preserving 5-7 min target:
+          // 1-2 settlements: ~25₪ - 32₪
+          // 3-4 settlements: ~38₪ - 48₪
+          // 5-7 settlements: ~55₪ - 68₪
+          // 8+ settlements: ~75₪ - 95₪
+          const basePenalty = 18 + settlementsCount * 7;
           const variance = (Math.floor(Math.random() * 3) - 1) * 5;
           const penaltyAmount = Math.max(20, basePenalty + variance);
           const actualDeducted = Math.min(newBudget, penaltyAmount);

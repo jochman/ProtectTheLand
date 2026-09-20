@@ -504,7 +504,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               ₪
             </text>
             <text x="0" y="-14" textAnchor="middle" fill="#facc15" fontSize="8" fontWeight="bold" className="drop-shadow-sm font-heebo">
-              +25
+              +{coin.amount || 30}
             </text>
           </g>
         ))}
