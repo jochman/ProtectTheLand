@@ -18,16 +18,16 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
 
   const handleWhatsAppShare = () => {
     const text = isHe
-      ? `שיחקתי בסימולטור ״7 באוקטובר״: ניסיתי להגן על ${state.settlementsCount} מאחזים במחיר דילול הגבול. התוצאה: קריסה ביטחונית ו-7 באוקטובר. לא מצביעים בלי שמבינים את המחיר! שחקו גם:`
-      : `I played the "October 7" Security Simulator: deployed troops to secure ${state.settlementsCount} outposts at the expense of border defense. Result: total catastrophe. Play now:`;
+      ? `שיחקתי בסימולטור ״נצחון מוחלט״: ניסיתי להגן על ${state.settlementsCount} מאחזים במחיר דילול הגבול. התוצאה: קריסה ביטחונית ו-7 באוקטובר. לא מצביעים בלי שמבינים את המחיר! שחקו גם:`
+      : `I played the "Total Victory" Security Simulator: deployed troops to secure ${state.settlementsCount} outposts at the expense of border defense. Result: total catastrophe. Play now:`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + window.location.href)}`;
     window.open(url, '_blank');
   };
 
   const handleShare = () => {
     const text = isHe
-      ? `במשחק סימולציית הביטחון ניסיתי להגן על ${state.settlementsCount} מאחזים... התוצאה: קריסת קווי הגבול ו-7 באוקטובר. לא מצביעים בלי שיודעים!`
-      : `In the Security Simulation I built ${state.settlementsCount} outposts... resulting in border collapse and October 7th. Don't vote without knowing the cost!`;
+      ? `במשחק ״נצחון מוחלט״ ניסיתי להגן על ${state.settlementsCount} מאחזים... התוצאה: קריסת קווי הגבול ו-7 באוקטובר. לא מצביעים בלי שיודעים!`
+      : `In the "Total Victory" simulation I built ${state.settlementsCount} outposts... resulting in border collapse and October 7th. Don't vote without knowing the cost!`;
 
     if (navigator.share) {
       navigator.share({ title: strings.gameTitle, text, url: window.location.href }).catch(() => {});

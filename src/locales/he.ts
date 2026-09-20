@@ -1,5 +1,5 @@
 export const he = {
-  gameTitle: "7 באוקטובר",
+  gameTitle: "נצחון מוחלט",
   subTitle: "סימולציית ביטחון והתיישבות",
   slogan: "לא מצביעים בלי שיודעים.",
   stats: {
@@ -24,8 +24,8 @@ export const he = {
     cancel: "ביטול",
   },
   lordOfHosts: {
-    subtextPrefix: "מוכנות לנס:",
-    stage1Goal: "דרושים: 6 יישובים לפתיחת שערי שמיים",
+    subtextPrefix: "מוכנות לגאולה:",
+    stage1Goal: "דרושים: 6 יישובים לכיבוש הארץ והבאת הגאולה",
     stage2Goal: "נדרשת אחיזה עמוקה: 11 יישובים",
     stage3Goal: "שעת המבחן: 15 יישובים ומסירות נפש",
     stage4Countdown: "שעת רצון מתקרבת! נס בעוד:",

@@ -106,7 +106,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         ) : hasBorderBreach ? (
           <span className="text-blue-200 bg-blue-950/90 px-2 py-0.5 rounded-md border border-blue-500/80 flex items-center gap-1">
             <span>🎯</span>
-            <span>{isHe ? 'משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או טען את \'יהוה צבאות\'!' : 'Quest 3/3: Border exposed! Seal breach (⚠️) or charge Divine Miracle!'}</span>
+            <span>{isHe ? 'משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או הפעל את \'יהוה צבאות\' לגאולה!' : 'Quest 3/3: Border exposed! Seal breach (⚠️) or summon "Lord of Hosts"!'}</span>
           </span>
         ) : canAffordSettlement ? (
           <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">

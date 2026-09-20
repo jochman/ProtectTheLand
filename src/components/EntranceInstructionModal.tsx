@@ -22,7 +22,7 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
             <div className="flex items-center gap-1.5">
               <span className="text-xl">🇮🇱</span>
               <h2 className="text-xl sm:text-2xl font-black text-amber-950 font-rubik tracking-tight">
-                {isHe ? '7 באוקטובר: איך משחקים?' : 'October 7th: How to Play'}
+                {isHe ? 'נצחון מוחלט: איך משחקים?' : 'Total Victory: How to Play'}
               </h2>
             </div>
             <p className="text-xs font-black text-amber-800 mt-0.5">
@@ -42,12 +42,12 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
         <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-3 text-start flex flex-col gap-1.5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs font-black text-amber-900 font-rubik">
             <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <span>{isHe ? 'המטרה הלאומית: יישוב הגבעות וגאולת ״יהוה צבאות״!' : 'The National Mission: Settle the Hills & Awaken "Lord of Hosts"!'}</span>
+            <span>{isHe ? 'המטרה הלאומית: כיבוש מדינת ישראל והבאת הגאולה לארצנו!' : 'The National Mission: Total Conquest & Bringing Redemption!'}</span>
           </div>
           <p className="text-xs leading-relaxed text-slate-700">
             {isHe
-              ? 'אתם מנהיגי המערכה. המשימה שלכם: ליישב את כל גבעות השומרון, לגייס תקציבים קואליציוניים, ולאבטח את המאחזים כדי לטעון את כפתור ״יהוה צבאות״ ל-100% ולהביא את הניצחון המוחלט! אך היזהרו: כל חייל שנעקר מהגבול פוער פרצה מסוכנת...'
-              : 'You lead the nation. Your mission: settle every hilltop in the West Bank, harness coalition funds, and deploy troops to charge the "Lord of Hosts" miracle button to 100% for total victory! But beware: every troop pulled from the border leaves a gap...'}
+              ? 'אתם מנהיגי המערכה. המשימה שלכם: ליישב את כל גבעות השומרון, להוביל את כיבוש מדינת ישראל והבאת הגאולה לארצנו, ולאבטח את המאחזים כדי לקרב את ״יהוה צבאות״ (100%) ולהביא נצחון מוחלט! אך היזהרו: כל חייל שנעקר מהגבול פוער פרצה מסוכנת...'
+              : 'You lead the campaign. Your mission: settle every hilltop, lead the conquest of the land and bring redemption, and secure the outposts to awaken "Lord of Hosts" (100%) for Total Victory! But beware: every troop pulled from the border leaves a dangerous gap...'}
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
             </div>
           </div>
 
-          {/* Step 4: The Miracle of Lord of Hosts vs Catastrophe */}
+          {/* Step 4: יהוה צבאות - כיבוש מדינת ישראל והבאת הגאולה לארצנו */}
           <div className="bg-white border border-amber-300 rounded-2xl p-2.5 shadow-sm flex items-start gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
               <Award className="w-4 h-4" />
@@ -116,12 +116,12 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
             <div className="flex flex-col">
               <span className="font-black text-slate-900 font-rubik text-xs flex items-center gap-1">
                 <span>4.</span>
-                <span>{isHe ? 'טעינת נס ״יהוה צבאות״ (או קריסת 7 באוקטובר)' : 'Charging "Lord of Hosts" (or Border Collapse)'}</span>
+                <span>{isHe ? '״יהוה צבאות״: כיבוש מדינת ישראל והבאת הגאולה לארצנו' : '"Lord of Hosts": Total Conquest & Bringing Redemption'}</span>
               </span>
               <p className="text-[11px] text-slate-600 mt-0.5 leading-tight">
                 {isHe
-                  ? 'כל מאחז שנבנה ומאובטח מקדם את כפתור ״יהוה צבאות״ לקראת פתיחת שערי שמיים (100%). אך היזהרו: אם חוסן המדינה יגיע ל-0% — הגבול יקרוס ואסון 7 באוקטובר יתרחש!'
-                  : 'Every outpost built and secured advances the "Lord of Hosts" miracle meter toward 100%. But beware: if Homeland HP hits 0% — the border will collapse and disaster strikes!'}
+                  ? 'כל מאחז שנבנה ומאובטח מקדם את כפתור ״יהוה צבאות״ לקראת הגאולה השלמה והניצחון (100%). אך היזהרו: אם חוסן המדינה יגיע ל-0% — הגבול יקרוס ואסון 7 באוקטובר יתרחש!'
+                  : 'Every outpost built and secured advances the "Lord of Hosts" meter toward 100% redemption. But beware: if Homeland HP hits 0% — the border will collapse and disaster strikes!'}
               </p>
             </div>
           </div>

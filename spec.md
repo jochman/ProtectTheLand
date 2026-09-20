@@ -1,16 +1,16 @@
-# Technical & Game Design Specification: "October 7" / "לא מצביעים בלי שיודעים"
+# Technical & Game Design Specification: "נצחון מוחלט" / "Total Victory"
 
 > **Document Type:** Comprehensive Game Design & Technical Architecture Specification (`spec.md`)  
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 16:04:07 UTC (Branch: `main`, Iteration #39)
+> **Last Synchronized:** 2026-09-20 16:11:28 UTC (Branch: `main`, Iteration #40)
 
 ---
 
 ## 1. Executive Summary & Core Message
 
-**"October 7"** (working title: *"לא מצביעים בלי שיודעים"*) is an educational, satirical, and interactive mobile simulation game inspired by tactical analysis and political commentary (notably Yoni Haimovich's educational videos). 
+**"נצחון מוחלט"** ("Total Victory", previously working title: *"7 באוקטובר" / "לא מצביעים בלי שיודעים"*) is an educational, satirical, and interactive mobile simulation game inspired by tactical analysis and political commentary (notably Yoni Haimovich's educational videos). 
 
 The game places the player in the role of a policymaker/commander balancing sovereign border defense along the Green Line against political pressure to construct and garrison isolated outposts in the West Bank. Through accessible mobile idle/strategy mechanics (3D tactile clay-morphic interface, floating shekel coins, and an irresistible satirical **"יהוה צבאות"** false miracle button), players experience firsthand the direct zero-sum tradeoff: **every soldier sent to protect an isolated outpost is a soldier missing from the sovereign border.**
 
@@ -472,11 +472,11 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
    - Reopenable at any time during gameplay via the dedicated **`❓` (HelpCircle)** button in `HeaderBar`.
    - Concisely frames the satirical narrative mission:
      - **The Core Dilemma:** Zero-sum manpower tradeoff between West Bank outposts and sovereign border defense.
-     - **National Goal:** Settle all hilltops across Samaria and Judea to awaken the supreme miracle of "יהוה צבאות" at 100%!
+     - **National Goal:** Settle all hilltops across Samaria and Judea: "כיבוש מדינת ישראל והבאת הגאולה לארצנו" via "יהוה צבאות" at 100%!
      - **Step 1:** Constructing hill-top outposts (100₪).
      - **Step 2:** Troop deployment cost (25₪/soldier) to protect outposts from clashes and fines, which pulls soldiers from the border.
      - **Step 3:** Sovereign border breach risk & Homeland HP (`landHp`) continuous bleed (-0.4 HP/s per hole) and raid hits (-20% HP).
-     - **Step 4:** Charging "יהוה צבאות" to 100% vs. Risk of October 7 collapse (0% HP or button shattering upon 7 panic mashing taps).
+     - **Step 4:** "יהוה צבאות: כיבוש מדינת ישראל והבאת הגאולה לארצנו" (advancing toward 100% total victory) vs. Risk of October 7 collapse (0% HP or button shattering upon 7 panic mashing taps).
      - **Narrative Integrity:** The tutorial deliberately avoids revealing the rational evacuation victory condition upfront, allowing players to organically discover that prioritizing sovereign borders over messianic expansion is the true path to sustainable security.
 6. **Smart Auto-Pause & Manual Pause Engine:**
    - **Smart Auto-Pause:** Game loop interval automatically pauses whenever overlay modals are opened (`NewsFeedModal`, `EntranceInstructionModal`, `SettlementInspectorModal`, `InfiltrationDefenseModal`), removing reading pressure on mobile devices.
@@ -495,7 +495,7 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
    - Built directly into the Tactical Situation Advisor bar during early play:
      - **Quest 1/3:** `🎯 משימה 1/3: הקם מאחז ראשון בגבעות (לחץ 'בניית יישוב')` (shown when `settlementsCount === 0`).
      - **Quest 2/3:** `🎯 משימה 2/3: אבטח את המאחז (לחץ 'פריסת כוחות' - 25₪)` (shown when outposts are ungarrisoned).
-     - **Quest 3/3:** `🎯 משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או טען את 'יהוה צבאות'!` (shown when border breaches emerge).
+     - **Quest 3/3:** `🎯 משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או הפעל את 'יהוה צבאות' לגאולה!` (shown when border breaches emerge).
      - Emergency raid alerts (`🚨`) dynamically preempt all quests during active combat.
 
 ---

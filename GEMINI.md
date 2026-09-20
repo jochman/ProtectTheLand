@@ -1,4 +1,4 @@
-# Project Guidelines & Rules: "October 7" (לא מצביעים בלי שיודעים)
+# Project Guidelines & Rules: "נצחון מוחלט" ("Total Victory" / "October 7")
 
 ## 1. Spec Maintenance Rule (MANDATORY ON EVERY ITERATION)
 - **Continuous Spec Synchronization:** At the conclusion of EVERY iteration where features, bugfixes, game balance, UI adjustments, audio, or architectural decisions are made:

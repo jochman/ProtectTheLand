@@ -24,11 +24,11 @@ const STAT_INFO = {
   settlements: {
     he: {
       title: '🏡 מאחזים ויישובים ביו״ש',
-      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את גאולת ״יהוה צבאות״ ומייצר מענקים, אך דורש אבטחה צבאית למניעת חיכוך וקנסות.',
+      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את כיבוש הארץ וגאולת ״יהוה צבאות״, אך דורש אבטחה צבאית למניעת חיכוך וקנסות.',
     },
     en: {
       title: '🏡 Hilltop Outposts & Settlements',
-      text: 'Settlements established across the West Bank. They advance the divine miracle and yield political grants, but require soldiers to avoid clashes and fines.',
+      text: 'Settlements established across the West Bank. They advance the total conquest and redemption, but require soldiers to avoid clashes and fines.',
     },
   },
   budget: {

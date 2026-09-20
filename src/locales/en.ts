@@ -1,5 +1,5 @@
 export const en = {
-  gameTitle: "October 7th",
+  gameTitle: "Total Victory",
   subTitle: "Defense & Settlements Simulation",
   slogan: "Don't vote without knowing the cost.",
   stats: {
@@ -24,8 +24,8 @@ export const en = {
     cancel: "Cancel",
   },
   lordOfHosts: {
-    subtextPrefix: "Miracle Charge:",
-    stage1Goal: "Need 6 outposts to open heaven's gates",
+    subtextPrefix: "Redemption Readiness:",
+    stage1Goal: "Need 6 outposts for total conquest & redemption",
     stage2Goal: "Deeper foothold required: 11 outposts",
     stage3Goal: "Hour of trial: 15 outposts & self-sacrifice",
     stage4Countdown: "Grace draws near! Miracle in:",
