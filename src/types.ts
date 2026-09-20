@@ -115,13 +115,14 @@ export interface InterceptionToast {
 
 export interface GameState {
   elapsedSeconds: number;
-  secureSeconds: number;
+  /** Maximum concurrent outposts reached after completing the guided opening. */
+  peakSettlementsCount: number;
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;
-  pendingBorderId: string | null;
+  pendingBorderId: string | null; // Checkpoint id, 'available' for the unassigned pool, or no preview.
   metrics: { exposureDamage: number; raidDamage: number; clashDamage: number; intercepted: number; miracleClicks: number; reserveCalls: number };
-  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'disruption'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
+  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
   locale: 'he' | 'en';
   soundEnabled: boolean;
   gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
@@ -132,7 +133,7 @@ export interface GameState {
   incomeRate: number; // Current passive income per tick (slows down with reserves!)
   settlementsCount: number;
   soldiersTotal: number;
-  soldiersAtBorder: number;
+  soldiersAtBorder: number; // Includes the unassigned pool; readiness uses checkpoint garrisons only.
   soldiersAtSettlements: number;
   reservesBatchesLeft: number; // Max 3
   defenseScore: number; // 0% to 100% (Border readiness)
@@ -199,10 +200,6 @@ export interface GameState {
   isIntroModalOpen: boolean;
   isPaused: boolean;
   infoPopover: { title: string; text: string } | null;
-  /** A compact, replayable starting situation chosen from the strategy desk. */
-  scenarioId: 'open' | 'defend_first' | 'overextension' | 'recovery';
-  /** Records that the player has seen the costs of dispersing forces. */
-  hasExperiencedOverextension: boolean;
   isToolkitOpen: boolean;
   reduceMotion: boolean;
   actionHistory: { id: string; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate'; timestamp: number }[];
@@ -210,7 +207,6 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'PREVIEW_DEPLOYMENT'; borderId: string | null }
-  | { type: 'COMPLETE_TUTORIAL' }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SHOW_INFO_POPOVER'; title: string; text: string }
   | { type: 'CLEAR_INFO_POPOVER' }
@@ -235,7 +231,6 @@ export type GameAction =
   | { type: 'TOGGLE_REDUCE_MOTION' }
   | { type: 'OPEN_TOOLKIT' }
   | { type: 'CLOSE_TOOLKIT' }
-  | { type: 'START_SCENARIO'; scenarioId: GameState['scenarioId'] }
   | { type: 'RESTART_GAME' }
   | { type: 'TICK_TIMER' }
   | { type: 'CLEAR_SPARK'; id: string }

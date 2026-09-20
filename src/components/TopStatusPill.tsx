@@ -3,7 +3,7 @@ import { Shield, Coins, Heart, Info } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { simulationNow } from '../game/rules';
+import { simulationNow, availableTroops } from '../game/rules';
 import { haptics } from '../utils/haptics';
 
 interface TopStatusPillProps {
@@ -119,6 +119,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
           <span className="text-xl font-black text-slate-800 tracking-tight font-rubik">
             {state.soldiersAtBorder + state.soldiersAtSettlements}
           </span>
+          <span className="text-[10px] font-bold text-emerald-800" data-testid="available-troops">{availableTroops(state)} {state.locale === 'he' ? 'זמינים' : 'free'}</span>
         </div>
 
         <div className="w-px h-5 bg-slate-200" />

@@ -83,7 +83,7 @@ export default function App() {
 
       {/* Breaking News Ticker (Clickable to open News Feed) */}
       <NewsAlertTicker state={state} dispatch={dispatch} />
-      <div className="scenario-goal z-10 shrink-0 px-3 py-1 text-center text-[11px] font-bold leading-snug text-slate-800">
+      <div className="game-goal z-10 shrink-0 px-3 py-1 text-center text-[11px] font-bold leading-snug text-slate-800">
         {objective(state)} · <span className="tabular-nums">{state.elapsedSeconds}s</span>
       </div>
 

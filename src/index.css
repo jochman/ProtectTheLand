@@ -140,9 +140,9 @@ button:focus-visible, [role="button"]:focus-visible { outline: 3px solid #2563eb
 }
 @media (max-height: 680px) {
   .game-frame > header { padding-block: 2px; }
-  .action-deck { gap: 2px; padding-bottom: 2px; }
+  .action-deck { gap: 2px; padding-bottom: 1px; }
   .action-deck .clay-btn { min-height: 48px; }
-  .scenario-goal { padding-block: 0; font-size: 10px; }
+  .game-goal { padding-block: 0; font-size: 10px; }
 }
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 500px) {
   .game-frame {
@@ -155,7 +155,7 @@ button:focus-visible, [role="button"]:focus-visible { outline: 3px solid #2563eb
   .game-frame > header > div:first-child { display: none; }
   .game-frame > header + div { grid-column: 2; grid-row: 2; }
   .game-frame > header + div + div { grid-column: 2; grid-row: 3; }
-  .scenario-goal { grid-column: 1; grid-row: 5; align-self: end; padding-block: 4px; }
+  .game-goal { grid-column: 1; grid-row: 5; align-self: end; padding-block: 4px; }
   [data-testid="game-map"] { grid-column: 1; grid-row: 1 / 6; height: calc(100% - 36px); align-self: start; }
   .action-deck { grid-column: 2; grid-row: 4 / 6; align-self: end; }
   .action-deck > div:first-child, .action-deck > div:first-child > button { min-height: 32px; font-size: 11px; }

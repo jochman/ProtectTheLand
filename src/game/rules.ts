@@ -1,5 +1,7 @@
 import type { GameState } from '../types';
 
+export const AVAILABLE_TROOP_SOURCE = 'available';
+
 export const RULES = {
   buildCost: 100, deployCost: 25, civilianIncome: 4, guardedIncome: 2,
   budgetBase: 300, budgetPerOutpost: 25, gapDamage: 0.4,
@@ -28,28 +30,18 @@ export function randomStream(seed: number, second: number, channel = 0) {
 
 export function objective(state: GameState): string {
   const he = state.locale === 'he';
-  if (state.scenarioId === 'defend_first') return he
-    ? `שרוד 120 שנ׳ · חוסן 80+ · גבול בטוח 30 שנ׳ (${state.secureSeconds}/30)`
-    : `Survive 120s · HP 80+ · secure for 30s (${state.secureSeconds}/30)`;
-  if (state.scenarioId === 'recovery') return he
-    ? `חוסן 80+ · עד 2 מאחזים · גבול בטוח 15 שנ׳ (${state.secureSeconds}/15)`
-    : `HP 80+ · at most 2 outposts · secure for 15s (${state.secureSeconds}/15)`;
-  if (state.scenarioId === 'overextension') return he
-    ? `עד 2 מאחזים · גבול בטוח 15 שנ׳ (${state.secureSeconds}/15)`
-    : `At most 2 outposts · secure for 15s (${state.secureSeconds}/15)`;
-  return he ? 'למד את מחיר הפריסה, ואז אבטח את הגבול עם עד 2 מאחזים'
-    : 'Experience deployment, then secure the border with at most 2 outposts';
+  if (state.tutorialStep !== 'done') return he
+    ? 'למד את הפקדים — המשחק ממשיך אחרי ההדרכה'
+    : 'Learn the controls — the game continues after the tutorial';
+  return he ? 'התרחב ל־3 מאחזים, ואז צמצם ל־2 ואבטח את הגבול'
+    : 'Expand to 3 outposts, then reduce to 2 and secure the border';
 }
 
 export function hasWon(state: GameState): boolean {
-  if (state.landHp <= 0 || state.activeBreaches.length || state.greenSideAttacks.length
-    || state.defenseScore < 100 || Object.keys(state.constructions).length) return false;
-  switch (state.scenarioId) {
-    case 'defend_first': return state.elapsedSeconds >= 120 && state.secureSeconds >= 30 && state.landHp >= 80;
-    case 'recovery': return state.settlementsCount <= 2 && state.secureSeconds >= 15 && state.landHp >= 80;
-    case 'overextension': return state.settlementsCount <= 2 && state.secureSeconds >= 15;
-    default: return state.hasExperiencedOverextension && state.settlementsCount <= 2;
-  }
+  return state.tutorialStep === 'done' && state.peakSettlementsCount >= 3
+    && state.settlementsCount <= 2 && state.landHp > 0
+    && state.activeBreaches.length === 0 && state.greenSideAttacks.length === 0
+    && state.defenseScore === 100 && Object.keys(state.constructions).length === 0;
 }
 
 export function medals(state: GameState) {
@@ -58,9 +50,5 @@ export function medals(state: GameState) {
   return [
     { label: he ? 'חוסן 90 ומעלה' : 'Finish with 90+ HP', earned: won && state.landHp >= 90 },
     { label: he ? 'לכל היותר גיוס אחד' : 'Use at most one reserve call', earned: won && state.metrics.reserveCalls <= 1 },
-    { label: state.scenarioId === 'defend_first'
-      ? (he ? 'סיים עד 125 שניות' : 'Finish within 125 seconds')
-      : (he ? 'התאושש תוך 90 שניות' : 'Recover within 90 seconds'),
-      earned: won && state.elapsedSeconds <= (state.scenarioId === 'defend_first' ? 125 : 90) },
   ];
 }

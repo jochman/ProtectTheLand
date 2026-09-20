@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-20 18:11:23 UTC (Branch: `main`, Iteration #49)
+> **Last Synchronized:** 2026-09-20 18:28:31 UTC (Branch: `main`, Iteration #51)
 
 ---
 
@@ -21,11 +21,10 @@ The game concludes in one of two fundamental narrative endings:
 2. **Rational Victory ("ביטחון בר-קיימא", `gameStatus: 'rational_victory'`):**
    - **Strategic Awakening:** The player chooses sovereign security over messianic illusion.
    - **Victory Evaluation:** A shared `hasWon` check runs after every gameplay action. All victories require eight staffed checkpoints, no active raids, positive HP, and no unfinished construction. Returning forces through recalls, reserves, evacuation, or breach sealing can satisfy the objective.
-   - **Open / Guided Play:** Experience an actual deployment, then restore security with at most two outposts.
-   - **Defend First:** Survive 120 simulation seconds with at least 80 HP and 30 consecutive secure seconds. At seconds 30, 60, and 90, sectors 2, 4, and 6 respectively become unstaffed; the displaced troops remain available for redeployment by tapping a gap.
-   - **Overextension:** At most two outposts and 15 consecutive secure seconds.
-   - **Emergency Recovery:** At most two outposts, at least 80 HP, and 15 consecutive secure seconds.
-   - Each completed objective stops the clock and displays a run-specific report and medals.
+   - **One Continuous Game:** There are no selectable scenarios or timed border-disruption challenges.
+   - **Tutorial Completion:** Build an outpost, deploy a troop, then restore all border coverage and stop active raids. This sets `tutorialStep` to `done` and continues the same run; it never triggers victory or resets resources, troops, time or history.
+   - **Main Victory:** After the tutorial, reach at least three concurrent completed outposts, then reduce to two or fewer while meeting the security conditions above. `peakSettlementsCount` records post-tutorial expansion only, so completing or repeating the first deployment/recall cannot win.
+   - Actual victory stops the clock and displays the run report. Defeat rules are unchanged.
 
 ---
 
@@ -120,26 +119,26 @@ Demands Dedicated Troop   (-1₪/s per mobilization)    Golden Spark Burst
 
 ### 4.2 TypeScript Data Contract (`src/types.ts`)
 
-The complete, compile-checked contract lives in `src/types.ts`; shared formulas and objective selectors live in `src/game/rules.ts`. The reducer wraps individual actions with resource normalization, event accounting, and scenario completion.
+The complete, compile-checked contract lives in `src/types.ts`; shared formulas and objective selectors live in `src/game/rules.ts`. The reducer wraps individual actions with resource normalization, event accounting, and main-game victory evaluation.
 
 - Resources: budget, income, total soldiers, soldiers assigned to outposts, border/available soldiers, three reserve batches, resilience, and the eight checkpoint garrisons.
 - `availableTroops = soldiersTotal - sum(tile.garrisonCount)`. These troops are available before recalling outpost troops or calling another reserve batch. The legacy `soldiersAtBorder` count includes this available pool; actual readiness always derives from staffed checkpoints.
-- `elapsedSeconds` advances only on an unpaused simulation tick. `secureSeconds` counts consecutive ticks with no gaps or active raids and resets upon a gap/raid.
-- `scenarioId`: `open | defend_first | overextension | recovery`; `seed` defaults to `7102023`.
-- `tutorialStep`: `build | deploy | observe | done`. Non-tutorial scenarios start at `done`.
-- Deployment UI: `isDeployMode`, `selectedSettlementId`, `pendingBorderId`; source selection previews a transfer, and only `DEPLOY_TROOP` confirms it.
+- `elapsedSeconds` advances only on an unpaused simulation tick. There are no scenario-specific timers or scheduled disruptions.
+- `peakSettlementsCount` starts at zero and records the maximum number of concurrent completed outposts on actions that begin after tutorial completion. `seed` defaults to `7102023`.
+- `tutorialStep`: `build | deploy | observe | done`. Every new game starts at `build`; sealing the tutorial's gaps advances to `done` automatically.
+- Deployment UI: `isDeployMode`, `selectedSettlementId`, `pendingBorderId`; source selection previews a transfer, and only `DEPLOY_TROOP` confirms it. Source `available` selects the unassigned troop pool; otherwise the source is a checkpoint id. Opening an outpost defaults to available troops when any exist.
 - `metrics`: cumulative actual exposure, raid and outpost-loss HP damage (clamped to HP remaining at each hit), raids intercepted, miracle-button clicks, and reserve calls made during this run.
-- `timeline`: simulation second, action/event kind, optional source/breach sector, gaps remaining, HP after action, and optional damage/interception count. It covers construction starts, deployments, reserves, recalls, evacuations, sealing, raid impacts, outpost losses and scheduled disruptions.
+- `timeline`: simulation second, action/event kind, optional source/breach sector, gaps remaining, HP after action, and optional damage/interception count. It covers construction starts, deployments, reserves, recalls, evacuations, sealing, raid impacts, outpost losses.
 - UI pause sources: manual pause, introduction, strategy desk, news feed, settlement inspector, infiltration inspector and information popovers.
-- Replays reconstruct the same scenario and seed, clear time/metrics/history, and preserve locale, sound and reduced-motion settings.
-- Gameplay mutations are rejected after a terminal result. UI controls and scenario restart remain available.
+- Restarts reconstruct the standard starting board and seed, clear time/metrics/history and tutorial/expansion progress, and preserve locale, sound and reduced-motion settings.
+- Gameplay mutations are rejected after a terminal result. UI controls and game restart remain available.
 
 ---
 
 ## 5. Mathematical Balancing & Economic Equations
 
 ### 5.1 Game Session Target Duration
-- Guided play is a short build/deploy/restore exercise. Overextension and recovery length depend on decisions and healing. Defend First has a 120-second minimum. Paused reading time is excluded.
+- The guided opening is a short build/deploy/restore exercise within the main run. Play continues after it with no timer-based victory. Session length depends on expansion, recovery and player decisions. Paused reading time is excluded.
 
 ### 5.2 Defense Score Equation
 The sovereign border consists of **8 critical checkpoints** (`bdr-1` through `bdr-8`):
@@ -336,7 +335,7 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 - The map uses `flex-1 min-h-[220px] max-h-full overflow-hidden` and `preserveAspectRatio="xMidYMid meet"`. Header, status, ticker, objective and all four action buttons share the remaining height.
 - The action deck has a short, wrapping instruction with tap-to-read detail. Build mode highlights candidate hills; deployment mode highlights unguarded outposts; gaps have a visible ring and a generous hit area.
 - A compact initial explanation introduces the three playable steps: build (100₪), preview and confirm deployment (25₪), then observe the highlighted gap and restore security. The miracle mechanic is explicitly satirical and never presented as a mechanical defense action.
-- Guided state advances from construction to deployment to observation. Scenario objectives are visible throughout play, including elapsed and required secure time.
+- Guided state advances from construction to deployment to observation, then to completed guidance once security is restored. The same map, budget, forces and history remain in play. The visible objective switches from learning controls to the main expansion/reduction goal.
 - New/updated overlays use `.modal-panel` with scrolling confined to the panel; the underlying game never scrolls. Source selection and confirmation have separate controls and stable checkpoint numbers.
 - Manual pause is independent of modal visibility. Both the interval and reducer reject ticks while any reading overlay or information popover is open. Closing the strategy desk preserves the prior manual pause.
 - Simulation time drives construction, cooldowns, damage, attacks and clash expiry. Cosmetic troop/spark/toast clearing remains wall-clock based and does not advance gameplay.
@@ -349,7 +348,7 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 
 1. **Direct Breach Containment (`SEAL_BREACH` & Prioritized Targeting):**
    - Tapping an unmanned border checkpoint bearing the `⚠️ פרצה (לחץ לבלימה)` prompt immediately dispatches `SEAL_BREACH`.
-   - **Available Troop Priority:** First use any existing unassigned soldier, including a soldier displaced by a scheduled disruption. This uses no reserve call and opens no other gap.
+   - **Available Troop Priority:** First use any existing unassigned soldier, including unused troops from an earlier reserve call. This uses no reserve call and opens no other gap.
    - **Troop Recall Priority:** If soldiers are garrisoned in West Bank outposts, the system immediately pulls a soldier from the closest outpost and leaps them straight to the breached checkpoint.
    - The checkpoint is instantly re-manned (`garrisonCount = 1`, `isBreached = false`, `hasAlert = false`), the sovereign defense score increases, and any hostile squad traversing that breach is intercepted on the spot.
    - Triggers `sounds.playShieldChime()` and pops the feedback banner: `🛡️ חדירה סוכלה בהצלחה! לוחם הוחזר ממאחז לבלימת הפרצה!`.
@@ -381,8 +380,8 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 - Both terminal screens embed `RunReport`: objective, elapsed simulation seconds, final HP, intercepted raids, medals, a damage-source table and an expandable chronological event list.
 - Damage reporting sums actual HP removed by exposure, raid impacts and destroyed outposts before later healing. Final state totals are not substituted for historical decisions.
 - Miracle reliance is mentioned only when this run actually recorded a button press. The defeat text distinguishes HP exhaustion from the panic-button shatter.
-- Three medals are available only on victory: finish with 90+ HP; use at most one reserve call during the run; finish within 90 seconds (125 seconds for Defend First).
-- Both endings offer same-scenario replay and choosing another scenario. The shared seed keeps threat opportunities comparable, while different policies affect which threats are eligible.
+- Two medals remain available only on main-game victory: finish with 90+ HP; use at most one reserve call during the run. Scenario speed medals have been removed.
+- Both endings offer a new standard game; there is no scenario selector. The shared seed keeps threat opportunities comparable, while different policies affect which threats are eligible.
 - Defeat retains native sharing, WhatsApp sharing and a standalone SVG result card. Shared text reports final outposts, gaps and HP without inventing decisions.
 - Terminal screens are bounded, internally scrollable panels; the map and deck retain their layout behind them.
 
@@ -397,19 +396,22 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 ## 13. Verification & Quality Assurance
 
 - `npm run build`: strict TypeScript checking and Vite production bundle, required before completion.
-- `npm test`: executable reducer regressions covering tutorial/deployment, all security-restoring victory paths, timed disruptions, recovery thresholds, pause behavior, seeded replay, actual damage and interception accounting, and terminal-state immutability.
-- Chromium checks in `scripts/test-browser.mjs` cover both languages at 320×568, 360×640, 390×844, 430×932, 568×320, 844×390 and 1280×720. They assert no document scrolling, a map of at least 220px, no objective/ticker/action overlap, and visibility of all four actions. They also exercise build → preview → deploy → seal → victory, scenario switching, defeat and replay, collecting runtime errors. Safari and Firefox have not been verified in this iteration.
+- `npm test`: 20 reducer regressions covering tutorial/deployment, tutorial completion without victory, later expansion/reduction victories through every security-restoring action, pause behavior, seeded replay, actual damage and interception accounting, terminal-state immutability, and the 20-soldier available-pool case (two outposts staffed without moving guards, pool-first sealing and rejected empty-pool deployment).
+- Chromium checks in `scripts/test-browser.mjs` cover both languages at 320×568, 360×640, 390×844, 430×932, 568×320, 844×390 and 1280×720. They assert no document scrolling, a map of at least 220px, no objective/ticker/action overlap, and visibility of all four actions. They also exercise build → preview → deploy → seal → continued play, absence of scenario controls, later expansion/reduction victory, defeat and restart, collecting runtime errors. Safari and Firefox have not been verified in this iteration.
 - The browser runner is optional development tooling: install Playwright separately and run `node scripts/test-browser.mjs`, or point `PLAYWRIGHT_MODULE` to its module. It is not a runtime dependency.
 
 ## 14. Strategy Desk, Replay & Accessibility
 
-- Header book control opens the bilingual strategy desk without altering manual pause. The desk includes the policy ledger, reduced-motion toggle, scenario descriptions, current objective and medal thresholds, and the original inspiration link.
-- Scenario starts: Open has 100₪ and eight staffed checkpoints; Defend First adds 50₪; Overextension starts with two guarded outposts and two gaps; Recovery starts with three guarded outposts, five staffed checkpoints, 70 HP and one reserve batch.
-- Every scenario is available from the desk, including return to guided play. Launching one resets the current run.
+- Header book control opens the bilingual strategy desk without altering manual pause. The desk includes the policy ledger, reduced-motion toggle, the main objective and medal thresholds, and the original inspiration link.
+- Every game begins with 100₪, eight soldiers staffing eight checkpoints, zero outposts, 100 HP and three reserve batches.
+- The strategy desk is informational only; it has no scenario list or game-start controls. Header restart and the two result-screen restart buttons return to the standard guided opening.
 - `randomStream(seed, elapsedSeconds, channel)` gives separate coin, raid and clash opportunity streams. No UI action or reading delay advances these streams. Narrative randomness is cosmetic; equal gameplay decisions at equal simulation seconds reproduce the threat outcomes.
 - Checkpoint readiness, current income, budget capacity and troop totals are normalized centrally after gameplay changes. Costs/rewards are defined in `RULES` and used by gameplay and previews.
-- `DEPLOY_TROOPS` enters/cancels map selection. Opening an outpost clears stale source selection. Choosing a stable numbered checkpoint shows a preview; a separate confirmation dispatches `DEPLOY_TROOP`.
-- Modal content, scenario objectives, reports, medals and controls support Hebrew and English. Long instructions wrap or move into tap-to-read detail without changing the map height.
+- `DEPLOY_TROOPS` enters/cancels map selection and remains enabled when either an unassigned soldier or a border guard can deploy. The inspector defaults to the available pool and offers numbered checkpoints as explicit alternatives; confirmation still costs 25₪ per soldier.
+- Available-pool deployment reduces the unassigned count by one and staffs the target without moving any existing guard, opening a breach, changing total manpower, or calling another reserve batch. Readiness is derived from actual staffed checkpoints and cannot exceed 100%. Empty-pool and duplicate-garrison attempts are rejected without charging.
+- The top status pill shows total manpower and a separate available count. Example: 20 total, 8 border guards and no outpost guards leaves 12 available; staffing one outpost leaves 11 available and all eight border posts staffed.
+- Gap sealing prefers the available pool. Both infiltration defense and guarded-outpost controls expose this option so the player need not recall a guard when spare soldiers exist. Feedback and deployment news distinguish available-pool deployments from border transfers in both languages.
+- Modal content, the main objective, reports, medals and controls support Hebrew and English. Long instructions wrap or move into tap-to-read detail without changing the map height.
 - Named map locations and inspector titles use shared bilingual names; active raid targets and restart news refresh when language changes.
 - Short landscape screens use two columns: map and objective on one side, status/ticker/actions on the other. Portrait retains the single-column layout and 220px map minimum.
 

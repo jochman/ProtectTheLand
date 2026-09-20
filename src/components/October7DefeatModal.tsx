@@ -90,7 +90,6 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
           <span>{isHe ? 'הורדת כרטיס תוצאה' : 'Download result card'}</span>
         </button>
 
-        <button className="min-h-11 text-sm underline" onClick={() => dispatch({ type: 'OPEN_TOOLKIT' })}>{isHe ? 'בחר תרחיש אחר' : 'Choose another scenario'}</button>
         {/* Action Buttons: Restart & Native Share */}
         <div className="flex items-center gap-2 w-full">
           <button
@@ -98,7 +97,7 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
             className="flex-1 py-2.5 px-3 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-1.5 font-heebo"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>{isHe ? 'נסה שוב באותו תרחיש' : 'Replay same scenario'}</span>
+            <span>{isHe ? 'משחק חדש' : 'Play again'}</span>
           </button>
 
           <button

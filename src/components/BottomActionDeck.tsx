@@ -1,12 +1,12 @@
 import type { Dispatch } from 'react';
 import type { GameAction, GameState } from '../types';
 import { LordOfHostsButton } from './LordOfHostsButton';
-import { RULES, objective } from '../game/rules';
+import { RULES, objective, availableTroops } from '../game/rules';
 
 export function BottomActionDeck({ state, dispatch }: { state: GameState; dispatch: Dispatch<GameAction> }) {
   const he = state.locale === 'he';
   const exposed = Object.values(state.tiles).some(t => t.hasSettlement && t.garrisonCount === 0);
-  const hasTroops = Object.values(state.tiles).some(t => t.isBorderCheckpoint && t.garrisonCount > 0);
+  const hasTroops = availableTroops(state) > 0 || Object.values(state.tiles).some(t => t.isBorderCheckpoint && t.garrisonCount > 0);
   const playing = state.gameStatus === 'playing';
   const constructing = Object.keys(state.constructions).length > 0;
   const instruction = state.isDeployMode ? (he ? 'בחר מאחז מודגש במפה' : 'Select a highlighted outpost')
@@ -15,7 +15,7 @@ export function BottomActionDeck({ state, dispatch }: { state: GameState; dispat
     : state.activeBreaches.length ? (he ? 'לחץ על פרצה מודגשת להחזרת חייל' : 'Tap a highlighted gap to return a troop')
     : state.tutorialStep === 'build' ? (constructing ? (he ? 'המאחז בבנייה…' : 'Outpost under construction…') : (he ? '1/3 · בנה מאחז ראשון' : '1/3 · Build your first outpost'))
     : state.tutorialStep === 'deploy' ? (he ? '2/3 · בחר פריסה ובדוק את המחיר' : '2/3 · Select Deploy and preview the cost')
-    : (he ? 'הגבול בטוח. בדוק את יעד התרחיש' : 'Border secure. Check your scenario goal');
+    : (he ? 'ההדרכה הושלמה — המשך לנהל את המערכה' : 'Tutorial complete — continue your campaign');
   const details = state.tutorialStep === 'observe'
     ? (he ? '3/3 · החייל הועבר למאחז. הפרצה המודגשת שוחקת 0.4 חוסן לשנייה. לחץ עליה להחזרת חייל; כך תוכל להשוות בין מימון המאחז להגנת הגבול.' : '3/3 · Your troop moved to the outpost. The highlighted gap drains 0.4 HP/s. Tap it to return a troop and compare outpost funding with border security.')
     : objective(state);

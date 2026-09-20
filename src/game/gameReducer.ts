@@ -2,12 +2,12 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { RULES, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon } from './rules';
+import { RULES, AVAILABLE_TROOP_SOURCE, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 
 export const INITIAL_STATE: GameState = {
-  elapsedSeconds: 0, secureSeconds: 0, seed: 7102023,
+  elapsedSeconds: 0, peakSettlementsCount: 0, seed: 7102023,
   tutorialStep: 'build', isDeployMode: false, pendingBorderId: null,
   metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
   timeline: [],
@@ -27,8 +27,6 @@ export const INITIAL_STATE: GameState = {
   isIntroModalOpen: true, // Entrance tutorial modal opens on game start
   isPaused: false,
   infoPopover: null,
-  scenarioId: 'open',
-  hasExperiencedOverextension: false,
   isToolkitOpen: false,
   reduceMotion: false,
   actionHistory: [],
@@ -115,51 +113,15 @@ function withNews(state: GameState, item: NewsItem): { currentNews: NewsItem; ne
   };
 }
 
-function startScenario(
-  scenarioId: GameState['scenarioId'],
-  locale: GameState['locale'],
-  soundEnabled: boolean,
-  reduceMotion: boolean,
-): GameState {
-  const next = JSON.parse(JSON.stringify(INITIAL_STATE)) as GameState;
-  next.locale = locale;
-  next.soundEnabled = soundEnabled;
-  next.reduceMotion = reduceMotion;
-  next.scenarioId = scenarioId;
+function restartGame(state: GameState): GameState {
+  const next = structuredClone(INITIAL_STATE);
+  next.locale = state.locale;
+  next.soundEnabled = state.soundEnabled;
+  next.reduceMotion = state.reduceMotion;
   next.isIntroModalOpen = false;
-  next.tutorialStep = scenarioId === 'open' ? 'build' : 'done';
-  next.lordOfHosts.stageGoalText = locale === 'he' ? he.lordOfHosts.stage1Goal : en.lordOfHosts.stage1Goal;
-  next.currentNews = next.currentNews ? translateNewsItem(next.currentNews, locale) : null;
-  next.newsHistory = next.newsHistory.map(item => translateNewsItem(item, locale));
-
-  const settlementIds = SETTLEMENT_CANDIDATE_IDS.slice(0, scenarioId === 'recovery' ? 3 : 2);
-  const borderIds = Object.values(next.tiles).filter(tile => tile.isBorderCheckpoint).map(tile => tile.id);
-  const setSettlement = (id: string, guarded: boolean) => {
-    next.tiles[id] = { ...next.tiles[id], hasSettlement: true, garrisonCount: guarded ? 1 : 0, hp: 100, maxHp: 100 };
-  };
-
-  if (scenarioId === 'defend_first') {
-    next.budget = 150;
-  } else if (scenarioId === 'overextension' || scenarioId === 'recovery') {
-    const count = scenarioId === 'recovery' ? 3 : 2;
-    settlementIds.slice(0, count).forEach(id => setSettlement(id, true));
-    const borderTroops = scenarioId === 'recovery' ? 5 : 6;
-    borderIds.slice(borderTroops).forEach(id => {
-      next.tiles[id] = { ...next.tiles[id], garrisonCount: 0, isBreached: true, hasAlert: true };
-    });
-    next.settlementsCount = count;
-    next.soldiersAtSettlements = count;
-    next.soldiersAtBorder = borderTroops;
-    next.soldiersTotal = borderTroops + count;
-    next.defenseScore = Math.round((borderTroops / 8) * 100);
-    next.activeBreaches = borderIds.slice(borderTroops);
-    next.hasExperiencedOverextension = true;
-    next.budget = scenarioId === 'recovery' ? 70 : 150;
-    next.landHp = scenarioId === 'recovery' ? 70 : 100;
-    next.reservesBatchesLeft = scenarioId === 'recovery' ? 1 : 3;
-  }
-  next.incomeRate = incomeFor(next);
-  next.maxBudget = RULES.budgetBase + next.settlementsCount * RULES.budgetPerOutpost;
+  next.lordOfHosts.stageGoalText = state.locale === 'he' ? he.lordOfHosts.stage1Goal : en.lordOfHosts.stage1Goal;
+  next.currentNews = next.currentNews ? translateNewsItem(next.currentNews, state.locale) : null;
+  next.newsHistory = next.newsHistory.map(item => translateNewsItem(item, state.locale));
   return next;
 }
 
@@ -222,23 +184,9 @@ const gameplayActions = new Set<GameAction['type']>([
 export function gameReducer(state: GameState, action: GameAction): GameState {
   if (state.gameStatus !== 'playing' && gameplayActions.has(action.type)) return state;
   if (action.type === 'TICK_TIMER' && isGamePaused(state)) return state;
-  let input = state;
-  if (action.type === 'TICK_TIMER') {
-    input = { ...state, elapsedSeconds: state.elapsedSeconds + 1 };
-    // Exercises reserve positioning without forcing the player to construct outposts.
-    if (state.scenarioId === 'defend_first' && [30, 60, 90].includes(input.elapsedSeconds)) {
-      const borderId = `bdr-${input.elapsedSeconds / 30 * 2}`;
-      const tile = input.tiles[borderId];
-      input = { ...input, secureSeconds: 0,
-        tiles: { ...input.tiles, [borderId]: { ...tile, garrisonCount: 0, isBreached: true, hasAlert: true } },
-        activeBreaches: [...new Set([...input.activeBreaches, borderId])],
-        timeline: [...input.timeline, { second: input.elapsedSeconds, kind: 'disruption', borderId,
-          gaps: input.activeBreaches.length + (tile.garrisonCount > 0 ? 1 : 0), hp: input.landHp }],
-      };
-    }
-  }
+  const input = action.type === 'TICK_TIMER' ? { ...state, elapsedSeconds: state.elapsedSeconds + 1 } : state;
   let next = reduceGame(input, action);
-  if (action.type === 'RESTART_GAME' || action.type === 'START_SCENARIO') return next;
+  if (action.type === 'RESTART_GAME') return next;
   if (!gameplayActions.has(action.type)) return next;
   const checkpoints = Object.values(next.tiles).filter(t => t.isBorderCheckpoint);
   const activeBreaches = checkpoints.filter(t => t.garrisonCount === 0).map(t => t.id);
@@ -255,7 +203,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   next.budget = Math.min(next.budget, next.maxBudget);
   if (action.type !== 'TICK_TIMER') next.greenSideAttacks = next.greenSideAttacks.filter(a => next.tiles[a.breachId]?.garrisonCount === 0);
   const secure = !activeBreaches.length && !next.greenSideAttacks.length;
-  next.secureSeconds = secure ? (action.type === 'TICK_TIMER' ? input.secureSeconds + 1 : next.secureSeconds) : 0;
+  const completedTutorial = state.tutorialStep === 'observe' && secure;
+  if (completedTutorial) next.tutorialStep = 'done';
+  // Only expansion in the main game qualifies for victory, never the guided opening.
+  if (state.tutorialStep === 'done') next.peakSettlementsCount = Math.max(state.peakSettlementsCount, next.settlementsCount);
   if (state.tutorialStep === 'build' && next.settlementsCount > 0) next.tutorialStep = 'deploy';
   if (action.type === 'DEPLOY_TROOP' && next.tiles[action.settlementId]?.garrisonCount > state.tiles[action.settlementId]?.garrisonCount) {
     next.isDeployMode = false;
@@ -278,7 +229,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       gaps: activeBreaches.length, hp: next.landHp, intercepted }];
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
-  if (next.gameStatus === 'playing' && hasWon(next)) {
+  if (next.gameStatus === 'playing' && !completedTutorial && hasWon(next)) {
     next = { ...next, gameStatus: 'rational_victory', selectedSettlementId: null, selectedInfiltrationId: null };
     sounds.playVictory();
   }
@@ -329,9 +280,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
     case 'CLOSE_TOOLKIT':
       return { ...state, isToolkitOpen: false };
 
-    case 'START_SCENARIO':
-      return startScenario(action.scenarioId, state.locale, state.soundEnabled, state.reduceMotion);
-
     case 'OPEN_INTRO_MODAL': {
       sounds.playClick();
       return {
@@ -381,8 +329,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
     case 'PREVIEW_DEPLOYMENT':
       return { ...state, pendingBorderId: action.borderId };
-    case 'COMPLETE_TUTORIAL':
-      return { ...state, tutorialStep: 'done' };
     case 'TOGGLE_BUILD_MODE': {
       if (state.gameStatus !== 'playing') return state;
 
@@ -537,17 +483,20 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const DEPLOY_COST_PER_SOLDIER = RULES.deployCost;
       const settlement = state.tiles[action.settlementId];
       const border = state.tiles[action.borderId];
-      if (!settlement || !settlement.hasSettlement || settlement.garrisonCount > 0 || !border?.isBorderCheckpoint || border.garrisonCount <= 0 || state.budget < DEPLOY_COST_PER_SOLDIER) {
+      const fromAvailable = action.borderId === AVAILABLE_TROOP_SOURCE;
+      const sourceValid = fromAvailable ? availableTroops(state) > 0 : border?.isBorderCheckpoint && border.garrisonCount > 0;
+      if (!settlement || !settlement.hasSettlement || settlement.garrisonCount > 0 || !sourceValid || state.budget < DEPLOY_COST_PER_SOLDIER) {
         sounds.playPenalty();
         return state;
       }
       const updatedTiles = { ...state.tiles };
-      updatedTiles[action.borderId] = { ...border, garrisonCount: border.garrisonCount - 1, isBreached: true, hasAlert: true };
+      if (!fromAvailable) updatedTiles[action.borderId] = { ...border, garrisonCount: border.garrisonCount - 1,
+        isBreached: border.garrisonCount === 1, hasAlert: border.garrisonCount === 1 };
       updatedTiles[action.settlementId] = { ...settlement, garrisonCount: 1 };
       const newMovingTroops = [...state.movingTroops, {
         id: `troop-${simulationNow(state)}-${random().toString(36).slice(2, 7)}`,
-        fromX: border.x,
-        fromY: border.y,
+        fromX: fromAvailable ? 145 : border.x,
+        fromY: fromAvailable ? 535 : border.y,
         toX: settlement.x,
         toY: settlement.y,
         createdAt: simulationNow(state),
@@ -567,7 +516,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
       const newBorderSoldiers = Math.max(0, state.soldiersAtBorder - 1);
       const newSettlementSoldiers = state.soldiersAtSettlements + 1;
-      const newDefenseScore = Math.round((newBorderSoldiers / 8) * 100);
+      const newDefenseScore = Math.round(Object.values(updatedTiles).filter(t => t.isBorderCheckpoint && t.garrisonCount > 0).length / RULES.checkpoints * 100);
 
       const activeBreaches = Object.keys(updatedTiles).filter(
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
@@ -579,7 +528,16 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       );
 
       let deployNewsItem = progressiveDeploy.item;
-      if (newDefenseScore <= 20) {
+      if (fromAvailable) {
+        const headlineHe = `חייל זמין נפרס לאבטחת המאחז (${deploymentCost}₪). כוחות הגבול נשארו בעמדותיהם.`;
+        const headlineEn = `Available soldier deployed to guard the outpost (₪${deploymentCost}). Border guards remain at their posts.`;
+        deployNewsItem = {
+          id: `available-deploy-${simulationNow(state)}-${state.timeline.length}`,
+          headline: state.locale === 'he' ? headlineHe : headlineEn,
+          headlineHe, headlineEn, source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          sourceHe: 'פיקוד מרכז', sourceEn: 'Central Command', category: 'military',
+        };
+      } else if (newDefenseScore <= 20) {
         sounds.playSiren();
         deployNewsItem = {
           id: `breach-${simulationNow(state)}`,
@@ -664,7 +622,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         },
         ...withNews(state, deployNewsItem),
         selectedSettlementId: null,
-        hasExperiencedOverextension: true,
         actionHistory: [...state.actionHistory, { id: `deploy-${simulationNow(state)}`, kind: 'deploy' as const, timestamp: simulationNow(state) }].slice(-20),
       };
     }
@@ -1487,7 +1444,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isBuildMode: false,
-        pendingBorderId: null,
+        pendingBorderId: action.tileId && availableTroops(state) > 0 ? AVAILABLE_TROOP_SOURCE : null,
         selectedSettlementId: action.tileId,
       };
     }
@@ -1590,9 +1547,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const updatedTiles = { ...state.tiles };
       if (availableTroops(state) > 0) {
         updatedTiles[cpId] = { ...cp, garrisonCount: 1, isBreached: false, hasAlert: false };
+        sounds.playShieldChime();
         return { ...state, tiles: updatedTiles,
           greenSideAttacks: state.greenSideAttacks.filter(a => a.breachId !== cpId),
-          selectedInfiltrationId: null };
+          selectedInfiltrationId: null, selectedSettlementId: null,
+          interceptedToast: { id: `available-seal-${simulationNow(state)}-${state.timeline.length}`,
+            textHe: 'חייל זמין סגר את הפרצה. השומרים נשארו בעמדותיהם.',
+            textEn: 'An available soldier sealed the gap. Existing guards stayed in place.', timestamp: simulationNow(state) },
+        };
       }
       const guardedSettlements = Object.values(updatedTiles).filter(
         t => t.hasSettlement && t.garrisonCount > 0
@@ -2073,7 +2035,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
     }
 
     case 'RESTART_GAME':
-      return startScenario(state.scenarioId, state.locale, state.soundEnabled, state.reduceMotion);
+      return restartGame(state);
 
     default:
       return state;

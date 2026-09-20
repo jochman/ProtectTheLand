@@ -6,7 +6,6 @@ const labels = {
   reserve: ['גיוס מילואים', 'Reserves called'], recall: ['החזרת כוחות', 'Troops recalled'],
   evacuate: ['פינוי מאחז', 'Outpost evacuated'], seal: ['סגירת פרצה', 'Gap sealed'],
   raid: ['פגיעת חדירה', 'Raid impact'], clash: ['אובדן מאחז', 'Outpost lost'],
-  disruption: ['שיבוש בגבול', 'Border disruption'],
 };
 
 export function RunReport({ state }: { state: GameState }) {
@@ -27,11 +26,11 @@ export function RunReport({ state }: { state: GameState }) {
       {state.timeline.length === 0 ? <p>{he ? 'טרם נרשמו אירועים.' : 'No events recorded.'}</p> : <ol className="space-y-2 border-s-2 border-amber-300 ps-3">
         {state.timeline.map((event, i) => <li key={i}>
           <span className="font-bold tabular-nums">{event.second}s · {labels[event.kind][he ? 0 : 1]}</span>
-          {event.borderId && <> · {he ? 'גזרה' : 'sector'} {event.borderId.replace('bdr-', '')}</>}
+          {event.borderId && <> · {event.borderId === 'available' ? (he ? 'כוח זמין' : 'available troops') : `${he ? 'גזרה' : 'sector'} ${event.borderId.replace('bdr-', '')}`}</>}
           <span className="block text-slate-600">{event.gaps} {he ? 'פרצות' : 'gaps'} · {event.hp.toFixed(1)} HP{event.damage ? ` · −${event.damage} HP` : ''}{event.intercepted ? ` · ${event.intercepted} ${he ? 'יירוטים' : 'intercepted'}` : ''}</span>
         </li>)}
       </ol>}
     </details>
-    <p className="text-slate-600">{he ? `זרע תרחיש: ${state.seed}. משחק חוזר שומר את נקודת הפתיחה ואת הגרלות האיום לפי זמן משחק; החלטותיך משנות אילו איומים יכולים להתממש.` : `Scenario seed: ${state.seed}. Replay preserves the starting position and threat rolls by game time; your decisions change which threats can occur.`}</p>
+    <p className="text-slate-600">{he ? `זרע משחק: ${state.seed}. משחק חוזר שומר את נקודת הפתיחה ואת הגרלות האיום לפי זמן משחק; החלטותיך משנות אילו איומים יכולים להתממש.` : `Game seed: ${state.seed}. Replay preserves the starting position and threat rolls by game time; your decisions change which threats can occur.`}</p>
   </div>;
 }

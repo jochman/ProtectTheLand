@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldAlert, Users, Undo2, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { haptics } from '../utils/haptics';
+import { availableTroops } from '../game/rules';
 
 interface InfiltrationDefenseModalProps {
   state: GameState;
@@ -24,6 +25,7 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
   );
 
   const canCallReserves = state.reservesBatchesLeft > 0;
+  const spareCount = availableTroops(state);
   const canRecallTroop = guardedSettlements.length > 0;
 
   const handleCallReserves = () => {
@@ -113,6 +115,7 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
           </p>
 
           {/* Solution 1: Call Reserves */}
+          {spareCount > 0 && <button className="min-h-11 rounded-2xl border border-emerald-400 bg-emerald-800 p-3 text-start text-sm font-bold" onClick={() => dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId })}>{isHe ? `בלום בעזרת חייל זמין (${spareCount}) — השומרים נשארים בעמדות` : `Intercept with an available soldier (${spareCount}) — keep guards in place`}</button>}
           <button
             onClick={handleCallReserves}
             disabled={!canCallReserves}

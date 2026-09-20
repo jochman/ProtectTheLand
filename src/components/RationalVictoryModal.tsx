@@ -42,7 +42,7 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
 
         {/* Analytical Explanation */}
         <p className="text-xs leading-relaxed text-slate-700 px-1 font-heebo">
-          {state.locale === 'he' ? 'עמדת ביעד התרחיש. הגבול מאויש והאיומים הפעילים נבלמו. בדוק כיצד ההחלטות שלך השפיעו על החוסן ועל השימוש במילואים.' : 'Scenario objective achieved. The border is staffed and active raids have been stopped. Review how your decisions affected resilience and reserve use.'}
+          {state.locale === 'he' ? 'החזרת את הביטחון לאחר ההתרחבות. הגבול מאויש והאיומים הפעילים נבלמו. בדוק כיצד ההחלטות שלך השפיעו על החוסן ועל השימוש במילואים.' : 'Security restored after expansion. The border is staffed and active raids have been stopped. Review how your decisions affected resilience and reserve use.'}
         </p>
         <RunReport state={state} />
 
@@ -57,9 +57,8 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
           className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 font-heebo"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>{state.locale === 'he' ? 'נסה אסטרטגיה אחרת באותו תרחיש' : 'Replay this scenario with another strategy'}</span>
+          <span>{state.locale === 'he' ? 'משחק חדש' : 'Play again'}</span>
         </button>
-        <button className="min-h-11 text-sm underline" onClick={() => dispatch({ type: 'OPEN_TOOLKIT' })}>{state.locale === 'he' ? 'בחר תרחיש אחר' : 'Choose another scenario'}</button>
 
       </div>
     </div>
