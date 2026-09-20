@@ -4,7 +4,7 @@ export const INITIAL_TILES: Record<string, HexTile> = {
   // ==========================================
   // 1. ISRAEL (COASTAL PLAIN & GREEN ZONE - WEST)
   // ==========================================
-  'isr-1': { id: 'isr-1', coord: { q: 0, r: 0 }, x: 50, y: 65, terrain: 'sea', label: 'הים התיכון', hasSettlement: false, garrisonCount: 0 },
+  'isr-1': { id: 'isr-1', coord: { q: 0, r: 0 }, x: 50, y: 65, terrain: 'sea', hasSettlement: false, garrisonCount: 0 },
   'isr-2': { id: 'isr-2', coord: { q: 1, r: 0 }, x: 115, y: 60, terrain: 'israel', label: 'חיפה והצפון', hasSettlement: false, garrisonCount: 0 },
   'isr-3': { id: 'isr-3', coord: { q: 0, r: 1 }, x: 45, y: 140, terrain: 'sea', hasSettlement: false, garrisonCount: 0 },
   'isr-4': { id: 'isr-4', coord: { q: 1, r: 1 }, x: 110, y: 135, terrain: 'israel', label: 'נתניה / השרון', hasSettlement: false, garrisonCount: 0 },
