@@ -607,14 +607,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const builtSettlementList = Object.values(updatedTiles).filter(t => t.hasSettlement);
       const arabCitiesList = Object.values(updatedTiles).filter(t => t.isLocalCity);
 
-      // Clashes only occur if there are Jewish settlements in the West Bank, and frequency scales with settlement count
+      // Clashes only occur if there are Jewish settlements in the West Bank, and frequency is kept deliberate and spaced out
       if (builtSettlementList.length > 0 && arabCitiesList.length > 0) {
-        // Frequency increases significantly as more settlements are built:
-        // 1 settlement: ~9.5% per tick, 3 settlements: ~18.5%, 5 settlements: ~27.5%, 8+ settlements: ~40%
-        const clashChance = Math.min(0.40, 0.05 + builtSettlementList.length * 0.045);
+        // Calm scaling: max 1 clash at a time, spaced at least ~35-40s apart (roughly ~1 per minute)
+        const clashChance = Math.min(0.12, 0.03 + builtSettlementList.length * 0.015);
 
-        // Cooldown: at least 7 seconds between clash triggers, and at most 2 concurrent clashes
-        if (nextClashTick >= 7 && activeClashes.length < 2 && Math.random() < clashChance) {
+        // Cooldown: at least 35 seconds between clash triggers, and strictly at most 1 concurrent clash
+        if (nextClashTick >= 35 && activeClashes.length < 1 && Math.random() < clashChance) {
           // Pick a random built settlement
           const settlement = builtSettlementList[Math.floor(Math.random() * builtSettlementList.length)];
 

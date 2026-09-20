@@ -65,7 +65,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
             </span>
-            <AlertTriangle className="w-4 h-4 text-amber-300 animate-bounce" />
+            <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
             <span className="text-[11px] font-black text-amber-300 tracking-wider uppercase font-rubik">
               {isHe ? 'התרעת חירום מבצעית' : 'OPERATIONAL EMERGENCY'}
             </span>

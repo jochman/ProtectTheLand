@@ -57,7 +57,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
           onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
           disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
           className={`clay-btn py-3 px-1 text-center transition-all ${
-            ungarrisonedCount > 0 ? 'ring-2 ring-red-400 animate-bounce' : 'opacity-60 cursor-not-allowed'
+            ungarrisonedCount > 0 ? 'ring-2 ring-red-400/80 bg-red-50/40' : 'opacity-60 cursor-not-allowed'
           }`}
         >
           <span className="text-xs sm:text-sm font-black leading-tight">

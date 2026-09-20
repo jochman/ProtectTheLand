@@ -26,7 +26,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
       <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1.5 rounded-full shadow-lg border border-amber-100/60">
         {/* Floating Settlement Penalty Popup */}
         {state.latestPenalty && (Date.now() - state.latestPenalty.timestamp < 3600) && (
-          <div className="absolute -top-7 right-2 sm:right-4 z-30 pointer-events-none whitespace-nowrap bg-red-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-red-400 animate-bounce flex items-center gap-1 font-heebo">
+          <div className="absolute -top-7 right-2 sm:right-4 z-30 pointer-events-none whitespace-nowrap bg-red-600/95 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xl border border-red-400 flex items-center gap-1 font-heebo">
             <span>💸</span>
             <span>-{state.latestPenalty.amount}₪</span>
             <span className="text-red-200 font-bold hidden xs:inline">({state.latestPenalty.reason})</span>
@@ -117,7 +117,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
                 ? 'text-emerald-600 fill-emerald-100'
                 : state.defenseScore >= 30
                 ? 'text-amber-600 fill-amber-100'
-                : 'text-red-600 fill-red-100 animate-bounce'
+                : 'text-red-600 fill-red-100 animate-pulse'
             }`}
           />
           <span className="text-xs font-bold text-slate-700 font-heebo">

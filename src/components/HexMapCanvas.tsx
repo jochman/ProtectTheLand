@@ -346,12 +346,23 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <ellipse cx="0" cy="-11" rx="5" ry="1.5" fill="#166534" />
                 </g>
               ) : (
-                // Breach Emergency Klaxon
-                <g filter="url(#redAlertGlow)" className="animate-bounce">
-                  <circle cx="0" cy="0" r="15" fill="#ef4444" stroke="#ffffff" strokeWidth="2.5" />
-                  <text x="0" y="5.5" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900" className="font-rubik">
-                    !
-                  </text>
+                // Tactical unmanned checkpoint: roadblock barrier with open boom gate (clean, calm, no bouncing)
+                <g filter="url(#dropShadow)">
+                  {/* Empty post ground footprint */}
+                  <ellipse cx="0" cy="6" rx="13" ry="6.5" fill="rgba(239, 68, 68, 0.08)" stroke="#f87171" strokeWidth="1" strokeDasharray="3 2" />
+                  
+                  {/* Road concrete barrier */}
+                  <rect x="-9" y="1" width="18" height="5.5" rx="1.5" fill="#475569" stroke="#334155" strokeWidth="0.8" />
+                  <line x1="-6" y1="2" x2="-3" y2="5.5" stroke="#f59e0b" strokeWidth="1.2" />
+                  <line x1="-1" y1="2" x2="2" y2="5.5" stroke="#f59e0b" strokeWidth="1.2" />
+                  <line x1="4" y1="2" x2="7" y2="5.5" stroke="#f59e0b" strokeWidth="1.2" />
+
+                  {/* Barrier post & lifted gate pole */}
+                  <rect x="-8" y="-7" width="3" height="9" rx="0.8" fill="#334155" />
+                  <line x1="-6.5" y1="-5" x2="8" y2="-12" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="3 2" />
+
+                  {/* Calm soft indicator dot */}
+                  <circle cx="0" cy="-5" r="2.5" fill="#ef4444" opacity="0.85" />
                 </g>
               )}
             </g>
@@ -437,9 +448,11 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <path d="M -2.5 0.5 L 2.5 0.5 L 3 5.5 L -3 5.5 Z" fill="#15803d" />
                 </g>
               ) : (
-                <g transform="translate(12, 6)" className="animate-bounce">
-                  <circle cx="0" cy="0" r="8" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
-                  <text x="0" y="3" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">!</text>
+                // Empty garrison badge: subtle dashed outline with guard silhouette (no bouncing, calm)
+                <g transform="translate(12, 6)" opacity="0.9">
+                  <circle cx="0" cy="0" r="8" fill="#fef2f2" stroke="#fca5a5" strokeWidth="1.2" strokeDasharray="2.5 2" />
+                  <circle cx="0" cy="-2" r="2" fill="#ef4444" opacity="0.6" />
+                  <path d="M -2 0.8 L 2 0.8 L 2.2 4 L -2.2 4 Z" fill="#ef4444" opacity="0.5" />
                 </g>
               )}
 
@@ -665,17 +678,17 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
               {/* Midpoint Clash Battle Hotspot (החיכוך במרכז) */}
               <g transform={`translate(${midX}, ${midY})`}>
-                {/* Shockwave ping ring */}
-                <circle cx="0" cy="0" r="16" fill="rgba(239, 68, 68, 0.4)" stroke="#ef4444" strokeWidth="2" className="animate-ping" />
-                <circle cx="0" cy="0" r="22" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" strokeWidth="1.5" />
+                {/* Soft shockwave ring (calm, non-pinging) */}
+                <circle cx="0" cy="0" r="16" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444" strokeWidth="1.5" opacity="0.8" />
+                <circle cx="0" cy="0" r="22" fill="rgba(245, 158, 11, 0.15)" stroke="#f59e0b" strokeWidth="1.2" />
 
                 {/* Smoke / Dust cloud puffs */}
                 <ellipse cx="-6" cy="-5" rx="8" ry="5" fill="#cbd5e1" opacity="0.6" />
                 <ellipse cx="7" cy="-7" rx="9" ry="6" fill="#94a3b8" opacity="0.55" />
                 <ellipse cx="0" cy="4" rx="10" ry="5" fill="#cbd5e1" opacity="0.5" />
 
-                {/* Impact explosion icon */}
-                <text x="0" y="6" textAnchor="middle" fontSize="18" className="animate-bounce select-none">
+                {/* Impact explosion icon (steady, calm) */}
+                <text x="0" y="6" textAnchor="middle" fontSize="16" className="select-none">
                   💥
                 </text>
 

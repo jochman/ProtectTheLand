@@ -32,7 +32,7 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
       >
         <div className="flex-shrink-0">
           {isUrgent ? (
-            <AlertTriangle className="w-4 h-4 text-amber-300 animate-bounce" />
+            <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
           ) : (
             <Radio className="w-4 h-4 text-emerald-600 animate-pulse" />
           )}
