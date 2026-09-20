@@ -18,7 +18,160 @@ export interface StoryArc {
 }
 
 export const STORY_ARCS: StoryArc[] = [
-  // 1. Noa Kirel & Daniel Peretz wedding -> couscous
+  // 1. Netanyahu & Ben-Gvir: "He won't be in my government" -> Minister of Internal Security
+  {
+    id: 'bibi_and_bengvir',
+    steps: [
+      {
+        he: {
+          headline: 'נתניהו בראיון תקיף לפני הבחירות: "בן גביר לא יהיה שר בממשלתי, הוא לא כשיר לשבת בקבינט ולא יוביל שום משרד".',
+          source: 'אולפן שישי עם דני קושמרו',
+        },
+        en: {
+          headline: 'Netanyahu in pre-election interview: "Ben-Gvir will never be a minister in my government, he is unfit for the cabinet".',
+          source: 'Friday Studio',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'חודשיים לאחר הבחירות: נתניהו חותם על הסכם קואליציוני המעניק לבן גביר את תיק ביטחון הפנים וסמכויות מורחבות במאחזים.',
+          source: 'מצודת זאב',
+        },
+        en: {
+          headline: 'Two months post-election: Netanyahu signs coalition deal granting Ben-Gvir Internal Security portfolio and outpost powers.',
+          source: 'Likud HQ',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'בן גביר מאיים לפרק את הממשלה: "או שמעבירים עוד 4 גדודים מהגבול למאחזים, או שאין תקציב"; נתניהו בלשכה: "הוא שותף ערכי ומסור".',
+          source: 'חדשות 12 / דפנה ליאל',
+        },
+        en: {
+          headline: 'Ben-Gvir threatens to dissolve coalition: "Move 4 more border battalions to outposts or no budget"; Netanyahu: "He is a valued partner".',
+          source: 'Channel 12',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'נתניהו במסיבת עיתונאים לילית: "אני אוחז בהגה בשתי ידיים. השר בן גביר פשוט... יושב לידי ולוחץ על הגז".',
+          source: 'לשכת ראש הממשלה',
+        },
+        en: {
+          headline: 'Netanyahu at late-night press conference: "I hold the wheel with both hands. Minister Ben-Gvir is merely... pressing the gas pedal".',
+          source: 'PMO Briefing',
+        },
+        category: 'politics',
+      },
+    ],
+  },
+
+  // 2. Netanyahu & Tally Gotliv: Backchannel chaos & megaphones
+  {
+    id: 'bibi_and_gotliv',
+    steps: [
+      {
+        he: {
+          headline: 'נתניהו בישיבת סיעת הליכוד פונה לח״כ טלי גוטליב: "טלי, אני מבקש בכל לשון של בקשה – פחות ציוצים תוקפניים, לשמור על שקט תעשייתי".',
+          source: 'חדשות 13',
+        },
+        en: {
+          headline: 'Netanyahu at Likud faction meeting to MK Tally Gotliv: "Tally, I implore you – fewer aggressive tweets, maintain coalition quiet".',
+          source: 'Channel 13',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'עשר דקות לאחר ישיבת הסיעה: טלי גוטליב בציוץ של 800 מילים: "ראש הממשלה מוקף ביועצים תבוסתנים! לא ישתיקו את האמת הצרופה שלי!".',
+          source: 'טוויטר / X',
+        },
+        en: {
+          headline: 'Ten minutes later: Tally Gotliv tweets an 800-word manifesto: "The Prime Minister is surrounded by defeatist deep-state advisors!".',
+          source: 'Twitter / X',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'נתניהו נצפה במסדרונות הכנסת מבצע תמרון התחמקות ונכנס לחדר שירות כשטלי גוטליב נכנסה למסדרון עם רמקול.',
+          source: 'ערוץ הכנסת',
+        },
+        en: {
+          headline: 'Netanyahu seen executing evasive maneuver in Knesset hallways, slipping into supply closet as Tally Gotliv approached with a megaphone.',
+          source: 'Knesset TV',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'נתניהו בראיון לתקשורת האמריקאית: "Tally Gotliv? A very colorful colleague. In Israel, free speech is truly loud and unlimited".',
+          source: 'Fox News',
+        },
+        en: {
+          headline: 'Netanyahu to American media: "Tally Gotliv? A very colorful colleague. In Israel, free speech is truly loud and unlimited".',
+          source: 'Fox News',
+        },
+        category: 'politics',
+      },
+    ],
+  },
+
+  // 3. Netanyahu & The Red Marker / Absolute Victory
+  {
+    id: 'bibi_red_marker',
+    steps: [
+      {
+        he: {
+          headline: 'נתניהו נואם באו״ם עם בריסטול וטוש אדום זוהר: "הנה המפה של המאחזים, שרטטתי פה קו אדום שאיש בעולם לא יעז לחצות".',
+          source: 'עצרת האו״ם ניו יורק',
+        },
+        en: {
+          headline: 'Netanyahu addresses UN with poster board and red highlighter: "Here is the outpost map, I drew a red line that nobody dares cross".',
+          source: 'UN General Assembly',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'דרמה במשלחת הישראלית במנהטן: הטוש האדום הזוהר היה לא מחיק והכתים את חפת חולצתו הלבנה של נתניהו.',
+          source: 'חדשות החוץ',
+        },
+        en: {
+          headline: 'Drama in Israeli UN delegation: The neon red marker was indelible and stained Netanyahu\'s custom white shirt cuff.',
+          source: 'Foreign Desk',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'נתניהו מול מצלמות הטיקטוק בבלפור: "שואלים אותי מה עם המאחזים והגבול? לא היה כלום, לא שמעתי, ולא משכו בדש מעילי".',
+          source: 'טיקטוק רשמי',
+        },
+        en: {
+          headline: 'Netanyahu on TikTok from Balfour: "They ask about the outposts and border? There was nothing, I heard nothing, nobody pulled my lapel".',
+          source: 'Official TikTok',
+        },
+        category: 'politics',
+      },
+      {
+        he: {
+          headline: 'מזכירות הממשלה מאשרת: הוקצב סעיף מיוחד של 12,000₪ לסט טושים עמידים במים למסיבת העיתונאים של הניצחון המוחלט.',
+          source: 'דה מרקר',
+        },
+        en: {
+          headline: 'Cabinet secretariat confirms: Special ₪12,000 budget line approved for waterproof markers for the Absolute Victory presser.',
+          source: 'TheMarker',
+        },
+        category: 'politics',
+      },
+    ],
+  },
+
+  // 4. Noa Kirel & Daniel Peretz wedding -> couscous
   {
     id: 'noa_and_daniel',
     steps: [
@@ -521,6 +674,28 @@ export const STANDALONE_QUOTES: StoryArcStep[] = [
   },
   {
     he: {
+      headline: 'נתניהו במסיבת עיתונאים: "אני שומע את שאלתך, עיתונאי חמוץ. התשובה שלי: לא היה כלום כי אין כלום".',
+      source: 'תדרוך עיתונאים',
+    },
+    en: {
+      headline: 'Netanyahu at press conference: "I hear your question, sour journalist. My answer: there was nothing because there is nothing".',
+      source: 'Press Briefing',
+    },
+    category: 'politics',
+  },
+  {
+    he: {
+      headline: 'נתניהו מקבל מגש גלידת פיסטוק ללשכה: "הביטחון איתן, ההתיישבות פורחת, והפיסטוק פשוט מעולה".',
+      source: 'ידיעות אחרונות',
+    },
+    en: {
+      headline: 'Netanyahu receives pistachio ice cream in his office: "Security is robust, settlements thrive, and the pistachio is superb".',
+      source: 'Yedioth Ahronoth',
+    },
+    category: 'politics',
+  },
+  {
+    he: {
       headline: 'יואב גלנט בפנים חמורות סבר: "העיניים על המטרה, אבל שר האוצר מסרב לחתום על הזמנת תחמושת".',
       source: 'תדרוך הקריה בת״א',
     },
@@ -587,31 +762,31 @@ export function getProgressiveNews(
   if (trigger === 'build') {
     const count = state.settlementsCount;
     if (count <= 2) {
-      targetedNews = advanceArc('ben_gvir_keychains');
+      targetedNews = advanceArc('bibi_and_bengvir') || advanceArc('ben_gvir_keychains');
     } else if (count <= 4) {
-      targetedNews = advanceArc('smotrich_miracles') || advanceArc('ben_gvir_keychains');
+      targetedNews = advanceArc('bibi_red_marker') || advanceArc('smotrich_miracles') || advanceArc('bibi_and_bengvir');
     } else if (count <= 6) {
-      targetedNews = advanceArc('noa_and_daniel') || advanceArc('smotrich_miracles');
+      targetedNews = advanceArc('noa_and_daniel') || advanceArc('bibi_and_bengvir') || advanceArc('smotrich_miracles');
     } else if (count <= 8) {
-      targetedNews = advanceArc('noa_and_daniel') || advanceArc('ben_gvir_keychains') || advanceArc('smotrich_miracles');
+      targetedNews = advanceArc('bibi_red_marker') || advanceArc('noa_and_daniel') || advanceArc('ben_gvir_keychains');
     } else {
-      targetedNews = advanceArc('big_brother_cottage') || advanceArc('noa_and_daniel');
+      targetedNews = advanceArc('big_brother_cottage') || advanceArc('bibi_red_marker') || advanceArc('noa_and_daniel');
     }
   } else if (trigger === 'deploy') {
     const score = state.defenseScore;
     if (score >= 60) {
-      targetedNews = advanceArc('yair_golan_quotes');
+      targetedNews = advanceArc('bibi_and_bengvir') || advanceArc('yair_golan_quotes');
     } else if (score >= 35) {
-      targetedNews = advanceArc('miri_regev_ribbon') || advanceArc('yair_golan_quotes');
+      targetedNews = advanceArc('bibi_and_gotliv') || advanceArc('miri_regev_ribbon') || advanceArc('yair_golan_quotes');
     } else if (score >= 15) {
-      targetedNews = advanceArc('ofira_and_berko') || advanceArc('miri_regev_ribbon');
+      targetedNews = advanceArc('bibi_red_marker') || advanceArc('ofira_and_berko') || advanceArc('miri_regev_ribbon');
     } else {
-      targetedNews = advanceArc('rabbis_kabbalah') || advanceArc('gotliv_and_amsalem');
+      targetedNews = advanceArc('bibi_and_gotliv') || advanceArc('rabbis_kabbalah') || advanceArc('gotliv_and_amsalem');
     }
   } else if (trigger === 'reserves') {
-    targetedNews = advanceArc('yinon_magal_tweets') || advanceArc('gotliv_and_amsalem') || advanceArc('smotrich_miracles');
+    targetedNews = advanceArc('bibi_and_gotliv') || advanceArc('yinon_magal_tweets') || advanceArc('smotrich_miracles');
   } else if (trigger === 'recall') {
-    targetedNews = advanceArc('yair_golan_quotes') || advanceArc('rabbis_kabbalah') || advanceArc('ofira_and_berko');
+    targetedNews = advanceArc('bibi_red_marker') || advanceArc('yair_golan_quotes') || advanceArc('rabbis_kabbalah');
   }
 
   if (targetedNews) {
