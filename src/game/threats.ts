@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import type { GameState, TacticalThreat } from '../types';
 import { availableTroops, holdsExpandedLine, randomStream, RULES } from './rules';
 import { tileName } from './hexGridData';
@@ -80,7 +81,7 @@ export function tickThreats(input: GameState): GameState {
     const feedback = state.threatFeedback!;
     const news = { id: `result-${threat.id}`, headline: state.locale === 'he' ? feedback.textHe : feedback.textEn,
       headlineHe: feedback.textHe, headlineEn: feedback.textEn,
-      source: state.locale === 'he' ? 'דיווח מהשטח' : 'Field report', sourceHe: 'דיווח מהשטח', sourceEn: 'Field report',
+      source: translate(state.locale, 'game.threats.83', []), sourceHe: 'דיווח מהשטח', sourceEn: 'Field report',
       category: 'military' as const };
     state = { ...state, currentNews: news, newsHistory: [news, ...state.newsHistory].slice(0, 30) };
   }

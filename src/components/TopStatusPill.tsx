@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React from 'react';
 import { Shield, Coins, Heart, Info } from 'lucide-react';
 import { GameState, GameAction } from '../types';
@@ -108,7 +109,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
         <div
           onClick={() => triggerInfo('soldiers')}
           className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-          title={`${strings.stats.soldiers} (${state.locale === 'he' ? 'לחץ להסבר' : 'Tap for info'})`}
+          title={`${strings.stats.soldiers} (${translate(state.locale, 'components.TopStatusPill.111', [])})`}
         >
           <div className="w-5 h-5 flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-800 fill-current drop-shadow-sm">
@@ -119,7 +120,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
           <span className="text-xl font-black text-slate-800 tracking-tight font-rubik">
             {state.soldiersAtBorder + state.soldiersAtSettlements}
           </span>
-          <span className="text-[10px] font-bold text-emerald-800" data-testid="available-troops">{availableTroops(state)} {state.locale === 'he' ? 'זמינים' : 'free'}</span>
+          <span className="text-[10px] font-bold text-emerald-800" data-testid="available-troops">{availableTroops(state)} {translate(state.locale, 'components.TopStatusPill.122', [])}</span>
         </div>
 
         <div className="w-px h-5 bg-slate-200" />
@@ -128,7 +129,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
         <div
           onClick={() => triggerInfo('settlements')}
           className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-          title={`${strings.stats.settlements} (${state.locale === 'he' ? 'לחץ להסבר' : 'Tap for info'})`}
+          title={`${strings.stats.settlements} (${translate(state.locale, 'components.TopStatusPill.131', [])})`}
         >
           <div className="w-5 h-5 flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-amber-700 fill-current drop-shadow-sm">
@@ -147,7 +148,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
         <div
           onClick={() => triggerInfo('budget')}
           className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-          title={`${strings.stats.budget} (${state.locale === 'he' ? 'לחץ להסבר' : 'Tap for info'})`}
+          title={`${strings.stats.budget} (${translate(state.locale, 'components.TopStatusPill.150', [])})`}
         >
           <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-100 border border-amber-300">
             <Coins className="w-3.5 h-3.5 text-amber-600" />
@@ -177,8 +178,8 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
               }`}
             >
               {(state.incomeRate ?? 4) <= 0
-                ? (state.locale === 'he' ? '0₪ (גירעון!)' : '₪0/s (Deficit!)')
-                : `+${state.incomeRate ?? 4}₪/${state.locale === 'he' ? 'שנ' : 's'}`}
+                ? (translate(state.locale, 'components.TopStatusPill.180', []))
+                : `+${state.incomeRate ?? 4}₪/${translate(state.locale, 'components.TopStatusPill.181', [])}`}
             </span>
           </div>
         </div>
@@ -191,7 +192,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
         <div
           onClick={() => triggerInfo('landHp')}
           className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
-          title={`${strings.stats.landHp} (${state.locale === 'he' ? 'לחץ להסבר' : 'Tap for info'})`}
+          title={`${strings.stats.landHp} (${translate(state.locale, 'components.TopStatusPill.194', [])})`}
         >
           <div className="flex items-center gap-1 flex-shrink-0">
             <Heart className={`w-3.5 h-3.5 ${state.landHp < 35 ? 'text-red-600 fill-red-500 animate-ping' : 'text-red-500 fill-red-400'}`} />
@@ -209,8 +210,8 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
           </div>
 
           {state.activeBreaches.length > 0 && (
-            <span className="text-[9px] font-black text-red-600 flex-shrink-0 animate-pulse" title={state.locale === 'he' ? 'שחיקת חוסן עקב פרצות פתוחות' : 'HP drain from open gaps'}>
-              -{(state.activeBreaches.length * 0.4).toFixed(1)}/{state.locale === 'he' ? 'ש׳' : 's'}
+            <span className="text-[9px] font-black text-red-600 flex-shrink-0 animate-pulse" title={translate(state.locale, 'components.TopStatusPill.212', [])}>
+              -{(state.activeBreaches.length * 0.4).toFixed(1)}/{translate(state.locale, 'components.TopStatusPill.213', [])}
             </span>
           )}
         </div>
@@ -221,7 +222,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
         <div
           onClick={() => triggerInfo('border')}
           className="flex items-center gap-1 text-slate-700 flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-          title={`${strings.stats.borderReadiness} (${state.locale === 'he' ? 'לחץ להסבר' : 'Tap for info'})`}
+          title={`${strings.stats.borderReadiness} (${translate(state.locale, 'components.TopStatusPill.224', [])})`}
         >
           <Shield
             className={`w-3.5 h-3.5 ${
@@ -271,7 +272,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
             {state.infoPopover.text}
           </p>
           <div className="mt-1 text-[9px] text-amber-400/80 text-end font-heebo">
-            {state.locale === 'he' ? 'לחץ לסגירה' : 'Tap to close'}
+            {translate(state.locale, 'components.TopStatusPill.274', [])}
           </div>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import type { GameState } from '../types';
 
 export const AVAILABLE_TROOP_SOURCE = 'available';
@@ -34,12 +35,8 @@ export function randomStream(seed: number, second: number, channel = 0) {
 }
 
 export function objective(state: GameState): string {
-  const he = state.locale === 'he';
-  if (state.tutorialStep !== 'done') return he
-    ? 'למד את הפקדים — המשחק ממשיך אחרי ההדרכה'
-    : 'Learn the controls — the game continues after the tutorial';
-  return he ? `אייש לפחות 3 מאחזים ואת הגבול · בלימות רצופות ${state.defenseStreak}/${RULES.victoryDefenses}`
-    : `Staff 3+ outposts and the border · Attacks repelled ${state.defenseStreak}/${RULES.victoryDefenses}`;
+  if (state.tutorialStep !== 'done') return translate(state.locale, 'game.rules.38', []);
+  return translate(state.locale, 'game.rules.41', [state.defenseStreak, RULES.victoryDefenses]);
 }
 
 export function holdsExpandedLine(state: GameState): boolean {
@@ -56,10 +53,9 @@ export function hasWon(state: GameState): boolean {
 }
 
 export function medals(state: GameState) {
-  const he = state.locale === 'he';
   const won = state.gameStatus === 'rational_victory';
   return [
-    { label: he ? 'חוסן 90 ומעלה' : 'Finish with 90+ HP', earned: won && state.landHp >= 90 },
-    { label: he ? 'לכל היותר שני גיוסים' : 'Use at most two reserve calls', earned: won && state.metrics.reserveCalls <= 2 },
+    { label: translate(state.locale, 'game.rules.62', []), earned: won && state.landHp >= 90 },
+    { label: translate(state.locale, 'game.rules.63', []), earned: won && state.metrics.reserveCalls <= 2 },
   ];
 }

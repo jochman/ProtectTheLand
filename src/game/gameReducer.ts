@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } from '../types';
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
@@ -373,9 +374,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           ...state,
           lordOfHosts: {
             ...state.lordOfHosts,
-            piousToast: state.locale === 'he'
-              ? 'אין מספיק תקציב לבנייה! אסוף כספים קואליציוניים (100 ₪ נדרשים)'
-              : 'Not enough budget! Collect funds from cities (₪100 required)',
+            piousToast: translate(state.locale, 'game.gameReducer.376', []),
           },
         };
       }
@@ -405,9 +404,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           isBuildMode: false,
           lordOfHosts: {
             ...state.lordOfHosts,
-            piousToast: state.locale === 'he'
-              ? 'אין מספיק תקציב! אסוף מטבעות מהערים (100 ₪ נדרשים)'
-              : 'Insufficient budget! (₪100 required)',
+            piousToast: translate(state.locale, 'game.gameReducer.408', []),
           },
         };
       }
@@ -545,7 +542,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const latestPenalty: FinancialPenalty = {
         id: `penalty-deploy-${simulationNow(state)}`,
         amount: deploymentCost,
-        reason: state.locale === 'he' ? 'עלות פריסת כוחות' : 'Troop Deployment Cost',
+        reason: translate(state.locale, 'game.gameReducer.548', []),
         timestamp: simulationNow(state),
       };
 
@@ -569,7 +566,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         deployNewsItem = {
           id: `available-deploy-${simulationNow(state)}-${state.timeline.length}`,
           headline: state.locale === 'he' ? headlineHe : headlineEn,
-          headlineHe, headlineEn, source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          headlineHe, headlineEn, source: translate(state.locale, 'game.gameReducer.572', []),
           sourceHe: 'פיקוד מרכז', sourceEn: 'Central Command', category: 'military',
         };
       } else if (newDefenseScore <= 20) {
@@ -577,14 +574,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         deployNewsItem = {
           id: `breach-${simulationNow(state)}`,
           headline: strings.news.borderBreach,
-          source: state.locale === 'he' ? 'פיקוד דרום ומרכז' : 'Southern & Central Command',
+          source: translate(state.locale, 'game.gameReducer.580', []),
           headlineHe: he.news.borderBreach,
           headlineEn: en.news.borderBreach,
           sourceHe: 'פיקוד דרום ומרכז',
           sourceEn: 'Southern & Central Command',
           category: 'military',
           isUrgent: true,
-          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.587', []), { hour: '2-digit', minute: '2-digit' }),
         };
       } else {
         const conceptziaHeadlinesHe = [
@@ -622,7 +619,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           sourceEn: conceptziaSourcesEn[cIdx],
           category: 'politics',
           isUrgent: false,
-          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.625', []), { hour: '2-digit', minute: '2-digit' }),
         };
       }
 
@@ -780,14 +777,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         ...withNews(state, {
           id: `reserves-${simulationNow(state)}`,
           headline: state.locale === 'he' ? newsHeadlineHe : newsHeadlineEn,
-          source: state.locale === 'he' ? 'אגף כוח אדם והאוצר' : 'Personnel & Treasury',
+          source: translate(state.locale, 'game.gameReducer.783', []),
           headlineHe: newsHeadlineHe,
           headlineEn: newsHeadlineEn,
           sourceHe: 'אגף כוח אדם והאוצר',
           sourceEn: 'Personnel & Treasury',
           category: 'military',
           isUrgent: callsMade >= 2 || hadIntercepted,
-          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.790', []), { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }
@@ -1034,14 +1031,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
             const breachNewsItem: NewsItem = {
               id: `breach-raid-news-${now}`,
               headline: state.locale === 'he' ? breachHeadlineHe : breachHeadlineEn,
-              source: state.locale === 'he' ? 'פיקוד העורף' : 'Home Front Command',
+              source: translate(state.locale, 'game.gameReducer.1037', []),
               headlineHe: breachHeadlineHe,
               headlineEn: breachHeadlineEn,
               sourceHe: 'פיקוד העורף',
               sourceEn: 'Home Front Command',
               category: 'military',
               isUrgent: true,
-              timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+              timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1044', []), { hour: '2-digit', minute: '2-digit' }),
             };
             if (nextCurrentNews) {
               nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
@@ -1076,14 +1073,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           const impactNewsItem: NewsItem = {
             id: `green-impact-${now}-${atk.id}`,
             headline: state.locale === 'he' ? impactHeadlineHe : impactHeadlineEn,
-            source: state.locale === 'he' ? 'חדשות 12 / מבזק' : 'Breaking News',
+            source: translate(state.locale, 'game.gameReducer.1079', []),
             headlineHe: impactHeadlineHe,
             headlineEn: impactHeadlineEn,
             sourceHe: 'חדשות 12 / מבזק',
             sourceEn: 'Breaking News',
             category: 'military',
             isUrgent: true,
-            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1086', []), { hour: '2-digit', minute: '2-digit' }),
           };
           if (nextCurrentNews) {
             nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
@@ -1175,9 +1172,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           let isUrgentClash = false;
 
           if (settlerInitiated) {
-            clashTitle = state.locale === 'he'
-              ? `פשיטה: ${settlementNameHe} ⚔️ ${arabCityNameHe}`
-              : `Raid: ${settlementNameEn} vs ${arabCityNameEn}`;
+            clashTitle = translate(state.locale, 'game.gameReducer.1178', [settlementNameHe, arabCityNameHe]);
 
             const variantsHe = [
               `עימות אלים: קבוצת צעירים מ${settlementNameHe} פשטה על פאתי ${arabCityNameHe}, יודו אבנים הדדיות.`,
@@ -1195,9 +1190,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
             clashHeadlineHe = variantsHe[vIdx];
             clashHeadlineEn = variantsEn[vIdx];
           } else {
-            clashTitle = state.locale === 'he'
-              ? `מתקפה על מאחז: ${arabCityNameHe} ⚔️ ${settlementNameHe}`
-              : `Outpost targeted: ${arabCityNameEn} vs ${settlementNameEn}`;
+            clashTitle = translate(state.locale, 'game.gameReducer.1198', [arabCityNameHe, settlementNameHe]);
 
             const variantsHe = !isGarrisoned ? [
               `מאחז חשוף תחת מתקפה: בהיעדר כוחות צה״ל לשמירה, עשרות פורעים מ${arabCityNameHe} תקפו את פאתי ${settlementNameHe}!`,
@@ -1302,7 +1295,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
             sourceEn: clashSourceEn,
             category: 'military',
             isUrgent: isUrgentClash,
-            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1305', []), { hour: '2-digit', minute: '2-digit' }),
           };
 
           if (nextCurrentNews) {
@@ -1375,13 +1368,13 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           const penaltyNews: NewsItem = {
             id: `penalty-news-${now}`,
             headline: state.locale === 'he' ? penaltyHeadlineHe : penaltyHeadlineEn,
-            source: state.locale === 'he' ? 'סיעות הקואליציה' : 'Coalition Factions',
+            source: translate(state.locale, 'game.gameReducer.1378', []),
             headlineHe: penaltyHeadlineHe,
             headlineEn: penaltyHeadlineEn,
             sourceHe: 'סיעות הקואליציה',
             sourceEn: 'Coalition Factions',
             category: 'politics',
-            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1384', []), { hour: '2-digit', minute: '2-digit' }),
             isUrgent: true,
           };
 
@@ -1409,17 +1402,15 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           gameStatus: 'catastrophe',
           ...withNews(state, {
             id: `catastrophe-collapse-${now}`,
-            headline: state.locale === 'he'
-              ? 'קריסת חוסן המדינה: ההגנה נשברה כליל! פרצות ממושכות ופגיעות ישירות הובילו ל-7 באוקטובר.'
-              : 'Homeland Collapse: Defenses broken! Prolonged breaches and direct strikes led to October 7th.',
-            source: state.locale === 'he' ? 'פיקוד העורף' : 'Home Front Command',
+            headline: translate(state.locale, 'game.gameReducer.1412', []),
+            source: translate(state.locale, 'game.gameReducer.1415', []),
             headlineHe: 'קריסת חוסן המדינה: ההגנה נשברה כליל! פרצות ממושכות ופגיעות ישירות הובילו ל-7 באוקטובר.',
             headlineEn: 'Homeland Collapse: Defenses broken! Prolonged breaches and direct strikes led to October 7th.',
             sourceHe: 'פיקוד העורף',
             sourceEn: 'Home Front Command',
             category: 'military',
             isUrgent: true,
-            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1422', []), { hour: '2-digit', minute: '2-digit' }),
           }),
         };
       }
@@ -1565,16 +1556,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         actionHistory: [...state.actionHistory, { id: `evacuate-${simulationNow(state)}`, kind: 'evacuate' as const, timestamp: simulationNow(state) }].slice(-20),
         ...withNews(state, {
           id: `evac-${simulationNow(state)}`,
-          headline: state.locale === 'he'
-            ? `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`
-            : `Outpost evacuated. Troops returned to reinforce sovereign border.`,
-          source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          headline: translate(state.locale, 'game.gameReducer.1568', []),
+          source: translate(state.locale, 'game.gameReducer.1571', []),
           headlineHe: `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`,
           headlineEn: `Outpost evacuated. Troops returned to reinforce sovereign border.`,
           sourceHe: 'פיקוד מרכז',
           sourceEn: 'Central Command',
           category: 'military',
-          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1577', []), { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }
@@ -1682,14 +1671,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           ...withNews(state, {
             id: `seal-${simulationNow(state)}`,
             headline: state.locale === 'he' ? headlineHe : headlineEn,
-            source: state.locale === 'he' ? 'חמ״ל גזרה' : 'Sector Operations',
+            source: translate(state.locale, 'game.gameReducer.1685', []),
             headlineHe,
             headlineEn,
             sourceHe: 'חמ״ל גזרה',
             sourceEn: 'Sector Operations',
             category: 'military',
             isUrgent: true,
-            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1692', []), { hour: '2-digit', minute: '2-digit' }),
           }),
         };
       }
@@ -1769,14 +1758,14 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           ...withNews(state, {
             id: `reserves-seal-${simulationNow(state)}`,
             headline: state.locale === 'he' ? newsHeadlineHe : newsHeadlineEn,
-            source: state.locale === 'he' ? 'אגף המבצעים' : 'Operations Directorate',
+            source: translate(state.locale, 'game.gameReducer.1772', []),
             headlineHe: newsHeadlineHe,
             headlineEn: newsHeadlineEn,
             sourceHe: 'אגף המבצעים',
             sourceEn: 'Operations Directorate',
             category: 'military',
             isUrgent: true,
-            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1779', []), { hour: '2-digit', minute: '2-digit' }),
           }),
         };
       }
@@ -1787,9 +1776,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         ...state,
         lordOfHosts: {
           ...state.lordOfHosts,
-          piousToast: state.locale === 'he'
-            ? 'אין חיילים זמינים! כל הלוחמים מרותקים למאחזים ואזלו המילואים!'
-            : 'No troops available! Soldiers tied up in outposts and no reserves left!',
+          piousToast: translate(state.locale, 'game.gameReducer.1790', []),
         },
       };
     }
@@ -1883,13 +1870,13 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         ...withNews(state, {
           id: `recall-${simulationNow(state)}`,
           headline: state.locale === 'he' ? recallHeadlineHe : recallHeadlineEn,
-          source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          source: translate(state.locale, 'game.gameReducer.1886', []),
           headlineHe: recallHeadlineHe,
           headlineEn: recallHeadlineEn,
           sourceHe: 'פיקוד מרכז',
           sourceEn: 'Central Command',
           category: 'military',
-          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1892', []), { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }
@@ -1986,13 +1973,13 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         ...withNews(state, {
           id: `recall-all-${simulationNow(state)}`,
           headline: state.locale === 'he' ? recallAllHeadlineHe : recallAllHeadlineEn,
-          source: state.locale === 'he' ? 'המטה הכללי' : 'General Staff',
+          source: translate(state.locale, 'game.gameReducer.1989', []),
           headlineHe: recallAllHeadlineHe,
           headlineEn: recallAllHeadlineEn,
           sourceHe: 'המטה הכללי',
           sourceEn: 'General Staff',
           category: 'military',
-          timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: new Date().toLocaleTimeString(translate(state.locale, 'game.gameReducer.1995', []), { hour: '2-digit', minute: '2-digit' }),
         }),
       };
     }

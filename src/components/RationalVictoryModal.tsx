@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { ShieldCheck, RotateCcw } from 'lucide-react';
@@ -42,7 +43,7 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
 
         {/* Analytical Explanation */}
         <p className="text-xs leading-relaxed text-slate-700 px-1 font-heebo">
-          {state.locale === 'he' ? 'החזקת לפחות שלושה מאחזים ואת הגבול ובלמת שלוש התקפות רצופות. כל העמדות מאוישות והאיומים הפעילים הסתיימו. בדוק את המחיר בחוסן ובגיוס מילואים.' : 'You held at least three outposts and the border through three consecutive attacks. Every post is staffed and all active threats are resolved. Review the cost in resilience and reserve call-ups.'}
+          {translate(state.locale, 'components.RationalVictoryModal.45', [])}
         </p>
         <RunReport state={state} />
 
@@ -57,7 +58,7 @@ export const RationalVictoryModal: React.FC<RationalVictoryModalProps> = ({ stat
           className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 font-heebo"
         >
           <RotateCcw className="w-4 h-4" />
-          <span>{state.locale === 'he' ? 'משחק חדש' : 'Play again'}</span>
+          <span>{translate(state.locale, 'components.RationalVictoryModal.60', [])}</span>
         </button>
 
       </div>

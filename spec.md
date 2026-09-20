@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-20 21:31:14 UTC (Branch: `main`, Iteration #54)
+> **Last Synchronized:** 2026-09-20 21:52:36 UTC (Branch: `main`, Iteration #55)
 
 ---
 
@@ -72,6 +72,10 @@ The game operates seamlessly in **Hebrew (`he`, RTL)** and **English (`en`, LTR)
   5. Translates UI labels, buttons, modals, and goal descriptions.
 - Dynamic news items store bilingual fields (`headlineHe`, `headlineEn`, `sourceHe`, `sourceEn`).
 - Legacy or story-arc news items dynamically fall back to arc-catalog lookups (`STORY_ARCS` and `STANDALONE_QUOTES`).
+
+### 3.2 Shared UI Translation Catalog
+- Static and interpolated player-facing UI copy is centralized in `src/locales/inlineTranslations.ts` as Hebrew/English pairs. Components call `translate(state.locale, key, values)` from `src/locales/translate.ts`; `{{0}}`-style placeholders preserve dynamic game values without duplicating locale conditionals in JSX or game rules.
+- `selectLocale()` is reserved for already-bilingual runtime records such as live news and tactical feedback. Language state remains owned by `GameState`, preserving immediate RTL/LTR changes and the existing reducer-based language switch.
 
 ---
 

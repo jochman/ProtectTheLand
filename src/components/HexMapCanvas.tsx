@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React from 'react';
 import { GameState, GameAction, HexTile } from '../types';
 import { haptics } from '../utils/haptics';
@@ -148,7 +149,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               key={tile.id}
               role={isCandidateForBuild ? 'button' : undefined}
               tabIndex={isCandidateForBuild ? 0 : undefined}
-              aria-label={isCandidateForBuild ? (state.locale === 'he' ? `בנה כאן ${tile.id}` : `Build here ${tile.id}`) : undefined}
+              aria-label={isCandidateForBuild ? (translate(state.locale, 'components.HexMapCanvas.151', [tile.id])) : undefined}
               onKeyDown={e => { if (isCandidateForBuild && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); dispatch({ type: 'SELECT_TILE_TO_BUILD', tileId: tile.id }); } }}
               onClick={() => {
                 if (isCandidateForBuild) {
@@ -307,7 +308,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                         <g transform="translate(0, -18)" filter="url(#dropShadow)">
                           <rect x="-35" y="-6.5" width="70" height="13" rx="4" fill="#dc2626" stroke="#fca5a5" strokeWidth="1" />
                           <text x="0" y="2.5" textAnchor="middle" fill="#fff" fontSize="6.5" fontWeight="900" className="font-rubik">
-                            {state.locale === 'he' ? '🚨 חדירה בדרך! (בלימה)' : '🚨 Raid Inbound! (Defend)'}
+                            {translate(state.locale, 'components.HexMapCanvas.310', [])}
                           </text>
                         </g>
                       </g>
@@ -327,7 +328,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                       <g transform="translate(0, -18)" filter="url(#dropShadow)">
                         <rect x="-36" y="-6.5" width="72" height="13" rx="4" fill="#7f1d1d" stroke="#fca5a5" strokeWidth="1" />
                         <text x="0" y="2.5" textAnchor="middle" fill="#fee2e2" fontSize="6.5" fontWeight="900" className="font-rubik">
-                          {state.locale === 'he' ? '💥 פגיעה בעורף (-10₪)' : '💥 Struck! (-₪10)'}
+                          {translate(state.locale, 'components.HexMapCanvas.330', [])}
                         </text>
                       </g>
                     </g>
@@ -468,7 +469,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   className="cursor-pointer group"
                   role="button"
                   tabIndex={0}
-                  aria-label={state.locale === 'he' ? `סגור פרצה ${cp.id}` : `Seal gap ${cp.id}`}
+                  aria-label={translate(state.locale, 'components.HexMapCanvas.471', [cp.id])}
                   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id }); } }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -498,7 +499,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   <g transform="translate(0, -18)" className="transition-transform group-hover:scale-105">
                     <rect x="-28" y="-6" width="56" height="12" rx="3.5" fill="rgba(15, 23, 42, 0.95)" stroke="#ef4444" strokeWidth="1" />
                     <text x="0" y="2.5" textAnchor="middle" fill="#fca5a5" fontSize="5.5" fontWeight="900" className="font-rubik">
-                      {state.locale === 'he' ? '⚠️ פרצה (לחץ לבלימה)' : '⚠️ Breach (Click to Seal)'}
+                      {translate(state.locale, 'components.HexMapCanvas.501', [])}
                     </text>
                   </g>
                 </g>
@@ -536,7 +537,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               className="cursor-pointer group"
               role="button"
               tabIndex={0}
-              aria-label={state.locale === 'he' ? `בחר מאחז ${s.settlementName || s.id}` : `Select outpost ${s.id}`}
+              aria-label={translate(state.locale, 'components.HexMapCanvas.539', [s.settlementName || s.id])}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'SELECT_TILE', tileId: s.id }); } }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -1040,14 +1041,14 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           const target = state.tiles[threat.tileId];
           const ready = threatDefense(state, threat);
           const covered = ready >= threat.required;
-          const label = state.locale === 'he' ? `תגבור ${tileName(target, 'he')}` : `Reinforce ${tileName(target, 'en')}`;
+          const label = translate(state.locale, 'components.HexMapCanvas.1043', [tileName(target, 'he')]);
           const open = () => dispatch({ type: 'SELECT_THREAT', id: threat.id });
           return <g key={threat.id} role="button" tabIndex={0} aria-label={label} className="cursor-pointer"
             onClick={open} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } }}>
             <circle cx={target.x} cy={target.y} r="32" fill="transparent" pointerEvents="all" stroke={covered ? '#15803d' : '#b91c1c'} strokeWidth="3" strokeDasharray="5 3" />
             <rect x={target.x - 34} y={target.y - 43} width="68" height="22" rx="8" fill={covered ? '#166534' : '#991b1b'} stroke="#fde68a" strokeWidth="2" />
             <text x={target.x} y={target.y - 28} direction="ltr" textAnchor="middle" fill="white" fontSize="12" fontWeight="900">
-              {ready}/{threat.required} · {threat.deadline - state.elapsedSeconds}{state.locale === 'he' ? 'ש׳' : 's'}
+              {ready}/{threat.required} · {threat.deadline - state.elapsedSeconds}{translate(state.locale, 'components.HexMapCanvas.1050', [])}
             </text>
           </g>;
         })}
@@ -1063,7 +1064,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           opacity="0.85"
           className="font-rubik pointer-events-none drop-shadow-sm"
         >
-          {state.locale === 'he' ? 'ישראל' : 'ISRAEL'}
+          {translate(state.locale, 'components.HexMapCanvas.1066', [])}
         </text>
 
         <text
@@ -1076,7 +1077,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           opacity="0.85"
           className="font-rubik pointer-events-none drop-shadow-sm"
         >
-          {state.locale === 'he' ? 'הגדה המערבית' : 'WEST BANK'}
+          {translate(state.locale, 'components.HexMapCanvas.1079', [])}
         </text>
       </svg>
     </div>

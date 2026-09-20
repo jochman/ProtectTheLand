@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import { HexTile } from '../types';
 
 const ENGLISH_NAMES: Record<string, string> = {
@@ -13,7 +14,7 @@ const ENGLISH_NAMES: Record<string, string> = {
 };
 
 export const tileName = (tile: HexTile, locale: 'he' | 'en') => tile.isBorderCheckpoint
-  ? `${locale === 'he' ? 'גזרה' : 'Sector'} ${tile.id.replace('bdr-', '')}` : locale === 'he'
+  ? `${translate(locale, 'game.hexGridData.16', [])} ${tile.id.replace('bdr-', '')}` : locale === 'he'
   ? tile.label || tile.settlementName || tile.id
   : ENGLISH_NAMES[tile.id] || tile.subLabel || tile.id;
 

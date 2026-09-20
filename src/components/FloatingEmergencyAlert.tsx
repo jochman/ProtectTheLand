@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { GameState, GameAction } from '../types';
@@ -52,7 +53,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
       {/* Tapping anywhere on the popup card IMMEDIATELY dismisses it! */}
       <div
         onClick={handleDismiss}
-        title={isHe ? 'לחץ לסגירה' : 'Tap to dismiss'}
+        title={translate(state.locale, 'components.FloatingEmergencyAlert.55', [])}
         className="group relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-r from-red-950/95 via-red-900/95 to-red-950/95 border-2 border-red-500 shadow-2xl backdrop-blur-md p-2.5 sm:p-3 text-white transition-all hover:border-amber-400 active:scale-[0.99]"
       >
         {/* Subtle pulsing background glow */}
@@ -67,7 +68,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
             </span>
             <AlertTriangle className="w-4 h-4 text-amber-300 flex-shrink-0" />
             <span className="text-[11px] font-black text-amber-300 tracking-wider uppercase font-rubik">
-              {isHe ? 'התרעת חדירה פעילה!' : 'ACTIVE INFILTRATION!'}
+              {translate(state.locale, 'components.FloatingEmergencyAlert.70', [])}
             </span>
           </div>
 
@@ -81,7 +82,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
                 handleDismiss();
               }}
               className="p-1 rounded-full text-red-300 hover:text-white hover:bg-white/20 transition-colors text-xs font-bold"
-              title={isHe ? 'סגור התרעה' : 'Dismiss'}
+              title={translate(state.locale, 'components.FloatingEmergencyAlert.84', [])}
               aria-label="Close"
             >
               ✕
@@ -105,7 +106,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
             className="mt-2 w-full py-1.5 px-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-98 border border-amber-300 rounded-xl font-black text-xs text-white shadow-lg flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
           >
             <ShieldAlert className="w-3.5 h-3.5 text-amber-200" />
-            <span>{isHe ? 'לחץ כאן לבלימת החדירה!' : 'Tap Here to Intercept!'}</span>
+            <span>{translate(state.locale, 'components.FloatingEmergencyAlert.108', [])}</span>
           </button>
         )}
 
@@ -114,12 +115,12 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
           <span className="flex items-center gap-1 font-bold">
             <AlertCircle className="w-3 h-3 text-red-400" />
             <span>
-              {isHe ? `הגנה בגבול: ${state.defenseScore}%` : `Border: ${state.defenseScore}%`}
+              {translate(state.locale, 'components.FloatingEmergencyAlert.117', [state.defenseScore])}
             </span>
           </span>
 
           <span className="text-[10px] text-amber-300/90 font-medium">
-            {isHe ? '👆 לחץ בכל מקום לסגירה' : '👆 Tap anywhere to close'}
+            {translate(state.locale, 'components.FloatingEmergencyAlert.122', [])}
           </span>
         </div>
       </div>

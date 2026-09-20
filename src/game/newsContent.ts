@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import { NewsItem, GameState } from '../types';
 
 export interface StoryArcStep {
@@ -739,7 +740,7 @@ export function getProgressiveNews(
       arcId,
       arcStep: stepIndex + 1,
       totalArcSteps: arc.steps.length,
-      timestamp: new Date().toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString(translate(locale, 'game.newsContent.742', []), { hour: '2-digit', minute: '2-digit' }),
       isUrgent: false,
     };
   };
@@ -831,7 +832,7 @@ export function getProgressiveNews(
     sourceHe: chosenQuote.he.source,
     sourceEn: chosenQuote.en.source,
     category: chosenQuote.category,
-    timestamp: new Date().toLocaleTimeString(locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: new Date().toLocaleTimeString(translate(locale, 'game.newsContent.834', []), { hour: '2-digit', minute: '2-digit' }),
     isUrgent: false,
   };
 

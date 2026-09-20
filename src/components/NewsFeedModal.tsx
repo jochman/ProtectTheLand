@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React from 'react';
 import { X, Radio, MessageSquare } from 'lucide-react';
 import { GameState, GameAction, NewsItem } from '../types';
@@ -17,14 +18,14 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
   const getCategoryBadge = (category?: NewsItem['category']) => {
     switch (category) {
       case 'politics':
-        return { label: isHe ? '🏛️ פוליטיקה' : '🏛️ Politics', color: 'bg-blue-100 text-blue-900 border-blue-300' };
+        return { label: translate(state.locale, 'components.NewsFeedModal.20', []), color: 'bg-blue-100 text-blue-900 border-blue-300' };
       case 'celebs':
-        return { label: isHe ? '✨ סלבס ובידור' : '✨ Celebs & Pop', color: 'bg-pink-100 text-pink-900 border-pink-300' };
+        return { label: translate(state.locale, 'components.NewsFeedModal.22', []), color: 'bg-pink-100 text-pink-900 border-pink-300' };
       case 'rabbis':
-        return { label: isHe ? '🕍 רבנות וקבלה' : '🕍 Rabbis & Faith', color: 'bg-amber-100 text-amber-900 border-amber-300' };
+        return { label: translate(state.locale, 'components.NewsFeedModal.24', []), color: 'bg-amber-100 text-amber-900 border-amber-300' };
       case 'military':
       default:
-        return { label: isHe ? '🚨 צבא וביטחון' : '🚨 Defense', color: 'bg-red-100 text-red-900 border-red-300' };
+        return { label: translate(state.locale, 'components.NewsFeedModal.27', []), color: 'bg-red-100 text-red-900 border-red-300' };
     }
   };
 
@@ -49,10 +50,10 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
             </div>
             <div>
               <h3 className="text-base font-black text-slate-900 font-rubik flex items-center gap-1.5">
-                {isHe ? 'מבזקון LIVE | צ׳אט הכתבים' : 'LIVE Wire | News Feed'}
+                {translate(state.locale, 'components.NewsFeedModal.52', [])}
               </h3>
               <p className="text-[10px] text-slate-500 font-heebo">
-                {isHe ? 'דיווחים בלעדיים, פוליטיקאים, רבנים וסלבס' : 'Exclusive leaks, politicians, rabbis & celebs'}
+                {translate(state.locale, 'components.NewsFeedModal.55', [])}
               </p>
             </div>
           </div>
@@ -77,7 +78,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
                 </span>
               </div>
               <span className="text-slate-400 text-[10px] font-mono">
-                {current.timestamp || (isHe ? 'הרגע' : 'Just now')}
+                {current.timestamp || (translate(state.locale, 'components.NewsFeedModal.80', []))}
               </span>
             </div>
 
@@ -93,17 +94,17 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
           <div className="flex items-center justify-between px-1">
             <span className="text-[11px] font-extrabold text-slate-600 flex items-center gap-1">
               <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
-              {isHe ? 'כל המבזקים האחרונים' : 'Recent News Wire'}
+              {translate(state.locale, 'components.NewsFeedModal.96', [])}
             </span>
             <span className="text-[10px] text-slate-400">
-              {history.length} {isHe ? 'מבזקים' : 'updates'}
+              {history.length} {translate(state.locale, 'components.NewsFeedModal.99', [])}
             </span>
           </div>
 
           <div className="overflow-y-auto max-h-[32vh] space-y-2 pr-1 custom-scrollbar">
             {history.length === 0 ? (
               <div className="text-center py-6 text-slate-400 text-xs">
-                {isHe ? 'טרם נאספו מבזקים נוספים' : 'No earlier flashes yet'}
+                {translate(state.locale, 'components.NewsFeedModal.106', [])}
               </div>
             ) : (
               history.map((item, idx) => (
@@ -116,7 +117,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
                       {isHe ? (item.sourceHe || item.source) : (item.sourceEn || item.source)}
                     </span>
                     <span className="text-slate-400 font-mono">
-                      {item.timestamp || (isHe ? 'קודם' : 'Earlier')}
+                      {item.timestamp || (translate(state.locale, 'components.NewsFeedModal.119', []))}
                     </span>
                   </div>
                   <p className="text-slate-800 font-medium text-[11px] leading-relaxed">
@@ -133,7 +134,7 @@ export const NewsFeedModal: React.FC<NewsFeedModalProps> = ({ state, dispatch })
           onClick={() => dispatch({ type: 'CLOSE_NEWS_MODAL' })}
           className="w-full py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black rounded-2xl text-xs transition-colors shadow-sm"
         >
-          {isHe ? 'חזרה למפה' : 'Return to Map'}
+          {translate(state.locale, 'components.NewsFeedModal.136', [])}
         </button>
       </div>
     </div>

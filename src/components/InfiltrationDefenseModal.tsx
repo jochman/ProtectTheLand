@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React from 'react';
 import { ShieldAlert, Users, Undo2, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { GameState, GameAction } from '../types';
@@ -17,7 +18,6 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
 
   if (!attack) return null;
 
-  const isHe = state.locale === 'he';
 
   // Find guarded settlements that have soldiers available to recall
   const guardedSettlements = Object.values(state.tiles).filter(
@@ -57,10 +57,10 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
             <ShieldAlert className="w-6 h-6 text-red-500 animate-pulse flex-shrink-0" />
             <div>
               <h3 className="text-base font-black text-white font-rubik leading-tight">
-                {isHe ? 'סכנת חדירה פעילה לעורף!' : 'Active Infiltration Threat!'}
+                {translate(state.locale, 'components.InfiltrationDefenseModal.60', [])}
               </h3>
               <p className="text-[11px] text-red-300 font-heebo">
-                {isHe ? `יעד הפושטים: ${attack.targetCityName}` : `Target: ${attack.targetCityName}`}
+                {translate(state.locale, 'components.InfiltrationDefenseModal.63', [attack.targetCityName])}
               </p>
             </div>
           </div>
@@ -77,10 +77,10 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-red-200 flex items-center gap-1.5">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-              {isHe ? 'התקדמות החוליה לעיר:' : 'Squad Approach Progress:'}
+              {translate(state.locale, 'components.InfiltrationDefenseModal.80', [])}
             </span>
             <span className="text-amber-300 font-mono font-black">
-              {progressPercent}% ({isHe ? `נותרו כ-${Math.max(1, Math.round(16 * (1 - attack.progress)))} שניות` : `~${Math.max(1, Math.round(16 * (1 - attack.progress)))}s left`})
+              {progressPercent}% ({translate(state.locale, 'components.InfiltrationDefenseModal.83', [Math.max(1, Math.round(16 * (1 - attack.progress)))])})
             </span>
           </div>
           <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-red-900">
@@ -90,32 +90,28 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
             />
           </div>
           <p className="text-[10px] text-red-300/90 leading-relaxed font-heebo">
-            {isHe
-              ? 'אם החוליה תגיע לעיר: 12- חוסן ו-10₪ נזק. סגירת הפרצה עוצרת את החדירה.'
-              : 'If the squad reaches the city: −12 HP and ₪10 damage. Sealing its gap stops the raid.'}
+            {translate(state.locale, 'components.InfiltrationDefenseModal.93', [])}
           </p>
         </div>
 
         {/* Context explanation: Why did this happen? */}
         <div className="text-[11px] bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 text-slate-300 leading-normal font-heebo">
           <p className="font-bold text-amber-300 mb-0.5">
-            {isHe ? 'למה זה קרה?' : 'Why did this happen?'}
+            {translate(state.locale, 'components.InfiltrationDefenseModal.102', [])}
           </p>
           <p>
-            {isHe
-              ? 'גזרת גבול נותרה ללא חייל. חדירה יכולה להתפתח כל עוד הפרצה פתוחה.'
-              : 'A border sector was left unstaffed. Raids can develop while the gap remains open.'}
+            {translate(state.locale, 'components.InfiltrationDefenseModal.105', [])}
           </p>
         </div>
 
         {/* Action Solutions */}
         <div className="flex flex-col gap-2.5 pt-1">
           <p className="text-xs font-black text-amber-400 font-rubik">
-            {isHe ? 'מה אפשר לעשות עכשיו?' : 'What can you do?'}
+            {translate(state.locale, 'components.InfiltrationDefenseModal.114', [])}
           </p>
 
           {/* Solution 1: Call Reserves */}
-          {spareCount > 0 && <button className="min-h-11 rounded-2xl border border-emerald-400 bg-emerald-800 p-3 text-start text-sm font-bold" onClick={() => dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId })}>{isHe ? `בלום בעזרת חייל זמין (${spareCount}) — השומרים נשארים בעמדות` : `Intercept with an available soldier (${spareCount}) — keep guards in place`}</button>}
+          {spareCount > 0 && <button className="min-h-11 rounded-2xl border border-emerald-400 bg-emerald-800 p-3 text-start text-sm font-bold" onClick={() => dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId })}>{translate(state.locale, 'components.InfiltrationDefenseModal.118', [spareCount])}</button>}
           <button
             onClick={handleCallReserves}
             disabled={!canCallReserves}
@@ -129,16 +125,11 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
               <Users className="w-5 h-5 text-emerald-400 flex-shrink-0" />
               <div>
                 <p className="text-xs font-black text-white font-rubik">
-                  {isHe ? '1. גיוס מילואים ליירוט וסתימת הפרצה' : '1. Call Reserves to Intercept'}
+                  {translate(state.locale, 'components.InfiltrationDefenseModal.132', [])}
                 </p>
                 <p className="text-[10.5px] text-emerald-200/90 font-heebo">
                   {canCallReserves
-                    ? isHe
-                      ? `חוסם את הגבול ומיירט מיד (${state.reservesBatchesLeft} נותרו)`
-                      : `Seals border and intercepts squad (${state.reservesBatchesLeft} left)`
-                    : isHe
-                    ? 'אזלו סבבי המילואים!'
-                    : 'No reserve calls left!'}
+                    ? translate(state.locale, 'components.InfiltrationDefenseModal.136', [state.reservesBatchesLeft]): translate(state.locale, 'components.InfiltrationDefenseModal.139', [])}
                 </p>
               </div>
             </div>
@@ -149,7 +140,7 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
           {canRecallTroop ? (
             <div className="flex flex-col gap-1.5">
               <p className="text-[11px] font-bold text-slate-300">
-                {isHe ? '2. או החזר חייל ממאחז כדי לאבטח את הגבול:' : '2. Or recall soldier from outpost:'}
+                {translate(state.locale, 'components.InfiltrationDefenseModal.152', [])}
               </p>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                 {guardedSettlements.map(s => (
@@ -159,16 +150,14 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
                     className="py-1.5 px-2.5 rounded-xl bg-blue-900/80 hover:bg-blue-800 border border-blue-500 text-blue-100 text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer font-heebo"
                   >
                     <Undo2 className="w-3.5 h-3.5" />
-                    <span>{isHe ? `החזר מ${s.settlementName || 'מאחז'}` : `Recall from ${s.settlementName}`}</span>
+                    <span>{translate(state.locale, 'components.InfiltrationDefenseModal.162', [s.settlementName || 'מאחז'])}</span>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
             <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-[10.5px] text-slate-400 font-heebo">
-              {isHe
-                ? 'אין חיילים במאחזים כרגע להחזרה (כולם כבר בגבול או שטרם הוצבו).'
-                : 'No troops currently deployed in outposts to recall.'}
+              {translate(state.locale, 'components.InfiltrationDefenseModal.169', [])}
             </div>
           )}
         </div>

@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import type { GameState } from '../types';
 import { medals, objective } from '../game/rules';
 
@@ -12,27 +13,27 @@ const labels = {
 export function RunReport({ state }: { state: GameState }) {
   const he = state.locale === 'he';
   const m = state.metrics;
-  const damage = [[he ? 'חשיפה ממושכת' : 'Open border gaps', m.exposureDamage],
-    [he ? 'פגיעות חדירה' : 'Raid impacts', m.raidDamage], [he ? 'אובדן מאחזים' : 'Outpost losses', m.clashDamage],
-    [he ? 'איומים ללא תגבור מספיק' : 'Understaffed battles', m.threatDamage]] as const;
+  const damage = [[translate(state.locale, 'components.RunReport.15', []), m.exposureDamage],
+    [translate(state.locale, 'components.RunReport.16', []), m.raidDamage], [translate(state.locale, 'components.RunReport.16', []), m.clashDamage],
+    [translate(state.locale, 'components.RunReport.17', []), m.threatDamage]] as const;
   return <div className="w-full space-y-3 text-start text-xs text-slate-800">
-    <p className="rounded-xl bg-slate-100 p-3">{objective(state)}<br />{he ? 'זמן משחק' : 'Playing time'}: {state.elapsedSeconds}s · {he ? 'חוסן' : 'HP'}: {state.landHp.toFixed(1)} · {he ? 'יירוטים' : 'Intercepted'}: {m.intercepted}</p>
+    <p className="rounded-xl bg-slate-100 p-3">{objective(state)}<br />{translate(state.locale, 'components.RunReport.19', [])}: {state.elapsedSeconds}s · {translate(state.locale, 'components.RunReport.19', [])}: {state.landHp.toFixed(1)} · {translate(state.locale, 'components.RunReport.19', [])}: {m.intercepted}</p>
     <div className="grid gap-1">{medals(state).map(medal => <p key={medal.label} className={medal.earned ? 'font-bold text-emerald-800' : 'text-slate-600'}>{medal.earned ? '🏅' : '○'} {medal.label}</p>)}</div>
     <table className="w-full overflow-hidden rounded-xl bg-white text-start">
-      <caption className="mb-1 text-start font-bold">{he ? 'נזק מצטבר בפועל (לפני התאוששות)' : 'Actual damage taken (before recovery)'}</caption>
+      <caption className="mb-1 text-start font-bold">{translate(state.locale, 'components.RunReport.22', [])}</caption>
       <tbody>{damage.map(([label, amount]) => <tr key={label} className="border-b border-slate-100"><th className="p-2 text-start font-medium">{label}</th><td className="p-2 text-end tabular-nums">{amount.toFixed(1)} HP</td></tr>)}</tbody>
     </table>
-    {m.miracleClicks > 0 && <p>{he ? `כפתור הנס נלחץ ${m.miracleClicks} פעמים; לא הוחזרו חיילים ולא תוקן נזק.` : `The miracle button was pressed ${m.miracleClicks} times; it restored no troops or HP.`}</p>}
+    {m.miracleClicks > 0 && <p>{translate(state.locale, 'components.RunReport.25', [m.miracleClicks])}</p>}
     <details className="rounded-xl border border-slate-200 bg-white p-3" open>
-      <summary className="min-h-8 cursor-pointer font-bold">{he ? 'ציר ההחלטות והתוצאות' : 'Decisions and consequences'}</summary>
-      {state.timeline.length === 0 ? <p>{he ? 'טרם נרשמו אירועים.' : 'No events recorded.'}</p> : <ol className="space-y-2 border-s-2 border-amber-300 ps-3">
+      <summary className="min-h-8 cursor-pointer font-bold">{translate(state.locale, 'components.RunReport.27', [])}</summary>
+      {state.timeline.length === 0 ? <p>{translate(state.locale, 'components.RunReport.28', [])}</p> : <ol className="space-y-2 border-s-2 border-amber-300 ps-3">
         {state.timeline.map((event, i) => <li key={i}>
           <span className="font-bold tabular-nums">{event.second}s · {labels[event.kind][he ? 0 : 1]}</span>
-          {event.borderId && <> · {event.borderId === 'available' ? (he ? 'כוח זמין' : 'available troops') : `${he ? 'גזרה' : 'sector'} ${event.borderId.replace('bdr-', '')}`}</>}
-          <span className="block text-slate-600">{event.gaps} {he ? 'פרצות' : 'gaps'} · {event.hp.toFixed(1)} HP{event.damage ? ` · −${event.damage} HP` : ''}{event.intercepted ? ` · ${event.intercepted} ${he ? 'יירוטים' : 'intercepted'}` : ''}</span>
+          {event.borderId && <> · {event.borderId === 'available' ? (translate(state.locale, 'components.RunReport.31', [])) : `${translate(state.locale, 'components.RunReport.31', [])} ${event.borderId.replace('bdr-', '')}`}</>}
+          <span className="block text-slate-600">{event.gaps} {translate(state.locale, 'components.RunReport.32', [])} · {event.hp.toFixed(1)} HP{event.damage ? ` · −${event.damage} HP` : ''}{event.intercepted ? ` · ${event.intercepted} ${translate(state.locale, 'components.RunReport.32', [])}` : ''}</span>
         </li>)}
       </ol>}
     </details>
-    <p className="text-slate-600">{he ? `זרע משחק: ${state.seed}. משחק חוזר שומר את נקודת הפתיחה ואת הגרלות האיום לפי זמן משחק; החלטותיך משנות אילו איומים יכולים להתממש.` : `Game seed: ${state.seed}. Replay preserves the starting position and threat rolls by game time; your decisions change which threats can occur.`}</p>
+    <p className="text-slate-600">{translate(state.locale, 'components.RunReport.36', [state.seed])}</p>
   </div>;
 }

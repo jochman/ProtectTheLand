@@ -1,3 +1,4 @@
+import { translate } from './locales/translate';
 import { useReducer, useEffect } from 'react';
 import { gameReducer, INITIAL_STATE } from './game/gameReducer';
 import { MobileFrame } from './components/MobileFrame';
@@ -24,7 +25,7 @@ export default function App() {
   // Sync HTML dir and lang attributes with state.locale
   useEffect(() => {
     document.documentElement.lang = state.locale;
-    document.documentElement.dir = state.locale === 'he' ? 'rtl' : 'ltr';
+    document.documentElement.dir = translate(state.locale, 'App.27', []);
   }, [state.locale]);
 
   // Game loop tick every 1 second: auto-pauses when modals are open or when user tapped pause
@@ -69,11 +70,11 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="text-lg">⏸️</span>
             <span className="text-xs font-black font-rubik">
-              {state.locale === 'he' ? 'המשחק מושהה (לחץ להמשך)' : 'Game Paused (tap to resume)'}
+              {translate(state.locale, 'App.72', [])}
             </span>
           </div>
           <span className="text-[10px] font-bold text-amber-300 underline font-heebo">
-            {state.locale === 'he' ? 'המשך ▶' : 'Resume ▶'}
+            {translate(state.locale, 'App.76', [])}
           </span>
         </div>
       )}
@@ -94,7 +95,7 @@ export default function App() {
       {state.interceptedToast && (
         <div
           onClick={() => dispatch({ type: 'CLEAR_INTERCEPTED_TOAST' })}
-          title={state.locale === 'he' ? 'לחץ לסגירה' : 'Tap to dismiss'}
+          title={translate(state.locale, 'App.97', [])}
           className="absolute top-[138px] inset-x-4 z-40 cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950/95 via-emerald-800/95 to-emerald-950/95 border-2 border-emerald-400 shadow-2xl backdrop-blur-md p-2.5 text-white transition-all animate-in fade-in slide-in-from-top-2 flex items-center justify-between pointer-events-auto"
         >
           <div className="flex items-center gap-2">
@@ -104,7 +105,7 @@ export default function App() {
                 {state.locale === 'he' ? state.interceptedToast.textHe : state.interceptedToast.textEn}
               </span>
               <span className="text-[10px] text-emerald-300 font-heebo">
-                {state.locale === 'he' ? 'כוחות הביטחון יירטו את החוליה וביצרו את הגבול! (לחץ לסגירה)' : 'Forces neutralized hostile infiltrators & fortified the line! (tap to close)'}
+                {translate(state.locale, 'App.107', [])}
               </span>
             </div>
           </div>

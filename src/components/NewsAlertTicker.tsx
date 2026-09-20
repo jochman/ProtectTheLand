@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React from 'react';
 import { AlertTriangle, Radio, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GameState, GameAction } from '../types';
@@ -58,7 +59,7 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
         <div className="flex-shrink-0 flex items-center gap-0.5 text-slate-400 group-hover:text-amber-700 transition-colors whitespace-nowrap">
           <MessageSquare className="w-3.5 h-3.5" />
           <span className="text-[10px] font-extrabold hidden xs:inline">
-            {isHe ? 'מבזקים' : 'Feed'}
+            {translate(state.locale, 'components.NewsAlertTicker.61', [])}
           </span>
           {isHe ? (
             <ChevronLeft className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform" />

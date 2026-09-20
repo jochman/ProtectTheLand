@@ -1,3 +1,4 @@
+import { translate } from '../locales/translate';
 import React, { useEffect } from 'react';
 import { Sparkles, Flame } from 'lucide-react';
 import { GameState, GameAction } from '../types';
@@ -49,7 +50,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
       {lordOfHosts.piousToast && !isPanic && !isCracked && (
         <div
           onClick={() => dispatch({ type: 'DISMISS_TOAST' })}
-          title={state.locale === 'he' ? 'לחץ לסגירה' : 'Tap to dismiss'}
+          title={translate(state.locale, 'components.LordOfHostsButton.52', [])}
           className="absolute -top-14 z-30 px-3 py-1.5 bg-amber-50 border-2 border-amber-400 text-amber-950 text-xs font-bold rounded-xl shadow-xl cursor-pointer flex items-center gap-1.5 max-w-[280px] text-center font-heebo"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
