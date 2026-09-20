@@ -127,7 +127,8 @@ export interface GameState {
   soldiersAtBorder: number;
   soldiersAtSettlements: number;
   reservesBatchesLeft: number; // Max 3
-  defenseScore: number; // 0% to 100%
+  defenseScore: number; // 0% to 100% (Border readiness)
+  landHp: number; // 0 to 100% (Homeland Integrity / חוסן לאומי)
   isBuildMode: boolean; // True when player tapped "Build" and is selecting a hex
   
   // Active constructions in progress (tileId -> progress 0..100)

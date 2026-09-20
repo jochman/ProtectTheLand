@@ -97,9 +97,13 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
           <div className="flex items-start gap-1.5 text-red-800 font-bold">
             <span className="text-red-600 font-black">💥</span>
             <span>
-              {isHe
-                ? `קריסת הגבול: ${state.activeBreaches.length} פרצות נפתחו במקביל ללא כוחות בלימה.`
-                : `Border collapse: ${state.activeBreaches.length} breach points opened with no defense forces.`}
+              {state.landHp <= 0
+                ? (isHe
+                    ? `קריסת חוסן המדינה (0% HP): פרצות ממושכות בהגנה ופגיעות ישירות בעורף הכריעו את ישראל.`
+                    : `Homeland HP Collapse (0% HP): Prolonged defense gaps and direct home front strikes overwhelmed defenses.`)
+                : (isHe
+                    ? `קריסת הגבול: ${state.activeBreaches.length} פרצות נפתחו במקביל ללא כוחות בלימה.`
+                    : `Border collapse: ${state.activeBreaches.length} breach points opened with no defense forces.`)}
             </span>
           </div>
         </div>
@@ -109,6 +113,10 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
           <div className="flex justify-between items-center text-slate-600 font-medium">
             <span>{strings.modals.statSettlements}</span>
             <span className="font-black text-slate-900 text-sm font-rubik">{state.settlementsCount}</span>
+          </div>
+          <div className="flex justify-between items-center text-slate-600 font-medium">
+            <span>{isHe ? 'חוסן לאומי סופי:' : 'Final Homeland HP:'}</span>
+            <span className="font-black text-red-600 text-sm font-rubik">{Math.max(0, Math.round(state.landHp))}%</span>
           </div>
           <div className="flex justify-between items-center text-slate-600 font-medium">
             <span>{strings.modals.statTroopsLost}</span>

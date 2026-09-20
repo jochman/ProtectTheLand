@@ -6,6 +6,8 @@ export const he = {
     soldiers: "חיילים",
     settlements: "יישובים",
     defense: "הגנה",
+    landHp: "חוסן המדינה",
+    borderReadiness: "הגנת גבול",
     budget: "תקציב התיישבות",
     reservesLeft: "סבבי מילואים נותרו",
     exhaustedReserves: "המילואים אזלו!",

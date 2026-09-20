@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Coins } from 'lucide-react';
+import { Shield, Coins, Heart } from 'lucide-react';
 import { GameState } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
@@ -11,13 +11,13 @@ interface TopStatusPillProps {
 export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
   const strings = state.locale === 'he' ? he : en;
 
-  // Determine Defense bar color
-  let barColor = 'bg-emerald-500';
-  if (state.defenseScore < 60) {
-    barColor = 'bg-amber-500';
+  // Determine Land HP bar color
+  let landBarColor = 'bg-emerald-500';
+  if (state.landHp < 65) {
+    landBarColor = 'bg-amber-500';
   }
-  if (state.defenseScore < 30) {
-    barColor = 'bg-red-500 animate-pulse';
+  if (state.landHp < 35) {
+    landBarColor = 'bg-red-500 animate-pulse';
   }
 
   return (
@@ -115,20 +115,38 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
 
       </div>
 
-      {/* Lower Pill: Defense Bar */}
-      <div className="status-pill flex items-center justify-between w-60 sm:w-64 px-3 py-1 sm:py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60">
-        {/* Progress Fill Bar */}
-        <div className="flex-1 bg-amber-100/80 rounded-full h-4 p-0.5 border border-amber-300/60 overflow-hidden shadow-inner relative">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-            style={{ width: `${Math.max(4, state.defenseScore)}%` }}
-          />
+      {/* Lower Pill: Land HP Bar & Border Readiness */}
+      <div className="status-pill flex items-center justify-between w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60 font-heebo">
+        {/* Land HP Section */}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0" title={strings.stats.landHp}>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Heart className={`w-3.5 h-3.5 ${state.landHp < 35 ? 'text-red-600 fill-red-500 animate-ping' : 'text-red-500 fill-red-400'}`} />
+            <span className="text-xs font-black text-slate-800 font-rubik tracking-tight">
+              {Math.round(state.landHp)}%
+            </span>
+          </div>
+
+          {/* Land HP Fill Bar */}
+          <div className="flex-1 bg-amber-100/80 rounded-full h-3.5 p-0.5 border border-amber-300/60 overflow-hidden shadow-inner relative">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${landBarColor}`}
+              style={{ width: `${Math.max(4, state.landHp)}%` }}
+            />
+          </div>
+
+          {state.activeBreaches.length > 0 && (
+            <span className="text-[9px] font-black text-red-600 flex-shrink-0 animate-pulse" title="שחיקת חוסן עקב פרצות פתוחות">
+              -{(state.activeBreaches.length * 0.4).toFixed(1)}/ש׳
+            </span>
+          )}
         </div>
 
-        {/* Shield Icon & Label */}
-        <div className="flex items-center gap-1 text-slate-700">
+        <div className="w-px h-4 bg-slate-200 flex-shrink-0" />
+
+        {/* Border Readiness Section */}
+        <div className="flex items-center gap-1 text-slate-700 flex-shrink-0" title={strings.stats.borderReadiness}>
           <Shield
-            className={`w-4 h-4 ${
+            className={`w-3.5 h-3.5 ${
               state.defenseScore >= 60
                 ? 'text-emerald-600 fill-emerald-100'
                 : state.defenseScore >= 30
@@ -136,9 +154,14 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
                 : 'text-red-600 fill-red-100 animate-pulse'
             }`}
           />
-          <span className="text-xs font-bold text-slate-700 font-heebo">
-            {strings.stats.defense}
-          </span>
+          <div className="flex items-baseline gap-0.5 leading-none">
+            <span className="text-xs font-black text-slate-800 font-rubik">
+              {8 - state.activeBreaches.length}/8
+            </span>
+            <span className="text-[9px] font-bold text-slate-500 font-heebo">
+              ({state.defenseScore}%)
+            </span>
+          </div>
         </div>
       </div>
     </div>

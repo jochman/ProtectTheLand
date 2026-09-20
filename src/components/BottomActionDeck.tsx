@@ -22,7 +22,8 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
   ).length;
 
   const potentialDeployCount = Math.min(ungarrisonedCount, state.soldiersAtBorder);
-  const grantReward = potentialDeployCount * 40;
+  const deployCost = potentialDeployCount * 25;
+  const canAffordDeploy = state.budget >= 25;
 
   const canAffordSettlement = state.budget >= 100;
 
@@ -69,10 +70,17 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
             </span>
           )
         ) : hasUngarrisonedSettlement && state.soldiersAtBorder > 0 ? (
-          <span className="text-emerald-200 bg-emerald-950/90 px-2 py-0.5 rounded-md border border-emerald-500/80 flex items-center gap-1">
-            <span>🏰</span>
-            <span>{isHe ? 'מאחז חשוף! לחץ \'פריסת כוחות\' לקבלת מענק 40₪ והגנה' : 'Outpost exposed! Tap \'Deploy Troops\' for ₪40 grant & defense'}</span>
-          </span>
+          canAffordDeploy ? (
+            <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">
+              <span>🏰</span>
+              <span>{isHe ? 'מאחז חשוף! לחץ \'פריסת כוחות\' (25₪-) לאבטחת המאחז' : 'Outpost exposed! Tap \'Deploy Troops\' (-₪25) to garrison'}</span>
+            </span>
+          ) : (
+            <span className="text-red-200 bg-red-950/90 px-2 py-0.5 rounded-md border border-red-500/80 flex items-center gap-1">
+              <span>💸</span>
+              <span>{isHe ? 'מאחז חשוף וחסר תקציב לפריסה (25₪)! גבה מס מערי ישראל או אסוף מטבעות' : 'Outpost exposed, need ₪25 for deployment! Tap cities for taxes'}</span>
+            </span>
+          )
         ) : hasBorderBreach && guardedCount > 0 ? (
           <span className="text-blue-200 bg-blue-950/90 px-2 py-0.5 rounded-md border border-blue-500/80 flex items-center gap-1">
             <span>⚠️</span>
@@ -86,7 +94,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         ) : (
           <span className="text-slate-300 bg-slate-900/70 px-2 py-0.5 rounded-md border border-slate-700/60 flex items-center gap-1">
             <span>💰</span>
-            <span>{isHe ? 'טיפ: לחץ על ערי ישראל לאיסוף מיסים מהיר (+5₪) או אסוף מטבעות' : 'Tip: Tap Israeli cities for instant taxes (+₪5) or collect coins'}</span>
+            <span>{isHe ? 'טיפ: לחץ על ערי ישראל לגביית מס (2₪+) או אסוף מטבעות' : 'Tip: Tap Israeli cities for taxes (+₪2) or collect coins'}</span>
           </span>
         )}
       </div>
@@ -132,12 +140,12 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         {/* 2. פריסת כוחות (Deploy Troops) */}
         <button
           onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
-          disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
+          disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || !canAffordDeploy || state.gameStatus !== 'playing'}
           className={`clay-btn py-1.5 sm:py-2 px-1 text-center transition-all ${
-            ungarrisonedCount > 0 && state.soldiersAtBorder > 0
-              ? 'ring-2 ring-emerald-500 bg-emerald-50/70 shadow-[0_0_12px_rgba(16,185,129,0.3)] animate-[pulse_2.5s_infinite]'
+            ungarrisonedCount > 0 && state.soldiersAtBorder > 0 && canAffordDeploy
+              ? 'ring-2 ring-amber-500 bg-amber-50/70 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-[pulse_2.5s_infinite]'
               : ungarrisonedCount > 0
-              ? 'ring-2 ring-red-400/80 bg-red-50/40'
+              ? 'ring-2 ring-red-400/80 bg-red-50/40 opacity-70'
               : 'opacity-60 cursor-not-allowed'
           }`}
         >
@@ -146,9 +154,15 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
           </span>
           {ungarrisonedCount > 0 && state.soldiersAtBorder > 0 ? (
             <div className="flex flex-col items-center mt-0.5 leading-none">
-              <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full border border-emerald-300 shadow-sm">
-                +{grantReward}₪ {isHe ? 'מענק!' : 'Grant!'}
-              </span>
+              {canAffordDeploy ? (
+                <span className="text-[10px] font-black text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-full border border-amber-300 shadow-sm">
+                  -{deployCost}₪ {isHe ? 'עלות' : 'Cost'}
+                </span>
+              ) : (
+                <span className="text-[9px] font-black text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full border border-red-300 shadow-sm">
+                  {isHe ? 'נדרש 25₪' : 'Need ₪25'}
+                </span>
+              )}
               <span className="text-[9px] font-bold text-red-600 mt-0.5">
                 ({ungarrisonedCount} {isHe ? 'חשופים' : 'exposed'})
               </span>
@@ -164,7 +178,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
               </span>
               {guardedCount > 0 && (
                 <span className="text-[9px] font-bold text-emerald-600 mt-0.5">
-                  (+{Math.round(guardedCount * 1.5)}₪/{isHe ? 'שנ' : 's'})
+                  (+{guardedCount * 1}₪/{isHe ? 'שנ' : 's'})
                 </span>
               )}
             </div>

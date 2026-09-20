@@ -1,4 +1,4 @@
-import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialGrant } from '../types';
+import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } from '../types';
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
@@ -9,20 +9,19 @@ export const INITIAL_STATE: GameState = {
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
-  budget: 160, // Initial coalition funds (₪) - allows 1st settlement immediately + 60₪ buffer
-  maxBudget: 300, // Balanced treasury cap for comfortable pacing
-  incomeRate: 6, // Healthy civilian economy baseline (+6 ₪/s for brisk, responsive pacing)
+  budget: 100, // Balanced initial funds (₪) - exactly covers 1st settlement (100₪) or troop deployment (25₪)
+  maxBudget: 300, // Balanced treasury cap
+  incomeRate: 3, // Paced civilian economy baseline (+3 ₪/s)
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
   soldiersAtSettlements: 0,
   reservesBatchesLeft: 3,
   defenseScore: 100,
+  landHp: 100, // National Resilience starts at 100%
   isBuildMode: false,
   constructions: {},
-  collectibleCoins: [
-    { id: 'coin-1', x: 105, y: 210, amount: 25, createdAt: Date.now() }, // Tel Aviv city
-  ],
+  collectibleCoins: [],
   lastCoinTick: 0,
   lordOfHosts: {
     chargePercent: 12,
@@ -295,10 +294,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const now = Date.now();
       const lastTax = (state.lastCityTaxTimestamps || {})[action.cityId] || 0;
-      // 1.2s cooldown per city to allow rhythmic multi-city clicking
-      if (now - lastTax < 1200) return state;
+      // 3.5s cooldown per city for modest municipal contribution
+      if (now - lastTax < 3500) return state;
 
-      const taxAmount = 5;
+      const taxAmount = 2;
       const newBudget = Math.min(state.maxBudget, state.budget + taxAmount);
       sounds.playCoinCollect();
 
@@ -344,6 +343,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
+      // Troop deployment costs 25₪ per soldier (transport, mobile trailers, security infrastructure)
+      const DEPLOY_COST_PER_SOLDIER = 25;
+      if (state.budget < DEPLOY_COST_PER_SOLDIER) {
+        sounds.playPenalty();
+        return state;
+      }
+      const maxAffordable = Math.floor(state.budget / DEPLOY_COST_PER_SOLDIER);
+
       // Randomly shuffle border checkpoints so forces are pulled randomly along the border instead of bottom-up
       const shuffledBorderIds = [...mannedBorderIds].sort(() => Math.random() - 0.5);
 
@@ -355,6 +362,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       let transferredCount = 0;
 
       for (const settlementId of shuffledSettlementIds) {
+        if (transferredCount >= maxAffordable) break;
         const borderId = shuffledBorderIds.pop();
         if (!borderId) break;
 
@@ -387,32 +395,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (transferredCount === 0) return state;
 
-      const deploymentGrant = transferredCount * 40;
-      const newBudget = Math.min(state.maxBudget, state.budget + deploymentGrant);
+      const deploymentCost = transferredCount * DEPLOY_COST_PER_SOLDIER;
+      const newBudget = Math.max(0, state.budget - deploymentCost);
 
       sounds.playDeploy();
-      sounds.playCoinCollect();
+      sounds.playPenalty();
 
-      // Add soul sparks flying from newly garrisoned outposts toward the budget / Lord of Hosts
-      const newSparks = [...state.sparks];
-      for (const sId of shuffledSettlementIds.slice(0, transferredCount)) {
-        const sTile = updatedTiles[sId];
-        if (sTile) {
-          newSparks.push({
-            id: `spark-grant-${Date.now()}-${Math.random()}`,
-            startX: sTile.x,
-            startY: sTile.y,
-            targetX: 200,
-            targetY: 720,
-            createdAt: Date.now(),
-          });
-        }
-      }
-
-      const latestGrant: FinancialGrant = {
-        id: `grant-${Date.now()}`,
-        amount: deploymentGrant,
-        reason: state.locale === 'he' ? 'מענק פריסה קואליציוני' : 'Coalition Deployment Grant',
+      const latestPenalty: FinancialPenalty = {
+        id: `penalty-deploy-${Date.now()}`,
+        amount: deploymentCost,
+        reason: state.locale === 'he' ? 'עלות פריסת כוחות' : 'Troop Deployment Cost',
         timestamp: Date.now(),
       };
 
@@ -446,16 +438,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       } else {
         const conceptziaHeadlinesHe = [
-          `מענק פריסה קואליציוני בסך ₪${deploymentGrant}! אמ״ן מרגיע: ״הגבול שקט ומורתע, המכשול החכם בשווי 3.5 מיליארד ₪ מגן במקומנו״.`,
-          `מענק אבטחה ליו״ש: ₪${deploymentGrant} הועברו לקופת המאחזים. שר האוצר: ״ההתיישבות היא ביטחון, הדרום מוגן ע״י הטכנולוגיה״.`,
-          `כוחות הועברו להתיישבות! אמ״ן בקבינט: ״חמאס מורתע לשנים קדימה, הפוקוס הביטחוני הנכון הוא במאחזים״.`,
-          `תקציב פריסה שוחרר (₪${deploymentGrant}+). פיקוד העורף: ״המכשול ההרמטי והסנסורים האוטונומיים מאפשרים דילול כוחות בגבול״.`,
+          `עלות פריסת כוחות (₪${deploymentCost}-): כספי ביטחון הושקעו בשינוע כוחות לשמירה על מאחזים מבודדים על חשבון קווי הגבול.`,
+          `דילול כוחות בגבול (₪${deploymentCost}-): שר האוצר והביטחון אישרו תקציב לאבטחת התיישבות. אמ״ן מרגיע: ״הגבול שקט״.`,
+          `כוחות נגרעו מהגבול! אמ״ן בקבינט: ״חמאס מורתע לשנים קדימה, הפוקוס הביטחוני שייך למאחזים״.`,
+          `הוצאות פריסה שוטפות (₪${deploymentCost}-): פיקוד העורף טוען שהמכשול ההרמטי והסנסורים יחפו על דילול הלוחמים.`,
         ];
         const conceptziaHeadlinesEn = [
-          `Coalition Deployment Grant of ₪${deploymentGrant}! Intel reassures: "Border is quiet; the ₪3.5B Smart Barrier protects us."`,
-          `Outpost Security Grant: ₪${deploymentGrant} transferred to outposts. Finance Min: "Settlements are security; tech defends the South."`,
-          `Forces deployed to settlements! Intel to cabinet: "Hamas deterred for years; our defense focus belongs on outposts."`,
-          `Deployment funds released (+₪${deploymentGrant}). Home Front: "Hermetic barrier and autonomous sensors allow border troop thinning."`,
+          `Troop Deployment Cost (-₪${deploymentCost}): Defense budget spent moving forces to secure isolated outposts at border's expense.`,
+          `Troops Shifted from Border (-₪${deploymentCost}): Defense budget allocated to outposts. Intel: "Border is quiet."`,
+          `Forces diverted from border! Intel to cabinet: "Hamas is deterred for years; defense priority belongs on outposts."`,
+          `Deployment Outlays (-₪${deploymentCost}): Military claims smart sensors compensate for thinned border checkpoints.`,
         ];
         const conceptziaSourcesHe = [
           'אגף המודיעין ומשרד האוצר',
@@ -496,8 +488,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         budget: newBudget,
-        latestGrant,
-        sparks: newSparks,
+        latestPenalty,
+        latestGrant: null,
         soldiersAtBorder: newBorderSoldiers,
         soldiersAtSettlements: newSettlementSoldiers,
         defenseScore: newDefenseScore,
@@ -713,15 +705,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const updatedConstructions = { ...state.constructions };
       const updatedTiles = { ...state.tiles };
 
-      // 3. Passive budget income: Guarded settlements generate substantial coalition funding (+1.5₪/s per outpost!)
+      // 3. Passive budget income: Guarded settlements generate coalition funding (+1₪/s per outpost)
       // Baseline civilian production decreases when reserve call-ups remove workers from the economy.
       const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
-      const baseCivilianIncome = Math.max(3, 6 - callsMade);
+      const baseCivilianIncome = Math.max(1, 3 - callsMade);
       const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
-      const guardedIncomeBonus = Math.round(guardedSettlementCount * 1.5);
+      const guardedIncomeBonus = guardedSettlementCount * 1;
       const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
       const currentMaxBudget = 300 + Object.values(updatedTiles).filter(t => t.hasSettlement).length * 20;
       let newBudget = Math.min(currentMaxBudget, state.budget + effectiveIncome);
+      let newLandHp = state.landHp !== undefined ? state.landHp : 100;
+
+      // Defense holes bleed Homeland HP (0.4 HP/s per unsealed breach)
+      const holeCount = state.activeBreaches.length;
+      if (holeCount > 0) {
+        const holeDrain = Math.round(holeCount * 0.4 * 10) / 10;
+        newLandHp = Math.max(0, Number((newLandHp - holeDrain).toFixed(1)));
+      } else if ((state.greenSideAttacks || []).length === 0 && newLandHp < 100) {
+        // Safe, fortified borders naturally stabilize homeland security
+        newLandHp = Math.min(100, Number((newLandHp + 0.5).toFixed(1)));
+      }
 
       // 4. Update constructions
       let newSettlementsCount = state.settlementsCount;
@@ -798,13 +801,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // 4. Spawn collectible coins on Israeli cities (up to 2, on real city coordinates)
+      // 4. Spawn collectible coins on Israeli cities (strictly at most 1 coin at a time)
       const coins = [...state.collectibleCoins];
       let nextCoinTick = (state.lastCoinTick || 0) + 1;
-      const maxAllowedCoins = 2; // Allow up to 2 coins on screen simultaneously for active collection
+      const maxAllowedCoins = 1; // Paced: at most 1 coin at a time on screen
 
-      // Cooldown of at least 8 seconds between coins, spawning directly on actual Israeli cities
-      if (coins.length < maxAllowedCoins && nextCoinTick >= 8 && Math.random() < 0.45) {
+      // Cooldown of at least 16 seconds between coins
+      if (coins.length < maxAllowedCoins && nextCoinTick >= 16 && Math.random() < 0.4) {
         const israelCityTiles = [
           { x: 105, y: 210 }, // תל אביב
           { x: 115, y: 60 },  // חיפה והצפון
@@ -818,7 +821,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           id: `coin-${Date.now()}`,
           x: randomCity.x,
           y: randomCity.y,
-          amount: 25,
+          amount: 15,
           createdAt: Date.now(),
         });
         nextCoinTick = 0;
@@ -891,15 +894,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           sounds.playPanicMashThud();
           sounds.playSiren();
           newDefenseScore = Math.max(0, newDefenseScore - 6);
-          newBudget = Math.max(0, newBudget - 25);
+          newBudget = Math.max(0, newBudget - 20);
+          newLandHp = Math.max(0, Number((newLandHp - 20).toFixed(1)));
           updatedTiles[atk.targetCityId] = {
             ...updatedTiles[atk.targetCityId],
             hasAlert: false, // Infiltration message is removed; city is now in post-impact aftermath
             damagedUntil: now + 6500,
           };
 
-          const impactHeadlineHe = `פגיעה בעורף: חוליה חדרה לפאתי ${atk.targetCityName} דרך פרצה בקו הגבול! (25₪- נזק)`;
-          const impactHeadlineEn = `Home front breach: Squad attacked outskirts of ${atk.targetCityName} through border gap! (-25₪ damage)`;
+          const impactHeadlineHe = `פגיעה ישירה בעורף: חוליה פגעה בפאתי ${atk.targetCityName}! (חוסן לאומי 20%- | 20₪- נזק)`;
+          const impactHeadlineEn = `Direct home front strike: Squad attacked outskirts of ${atk.targetCityName}! (-20% HP | -₪20 damage)`;
           const impactNewsItem: NewsItem = {
             id: `green-impact-${now}-${atk.id}`,
             headline: state.locale === 'he' ? impactHeadlineHe : impactHeadlineEn,
@@ -1065,6 +1069,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
             if (newHp <= 0) {
               // Settlement destroyed!
+              newLandHp = Math.max(0, Number((newLandHp - 10).toFixed(1)));
               updatedTiles[settlement.id] = {
                 ...settlement,
                 hasSettlement: false,
@@ -1077,8 +1082,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               newSettlementsCount = Math.max(0, newSettlementsCount - 1);
               sounds.playPanicMashThud();
 
-              clashHeadlineHe = `אסון במאחז: ${settlementNameHe} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה!`;
-              clashHeadlineEn = `Outpost destroyed: ${settlementNameEn} abandoned and burned after being left with no IDF troops!`;
+              clashHeadlineHe = `אסון במאחז: ${settlementNameHe} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה! (חוסן לאומי 10%-)`;
+              clashHeadlineEn = `Outpost destroyed: ${settlementNameEn} abandoned and burned with no troops! (-10% HP)`;
             } else {
               updatedTiles[settlement.id] = {
                 ...settlement,
@@ -1211,6 +1216,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
+      if (newLandHp <= 0) {
+        sounds.playCrackCollapse();
+        sounds.playSiren();
+        return {
+          ...state,
+          landHp: 0,
+          budget: newBudget,
+          defenseScore: 0,
+          tiles: updatedTiles,
+          isScreenShaking: true,
+          gameStatus: 'catastrophe',
+          ...withNews(state, {
+            id: `catastrophe-collapse-${now}`,
+            headline: state.locale === 'he'
+              ? 'קריסת חוסן המדינה: ההגנה נשברה כליל! פרצות ממושכות ופגיעות ישירות הובילו ל-7 באוקטובר.'
+              : 'Homeland Collapse: Defenses broken! Prolonged breaches and direct strikes led to October 7th.',
+            source: state.locale === 'he' ? 'פיקוד העורף' : 'Home Front Command',
+            headlineHe: 'קריסת חוסן המדינה: ההגנה נשברה כליל! פרצות ממושכות ופגיעות ישירות הובילו ל-7 באוקטובר.',
+            headlineEn: 'Homeland Collapse: Defenses broken! Prolonged breaches and direct strikes led to October 7th.',
+            sourceHe: 'פיקוד העורף',
+            sourceEn: 'Home Front Command',
+            category: 'military',
+            isUrgent: true,
+            timestamp: new Date().toLocaleTimeString(state.locale === 'he' ? 'he-IL' : 'en-US', { hour: '2-digit', minute: '2-digit' }),
+          }),
+        };
+      }
+
       return {
         ...state,
         budget: newBudget,
@@ -1219,6 +1252,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         settlementsCount: newSettlementsCount,
         constructions: updatedConstructions,
         defenseScore: newDefenseScore,
+        landHp: newLandHp,
         tiles: updatedTiles,
         sparks: newSparks,
         collectibleCoins: coins,
@@ -1440,6 +1474,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           soldiersAtBorder: newBorderSoldiers,
           soldiersAtSettlements: newSettlementSoldiers,
           defenseScore: newDefenseScore,
+          landHp: Math.min(100, Number(((state.landHp ?? 100) + (hadIntercepted ? 5 : 2)).toFixed(1))),
           tiles: updatedTiles,
           activeBreaches,
           greenSideAttacks: remainingAttacks,
@@ -1527,6 +1562,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           incomeRate: newIncomeRate,
           reservesBatchesLeft: newBatchesLeft,
           defenseScore: newDefenseScore,
+          landHp: Math.min(100, Number(((state.landHp ?? 100) + (hadIntercepted ? 5 : 3)).toFixed(1))),
           tiles: updatedTiles,
           activeBreaches,
           greenSideAttacks: remainingAttacks,
