@@ -21,7 +21,7 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
   }
 
   return (
-    <div className="flex flex-col items-center gap-1.5 px-4 z-20">
+    <div className="flex flex-col items-center gap-1.5 px-4 z-20 flex-shrink-0">
       {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
       <div className="status-pill flex items-center justify-around w-full max-w-[340px] px-3 py-1.5 rounded-full shadow-lg border border-amber-100/60">
         

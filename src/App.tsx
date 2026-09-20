@@ -11,6 +11,7 @@ import { SettlementInspectorModal } from './components/SettlementInspectorModal'
 import { October7DefeatModal } from './components/October7DefeatModal';
 import { RationalVictoryModal } from './components/RationalVictoryModal';
 import { NewsFeedModal } from './components/NewsFeedModal';
+import { FloatingEmergencyAlert } from './components/FloatingEmergencyAlert';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -42,6 +43,14 @@ export default function App() {
 
       {/* Breaking News Ticker (Clickable to open News Feed) */}
       <NewsAlertTicker state={state} dispatch={dispatch} />
+
+      {/* Floating Operational Emergency Alert (0px layout footprint, never resizes map) */}
+      <FloatingEmergencyAlert state={state} dispatch={dispatch} />
+
+      {/* Critical Defense Perimeter Alert Vignette */}
+      {state.defenseScore <= 25 && state.gameStatus === 'playing' && (
+        <div className="pointer-events-none absolute inset-0 ring-4 ring-inset ring-red-600/60 animate-pulse z-30" />
+      )}
 
       {/* The Interactive Hex Map Viewport */}
       <HexMapCanvas state={state} dispatch={dispatch} />

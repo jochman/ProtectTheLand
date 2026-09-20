@@ -19,40 +19,24 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
 
   const canAffordSettlement = state.budget >= 100;
 
+  const isHe = state.locale === 'he';
+
   return (
-    <div className="w-full px-4 pb-4 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-2 z-20">
-      {/* Build Mode active banner */}
+    <div className="relative w-full px-4 pb-3 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-2 z-20 flex-shrink-0">
+      {/* Build Mode active banner - FLOATING ABSOLUTE to prevent any layout shift */}
       {state.isBuildMode && (
-        <div className="w-full py-1 px-3 bg-amber-500 text-amber-950 font-black text-xs rounded-xl text-center shadow-lg animate-pulse font-rubik flex items-center justify-between">
+        <div className="absolute -top-8 inset-x-4 z-30 py-1.5 px-3 bg-amber-500 text-amber-950 font-black text-xs rounded-xl text-center shadow-lg animate-pulse font-rubik flex items-center justify-between border border-amber-300">
           <span>👈 {strings.actions.selectTileToBuild}</span>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}
-            className="underline text-[11px] font-bold"
+            className="underline text-[11px] font-bold hover:text-white transition-colors"
           >
             {strings.actions.cancel}
           </button>
         </div>
       )}
 
-      {/* Quick Tactical Pullback Action (Right to Left) */}
-      {state.soldiersAtSettlements > 0 && state.gameStatus === 'playing' && (
-        <button
-          onClick={() => dispatch({ type: 'RECALL_ALL_TROOPS' })}
-          className="w-full py-1.5 px-3 bg-slate-900/90 hover:bg-slate-900 active:scale-98 text-blue-300 font-bold text-xs rounded-xl shadow-lg border border-blue-500/50 flex items-center justify-between transition-all group"
-        >
-          <span className="flex items-center gap-1.5">
-            <span className="text-sm group-hover:-translate-x-1 transition-transform">⟵</span>
-            <span className="font-heebo">
-              {state.locale === 'he' ? 'החזרת כוחות מהמאחזים לגבול הריבוני' : 'Recall Troops from Outposts to Border'}
-            </span>
-          </span>
-          <span className="text-[10px] bg-blue-950 px-2 py-0.5 rounded-full border border-blue-600/60 text-blue-200 font-mono font-black">
-            {state.soldiersAtSettlements} {state.locale === 'he' ? 'לוחמים' : 'troops'}
-          </span>
-        </button>
-      )}
-
-      {/* Three Primary Clay Buttons */}
+      {/* Three Primary Clay Buttons with strictly invariant layout height */}
       <div className="grid grid-cols-3 gap-2 w-full">
         {/* 1. מילואים (Reserves) */}
         <button
@@ -64,31 +48,52 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
             {strings.actions.callReserves}
           </span>
           <span className="text-[10px] font-semibold text-amber-900/80 mt-0.5">
-            ({state.reservesBatchesLeft} {state.locale === 'he' ? 'נותרו' : 'left'})
+            ({state.reservesBatchesLeft} {isHe ? 'נותרו' : 'left'})
           </span>
         </button>
 
-        {/* 2. פריסת כוחות (Deploy Troops) */}
-        <button
-          onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
-          disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
-          className={`clay-btn py-3 px-1 text-center ${
-            ungarrisonedCount > 0 ? 'ring-2 ring-red-400 animate-bounce' : ''
-          }`}
-        >
-          <span className="text-xs sm:text-sm font-black leading-tight">
-            {strings.actions.deployTroops}
-          </span>
-          {ungarrisonedCount > 0 ? (
+        {/* 2. פריסת / החזרת כוחות (Troop Deployment / Tactical Recall) */}
+        {ungarrisonedCount > 0 ? (
+          <button
+            onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
+            disabled={state.soldiersAtBorder === 0 || state.gameStatus !== 'playing'}
+            className="clay-btn py-3 px-1 text-center ring-2 ring-red-400 animate-bounce"
+          >
+            <span className="text-xs sm:text-sm font-black leading-tight text-red-950">
+              {strings.actions.deployTroops}
+            </span>
             <span className="text-[10px] font-bold text-red-700 mt-0.5">
-              ({ungarrisonedCount} {state.locale === 'he' ? 'חשופים' : 'exposed'})
+              ({ungarrisonedCount} {isHe ? 'חשופים' : 'exposed'})
             </span>
-          ) : (
+          </button>
+        ) : state.soldiersAtSettlements > 0 ? (
+          <button
+            onClick={() => dispatch({ type: 'RECALL_ALL_TROOPS' })}
+            disabled={state.gameStatus !== 'playing'}
+            className="clay-btn py-3 px-1 text-center bg-blue-100/95 hover:bg-blue-200 border-blue-400 text-blue-950 transition-all shadow-md group"
+            title={isHe ? 'החזרת כל הכוחות מהמאחזים לגבול' : 'Recall all troops from outposts to sovereign border'}
+          >
+            <span className="text-xs sm:text-sm font-black leading-tight flex items-center justify-center gap-1">
+              <span className="group-hover:-translate-x-0.5 transition-transform">⟵</span>
+              <span>{isHe ? 'החזר לגבול' : 'Recall'}</span>
+            </span>
+            <span className="text-[10px] font-bold text-blue-700 mt-0.5">
+              ({state.soldiersAtSettlements} {isHe ? 'במאחזים' : 'in outposts'})
+            </span>
+          </button>
+        ) : (
+          <button
+            disabled
+            className="clay-btn py-3 px-1 text-center opacity-60 cursor-not-allowed"
+          >
+            <span className="text-xs sm:text-sm font-black leading-tight">
+              {strings.actions.deployTroops}
+            </span>
             <span className="text-[10px] font-semibold text-emerald-800/80 mt-0.5">
-              {state.locale === 'he' ? 'מוצב' : 'Ready'}
+              {isHe ? 'מוצב' : 'Ready'}
             </span>
-          )}
-        </button>
+          </button>
+        )}
 
         {/* 3. בניית יישוב (Build Settlement) */}
         <button

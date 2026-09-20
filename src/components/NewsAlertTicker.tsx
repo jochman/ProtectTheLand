@@ -14,7 +14,7 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
   const isHe = state.locale === 'he';
 
   return (
-    <div className="px-3 py-1 z-20 w-full">
+    <div className="px-3 py-0.5 z-20 w-full h-[40px] min-h-[40px] max-h-[40px] flex-shrink-0">
       <div
         role="button"
         tabIndex={0}
@@ -24,13 +24,13 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
             dispatch({ type: 'OPEN_NEWS_MODAL' });
           }
         }}
-        className={`group flex items-start gap-2 px-3 py-2 rounded-2xl border text-xs shadow-md transition-all duration-200 cursor-pointer select-none hover:shadow-lg hover:border-amber-400 active:scale-[0.98] ${
+        className={`group flex items-center gap-2 px-3 py-1 rounded-2xl border text-xs shadow-md transition-all duration-200 cursor-pointer select-none hover:shadow-lg hover:border-amber-400 active:scale-[0.98] h-full w-full overflow-hidden ${
           isUrgent
             ? 'bg-red-600/95 text-white border-red-400 shadow-red-500/20 hover:bg-red-600'
             : 'bg-white/95 text-slate-800 border-amber-200/80 backdrop-blur-md hover:bg-amber-50/60'
         }`}
       >
-        <div className="flex-shrink-0 mt-0.5">
+        <div className="flex-shrink-0">
           {isUrgent ? (
             <AlertTriangle className="w-4 h-4 text-amber-300 animate-bounce" />
           ) : (
@@ -38,26 +38,24 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
           )}
         </div>
 
-        {/* Fully visible message content with clickable indicator */}
-        <div className="flex-1 min-w-0 font-heebo leading-relaxed">
-          <div className="inline-flex items-center gap-1 ml-1.5 flex-wrap">
-            <span
-              className={`font-black text-[10.5px] px-1.5 py-0.5 rounded-md inline-block ${
-                isUrgent
-                  ? 'bg-red-800 text-amber-200'
-                  : 'bg-amber-100 text-amber-900 border border-amber-300/60'
-              }`}
-            >
-              {state.currentNews.source}
-            </span>
-          </div>
-          <span className="font-semibold text-xs tracking-tight">
+        {/* Truncated single-line headline with clickable indicator */}
+        <div className="flex-1 min-w-0 flex items-center gap-1.5 font-heebo overflow-hidden">
+          <span
+            className={`font-black text-[10px] px-1.5 py-0.5 rounded-md flex-shrink-0 whitespace-nowrap ${
+              isUrgent
+                ? 'bg-red-800 text-amber-200'
+                : 'bg-amber-100 text-amber-900 border border-amber-300/60'
+            }`}
+          >
+            {state.currentNews.source}
+          </span>
+          <span className="font-semibold text-xs tracking-tight truncate flex-1 min-w-0">
             {state.currentNews.headline}
           </span>
         </div>
 
         {/* Clickable prompt hint */}
-        <div className="flex-shrink-0 flex items-center gap-0.5 mt-0.5 text-slate-400 group-hover:text-amber-700 transition-colors">
+        <div className="flex-shrink-0 flex items-center gap-0.5 text-slate-400 group-hover:text-amber-700 transition-colors whitespace-nowrap">
           <MessageSquare className="w-3.5 h-3.5" />
           <span className="text-[10px] font-extrabold hidden xs:inline">
             {isHe ? 'מבזקים' : 'Feed'}

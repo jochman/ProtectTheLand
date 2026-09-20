@@ -35,10 +35,10 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
   }, [state.movingTroops, dispatch]);
 
   return (
-    <div className="relative flex-1 w-full overflow-hidden flex items-center justify-center my-0.5 select-none">
+    <div className="relative w-full h-[465px] sm:h-[495px] flex-shrink-0 overflow-hidden flex items-center justify-center my-0.5 select-none">
       <svg
         viewBox="0 0 460 565"
-        className="w-full h-full max-h-[570px] drop-shadow-xl"
+        className="w-full h-full drop-shadow-xl"
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>

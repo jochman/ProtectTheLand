@@ -9,7 +9,7 @@ interface HeaderBarProps {
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({ state, dispatch }) => {
   return (
-    <header className="flex items-center justify-between px-4 py-2 text-white/90 z-20">
+    <header className="flex items-center justify-between px-4 py-2 text-white/90 z-20 flex-shrink-0">
       <div className="flex items-center gap-1.5 font-bold tracking-wide">
         <span className="text-xl font-black text-amber-300 drop-shadow-sm">
           {state.locale === 'he' ? '7 באוקטובר' : 'OCTOBER 7'}
