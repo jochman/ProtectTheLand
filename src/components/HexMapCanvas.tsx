@@ -291,17 +291,58 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                       </g>
                     </g>
                   )}
-                  <text
-                    x={tile.x}
-                    y={tile.y + 4}
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="9.5"
-                    fontWeight="bold"
-                    className="pointer-events-none drop-shadow-md font-heebo"
-                  >
-                    {tile.label}
-                  </text>
+                  {tile.label.includes(' / ') ? (
+                    <text
+                      x={tile.x}
+                      y={tile.y - 1}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="8"
+                      fontWeight="bold"
+                      className="pointer-events-none drop-shadow-md font-heebo"
+                    >
+                      <tspan x={tile.x} dy="0">{tile.label.split(' / ')[0]}</tspan>
+                      <tspan x={tile.x} dy="9.5" fontSize="7" opacity="0.9">{tile.label.split(' / ')[1]}</tspan>
+                    </text>
+                  ) : tile.label === 'באר שבע והנגב' ? (
+                    <text
+                      x={tile.x}
+                      y={tile.y - 1}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="8"
+                      fontWeight="bold"
+                      className="pointer-events-none drop-shadow-md font-heebo"
+                    >
+                      <tspan x={tile.x} dy="0">באר שבע</tspan>
+                      <tspan x={tile.x} dy="9.5" fontSize="7" opacity="0.9">והנגב</tspan>
+                    </text>
+                  ) : tile.label === 'חיפה והצפון' ? (
+                    <text
+                      x={tile.x}
+                      y={tile.y - 1}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="8"
+                      fontWeight="bold"
+                      className="pointer-events-none drop-shadow-md font-heebo"
+                    >
+                      <tspan x={tile.x} dy="0">חיפה</tspan>
+                      <tspan x={tile.x} dy="9.5" fontSize="7" opacity="0.9">והצפון</tspan>
+                    </text>
+                  ) : (
+                    <text
+                      x={tile.x}
+                      y={tile.y + 4}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="9"
+                      fontWeight="bold"
+                      className="pointer-events-none drop-shadow-md font-heebo"
+                    >
+                      {tile.label}
+                    </text>
+                  )}
                 </g>
               )}
             </g>
@@ -310,14 +351,14 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
         {/* 2. UNDULATING GREEN LINE / BORDER BARRIER WITH DEPTH */}
         <path
-          d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 135 460 110 485 L 170 490"
+          d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 165 465 170 490 L 110 485"
           fill="none"
           stroke="rgba(0,0,0,0.2)"
           strokeWidth="6"
           strokeLinecap="round"
         />
         <path
-          d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 135 460 110 485 L 170 490"
+          d="M 175 40 Q 170 95 170 130 T 165 205 T 160 280 T 155 355 T 155 430 Q 165 465 170 490 L 110 485"
           fill="none"
           stroke={state.defenseScore < 30 ? '#ef4444' : '#e04238'}
           strokeWidth="4"
@@ -351,13 +392,16 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               {isManned ? (
                 // 3D Plastic Green Army Figurine standing on border pedestal
                 <g filter="url(#dropShadow)">
-                  <ellipse cx="0" cy="6" rx="14" ry="7" fill="rgba(34,197,94,0.3)" stroke="#22c55e" strokeWidth="1.5" />
-                  <ellipse cx="0" cy="5" rx="9" ry="4.5" fill="#14532d" />
-                  <rect x="-3" y="-1" width="2.5" height="6" fill="#166534" rx="1" />
-                  <rect x="0.5" y="-1" width="2.5" height="6" fill="#166534" rx="1" />
-                  <rect x="-4.5" y="-9" width="9" height="9" fill="#15803d" rx="2" />
-                  <ellipse cx="0" cy="-12" rx="4.5" ry="3.5" fill="#14532d" />
-                  <ellipse cx="0" cy="-11" rx="5" ry="1.5" fill="#166534" />
+                  <ellipse cx="0" cy="7" rx="13" ry="6" fill="rgba(22, 101, 52, 0.4)" stroke="#16a34a" strokeWidth="1" />
+                  <ellipse cx="-2.5" cy="5" rx="2.5" ry="1.8" fill="#0f172a" />
+                  <ellipse cx="2.5" cy="5" rx="2.5" ry="1.8" fill="#0f172a" />
+                  <rect x="-3.5" y="-1" width="3" height="6" fill="#3f6212" rx="1" />
+                  <rect x="0.5" y="-1" width="3" height="6" fill="#3f6212" rx="1" />
+                  <rect x="-5" y="-9" width="10" height="9" fill="#4d7c0f" rx="2" stroke="#365314" strokeWidth="0.6" />
+                  <rect x="-3.5" y="-8" width="7" height="6" fill="#65a30d" rx="1" />
+                  <ellipse cx="0" cy="-12" rx="5" ry="4" fill="#365314" />
+                  <ellipse cx="0" cy="-11" rx="5.2" ry="1.8" fill="#4d7c0f" />
+                  <line x1="3" y1="-14" x2="4" y2="-17" stroke="#1e293b" strokeWidth="1" strokeLinecap="round" />
                 </g>
               ) : (
                 // Tactical unmanned checkpoint: roadblock barrier with open boom gate (clean, calm, no bouncing)
@@ -456,14 +500,14 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
               {/* Unprotected Settlement HP Bar */}
               {!isGuarded && (
-                <g transform="translate(0, -18)" filter="url(#dropShadow)">
-                  <rect x="-18" y="-3.5" width="36" height="7" rx="3.5" fill="rgba(15, 23, 42, 0.9)" stroke="#475569" strokeWidth="0.8" />
+                <g transform="translate(0, -22)" filter="url(#dropShadow)">
+                  <rect x="-17" y="-3" width="34" height="6.5" rx="3.2" fill="rgba(15, 23, 42, 0.92)" stroke="#475569" strokeWidth="0.8" />
                   <rect
-                    x="-17"
-                    y="-2.5"
-                    width={Math.max(2, (((s.hp ?? 100) / 100) * 34))}
-                    height="5"
-                    rx="2.5"
+                    x="-16"
+                    y="-2"
+                    width={Math.max(2, (((s.hp ?? 100) / 100) * 32))}
+                    height="4.5"
+                    rx="2.2"
                     fill={(s.hp ?? 100) > 60 ? '#22c55e' : (s.hp ?? 100) > 30 ? '#f59e0b' : '#ef4444'}
                     className={(s.hp ?? 100) <= 30 ? 'animate-pulse' : ''}
                   />

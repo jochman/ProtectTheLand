@@ -21,8 +21,8 @@ export const INITIAL_STATE: GameState = {
   isBuildMode: false,
   constructions: {},
   collectibleCoins: [
-    { id: 'coin-1', x: 110, y: 215, amount: 30, createdAt: Date.now() }, // Tel Aviv
-    { id: 'coin-2', x: 130, y: 65, amount: 30, createdAt: Date.now() },  // Haifa
+    { id: 'coin-1', x: 45, y: 215, amount: 30, createdAt: Date.now() }, // Tel Aviv Port / Sea
+    { id: 'coin-2', x: 50, y: 65, amount: 30, createdAt: Date.now() },  // Haifa Port / Sea
   ],
   lordOfHosts: {
     chargePercent: 12,
@@ -580,11 +580,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (coins.length < maxAllowedCoins && Math.random() < coinSpawnChance) {
         const israelCityTiles = [
-          { x: 105, y: 210 }, // Tel Aviv
-          { x: 110, y: 135 }, // Netanya
-          { x: 100, y: 285 }, // Shfela
-          { x: 95, y: 360 },  // Ashdod
-          { x: 95, y: 435 },  // Beer Sheva
+          { x: 45, y: 215 }, // Tel Aviv Coast
+          { x: 50, y: 135 }, // Sharon Coast
+          { x: 50, y: 65 },  // Haifa Coast
+          { x: 40, y: 290 }, // Shfela Coast
+          { x: 35, y: 365 }, // Ashdod Coast
         ];
         const randomCity = israelCityTiles[Math.floor(Math.random() * israelCityTiles.length)];
         coins.push({
