@@ -20,9 +20,9 @@ case "$SYNC_AGENT" in
     ;;
 esac
 
-# Codex parses command-hook stdout as its JSON response. A successful Stop
-# hook must therefore leave stdout empty; status messages still remain visible
-# through stderr. agy and manual invocations retain their normal stdout logs.
+# Codex parses command-hook stdout as its JSON response. Status messages remain
+# on stderr, and successful Codex runs end with an explicit continuation JSON
+# response. agy and manual invocations retain their normal stdout logs.
 log() {
   if [ "$SYNC_AGENT" = "codex" ]; then
     printf '%s\n' "$*" >&2
@@ -31,8 +31,15 @@ log() {
   fi
 }
 
+finish() {
+  if [ "$SYNC_AGENT" = "codex" ]; then
+    printf '{"continue":true}\n'
+  fi
+}
+
 if [ ! -f "$SPEC_FILE" ]; then
   log "[spec-hook:$SYNC_AGENT] Warning: spec.md not found at $SPEC_FILE"
+  finish
   exit 0
 fi
 
@@ -53,3 +60,4 @@ else
 fi
 
 log "[spec-hook:$SYNC_AGENT] spec.md header updated successfully."
+finish
