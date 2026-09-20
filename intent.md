@@ -36,10 +36,14 @@ A central modification to the game incorporates the discourse between Ziv Yekuti
 * **The Messianic Fantasy (Ziv's Post):**  
   Messianic ideology rationalizes unsustainable tactical risk with the supernatural promise that when things get dire enough — after enough outposts are built and enough blood is spilled ("מספיק ישובים, ומספיק חללים") — God / "Lord of Hosts" (יהוה צבאות) will intervene, fiery chariots will descend from the heavens, purify the land of enemies, and achieve total apocalyptic victory ("גוג ומגוג").
   
-* **The Authentic Reality (Jochman's Modification):**  
-  The game includes the prominent, glowing button labeled **"יהוה צבאות" (Lord of Hosts)**. It tantalizes the player with the illusion of an ultimate bail-out, teasing escalating milestones ("Need 10 settlements...", "Need 15 settlements & casualties...", "Almost there! Have faith!").  
-  **However, the button NEVER turns green. It never unlocks. It is purely an empty promise without any empirical basis.**  
-  When tapped, it produces pious excuses ("עוד קצת אמונה", "נסתרות דרכי האל", "הגאולה מתעכבת עקב חולשת הרוח"). When the catastrophe strikes, divine intervention does not arrive; only the catastrophic consequences of real-world neglect remain.
+* **The Authentic Reality & Psychological Deception (Jochman's Modification):**  
+  The game includes the prominent, golden button labeled **"יהוה צבאות" (Lord of Hosts)**. Crucially, **the player must genuinely believe throughout the game that this button will eventually become available and save them**. To sustain this illusion, the game employs mobile game "near-miss" psychology and messianic rhetoric:
+  1. **The "Almost Charged" Glow (Never Looks Dead):** The button is surrounded by an active, breathing golden aura. Whenever the player builds a settlement or calls reserves, radiant "soul sparks" / light rays animate across the screen into the button accompanied by holy harp chimes. A visible charge meter climbs: `0% -> 50% -> 85% -> 99%`. At 99%, the button pulses with high intensity.
+  2. **Shifting Goalposts ("Just One More"):** Whenever the stated criteria are met, the bar fills, flashes, and smoothly morphs into a deeper spiritual tier (e.g. "Stage 1: 7 Settlements" -> "Stage 2: 12 Settlements & Blood Sacrifice" -> "Final Stage: Hold the Line for the Miracle").
+  3. **The Fake "Heavenly Alignment" Countdown:** When border defense enters critical red, a ticking timer appears on the button (`נס בעוד: 00:30`). The player frantically burns reserves just to survive those 30 seconds. At `00:00`, it resets with a theological excuse: *"עיכוב הגאולה בשל חולשת הדעת בקבינט (+00:20)"*.
+  4. **Legitimizing In-Game Propaganda:** Ticker headlines from rabbinical authorities, cabinet ministers, and friendly media insist that divine victory is moments away, validating the player's false hope.
+  5. **The Panic-Mashing Climax:** When the border fence collapses and enemy pickup trucks breach into Israel, the button flashes violently at **99.9%** with the urgent prompt: *"לחצו במהירות לנס!"* (Tap rapidly for a miracle!). The player desperately mashes the button as the screen shakes... until the button shatters with a dry crack, revealing the cold reality: **It was only an empty promise without any basis. Divine intervention does not arrive.**
+  6. **The Result:** The shock of betrayal hits hard because the player genuinely invested in the miracle, only to face the inevitable catastrophe of real-world neglect.
 
 ### 1.4 The Strategic Awakening & Educational Resolution
 The game is not merely an exercise in inevitable doom; it is an exercise in accountability. As Yoni Haimovich highlights in his conclusion:
@@ -71,14 +75,17 @@ The overarching takeaway embodies the civic movement slogan:
    │  The reserve pool runs out. Border breaches appear.
    │  Hostile pickup trucks ("טנדרים") approach the fence.
    ▼
-[Phase 4: The False Hope — "יהוה צבאות"]
-   │  Player looks desperately at the shiny "יהוה צבאות" button.
-   │  It promises salvation if they just hold on and build more.
-   │  Player clicks it: "עוד קצת אמונה...", but the button stays dead.
+[Phase 4: The False Hope — "יהוה צבאות" at 99%]
+   │  "יהוה צבאות" button pulses with golden rays, charging from 85% to 99%.
+   │  Fake countdown ticks down ("נס בעוד 00:30...").
+   │  News headlines echo: "הניצחון המוחלט מעבר לפינה!".
+   │  Player sacrifices border defense to hold out for the divine miracle.
    ▼
-[Phase 5: The Reckoning]
-   │  Defense hits 0%. Infiltration ensues.
-   │  Massive Red Headline: "7 באוקטובר".
+[Phase 5: The Panic Mashing & The Reckoning]
+   │  Defense hits 0%. Infiltration ensues across the broken border.
+   │  Button flashes at 99.9%: "לחצו במהירות לנס!".
+   │  Player desperately mashes the button — which suddenly cracks and dies.
+   │  Massive Red Headline crashes down: "7 באוקטובר".
    │  A sobering debrief detailing the exact cost in soldiers, outposts, and borders.
    │  Closing motto: "לא מצביעים בלי שיודעים."
    │  Option to explore alternative strategic choices (Consolidation / Rational Defense).

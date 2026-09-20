@@ -161,12 +161,18 @@ export interface GameState {
   casualtiesCount: number;
   defenseScore: number; // 0% to 100%
   
-  // Satirical "Lord of Hosts" State
+  // Satirical "Lord of Hosts" State (Psychological Deception Engine)
   lordOfHosts: {
-    promisedThreshold: number; // Starts at 10, jumps to 15, then 20...
+    chargePercent: number; // Climbs 0% -> 50% -> 85% -> 99.0% -> 99.9%
+    stage: 1 | 2 | 3 | 4;
+    goalDescription: string;
+    countdownSeconds: number | null; // Fake miracle countdown (e.g. 30s)
     clicksCount: number;
+    mashCount: number; // Tracks frantic panic taps during the 99.9% catastrophe
+    isPanicMashMode: boolean; // Triggered when defense reaches 0% and breaches occur
     lastMessage: string;
-    isPermanentlyDisabled: true; // Hard-coded truth: never turns green
+    isPermanentlyDisabled: true; // Hard invariant: never unlocks, never turns green
+    sparksQueue: { id: string; fromX: number; fromY: number }[];
   };
   
   // Grid & Active Entities
@@ -235,30 +241,70 @@ $$\text{DefenseScore} = \min\left(100\%, \left(\frac{\text{SoldiersAtBorder}}{\t
 
 ---
 
-## 5. Specification of the Satirical "יהוה צבאות" Button
+## 5. Specification of the Satirical "יהוה צבאות" Button (Psychological Deception System)
 
-The button addresses the specific design mandate from **Ziv Yekutieli** and **Jochman**:
+The core emotional impact of the game hinges on **preserving the player's authentic belief that this button will genuinely unlock and save them right up until the catastrophic conclusion**. It utilizes proven retention mechanics from mobile gacha/idle games paired with messianic rhetoric.
 
-### 5.1 Visual Appearance
-- Placed in the action tray with distinctive celestial styling (golden rim, Hebrew font with Biblical serif flair, faint ambient shimmer).
-- State: **Always Disabled / Grayed-Gold tint** (`opacity-60 cursor-not-allowed filter grayscale-[30%]`).
-- Subtext progress indicator beneath the label:
-  - Initial: `"דרושים: 10 יישובים"`
-  - At 10 settlements: Jumps to `"דרושים: 15 יישובים + 3 חללים"`
-  - At 15 settlements: Jumps to `"דרושים: 20 יישובים — הגאולה בפתח!"`
-  - When border collapses: Shakes violently with cracks appearing on the button icon.
+### 5.1 The "Living Glow" & Soul Sparks Particle System
+A standard disabled button looks gray, static, and inert. In contrast, the **"יהוה צבאות"** button must appear intensely alive:
+- **Breathing Aura:** CSS keyframe pulse glowing gold (`box-shadow: 0 0 16px rgba(245, 197, 24, 0.5)`), with pulse frequency accelerating as the charge increases.
+- **Soul Sparks Particle Trajectory:** Every time the player builds a settlement, calls up reserves, or incurs a casualty, 3-5 luminous golden particles spawn at the tile coordinates and curve dynamically across the screen into the button icon, accompanied by a celestial harp note (`C6-E6-G6`).
+- **Live Charge Meter:** A progress bar built directly into the button rim or base, displaying an exact percentage:
+  - 0 Settlements: `12%` ("קליטת שדרים...")
+  - 5 Settlements: `48%`
+  - 10 Settlements: `79%`
+  - 14 Settlements: `92%`
+  - 16 Settlements (Border Red): **`99.0%`** (Button begins micro-vibrating with intense golden radiance).
 
-### 5.2 Click Interaction & Audio
-Even though disabled, clicking or tapping the button triggers active feedback:
-- **Audio:** A brief, angelic choir tone that abruptly squeaks out / terminates with a dry tick.
-- **Haptic:** Double short buzz.
-- **Dynamic Pious Snark Toast:** A speech bubble or toast displays a randomized excuse:
-  1. *"עוד קצת אמונה! ניסים לא קורים בחינם."* ("A little more faith! Miracles don't happen for free.")
-  2. *"נסתרות דרכי האל — המשיכו לבנות!"* ("The Lord moves in mysterious ways — keep building!")
-  3. *"הגאולה מתעכבת עקב קטני אמונה בקבינט."* ("Redemption is delayed due to those of little faith in the cabinet.")
-  4. *"רק עוד מאחז אחד ומרכבות האש יורדות!"* ("Just one more outpost and the chariots of fire will descend!")
-  5. *"אין סומכין על הנס... אבל תמשיכו בכל זאת."* ("One does not rely on miracles... but keep going anyway.")
-- **The Reality:** **It never turns green. No fiery chariots descend. The enemy trucks continue their advance.**
+### 5.2 Shifting Goalposts Matrix
+The button never presents impossible targets; it always promises that salvation is **one single step away**:
+
+| Stage | Trigger / Condition | Displayed Requirement / Subtext | Progress | Reaction on Click |
+|---|---|---|---|---|
+| **Stage 1: The Initial Hook** | Game Start | `"דרושים: 6 יישובים לפתיחת שערי שמיים"` | `12% -> 50%` | *"התפילות נשמעות, המשיכו ליישב את הארץ!"* |
+| **Stage 2: The Deepening Hold** | Player reaches 6 settlements | Bar fills to 100%, flashes gold, then smoothly transitions to: `"נדרשת מסירות: 11 יישובים"` | `50% -> 85%` | *"קרובים למדרגה הבאה! נדרש עוד מאמץ התיישבותי."* |
+| **Stage 3: The Blood & Soil Tier** | Defense drops < 40%, Reserves called | `"שעת המבחן: 15 יישובים ומסירות נפש"` | `85% -> 99%` | *"הגאולה מתעכבת בשל קטני אמונה בקבינט — חזקו את המאחזים!"* |
+| **Stage 4: The Fake Miracle Countdown** | Defense hits < 20% (Breaches occur) | Countdown timer appears on button: **`נס בעוד: 00:30`** | `99.0%` | *"שעת רצון מתקרבת! החזיקו מעמד עוד רגע!"* |
+
+#### The Miracle Countdown Loophole:
+When the timer hits `00:00`, instead of activating, a subtle divine chime sounds and the timer resets with an eschatological rationale:  
+`"שעת הרצון נדחתה עקב רפיון רוח (+00:20)"` or `"נדרש עוד מאחז אחד להשלמת המניין!"`. The player is driven to desperately sacrifice more troops to buy another 20 seconds.
+
+### 5.3 Legitimizing In-Game Propaganda & News Ticker
+To ensure the player does not suspect an interface prank, the in-game news ticker actively reinforces the button's legitimacy:
+- *"הרב הראשי לקבינט: 'הניצחון המוחלט מעבר לפינה, יש להמשיך להיאחז בקרקע'"*
+- *"השר לביטחון לאומי: 'אל תתרגשו מקריסת קו הגבול — מרכבות האש בדרך!'"*
+- *"ערוץ 14: סימנים ומופתים נצפו בשמי יהודה ושומרון — הנס קרוב מאי פעם"*
+- *"הודעת מועצת יש״ע: 'רק אחיזה עיקשת במאחזים תביא להכרעה שמיימית'"*
+
+### 5.4 The Climax: 99.9% Panic-Mashing & Sudden Collapse
+When the border defense reaches `0%` and hostile pickup trucks penetrate the border into Israeli territory:
+1. The button enters **Panic Mode**:
+   - The label switches to pulsing red-gold: **`לחצו במהירות לנס! (99.9%)`**
+   - An urgent flashing arrow points directly at the button.
+2. The Player's Action:
+   - In total desperation, the player furiously taps/mashes the button.
+   - Each tap produces a loud orchestral bass thud and causes the entire mobile screen to violently shake (`screen-shake-anim`).
+3. The Subversion:
+   - On the 7th or 8th frantic tap, an ominous metallic crack rings out.
+   - A sharp jagged fracture animates across the face of the button.
+   - The golden glow instantly extinguishes into dull ash gray.
+   - The text permanently reads: `"אין סומכין על הנס"`.
+   - The sound of warning sirens fills the audio, and the screen is consumed by the blackout transition to the **"7 באוקטובר"** Catastrophe Modal.
+
+### 5.5 Pious Excuse Dialogues (Click Feedback)
+If the player taps the button during normal gameplay (Stages 1-3), a stylized speech bubble appears above the button with randomized ecclesiastical excuses:
+1. *"עוד קצת אמונה! ניסים לא קורים בחינם."*
+2. *"נסתרות דרכי האל — המשיכו לבנות!"*
+3. *"הגאולה מתעכבת עקב חולשת הדעת בקבינט."*
+4. *"רק עוד מאחז אחד ומרכבות האש יורדות!"*
+5. *"חבל על כל טיפת ספק — הניצחון המוחלט כבר כאן!"*
+
+### 5.6 Audio Synthesis Specs for "יהוה צבאות"
+- **Charging Spark:** High celestial glockenspiel tone (`1046Hz -> 1318Hz -> 1568Hz`, sine wave with 0.1s decay).
+- **Stage Advance:** Majestic trumpet fifth (`F4 -> C5`, brass oscillator with slight vibrato).
+- **Click while Waiting:** Muffled church bell with an unexpected flat buzz (`440Hz` chime + `90Hz` square buzz).
+- **The Crack / Defeat Sound:** Heavy low frequency boom (`50Hz`) followed by white noise glass shatter.
 
 ---
 
