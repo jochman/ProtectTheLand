@@ -300,8 +300,25 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
         {/* 3. BORDER CHECKPOINTS & WATCHTOWERS */}
         {tiles.filter(t => t.isBorderCheckpoint).map(cp => {
           const isManned = cp.garrisonCount > 0;
+          const isIncomingWest = (state.movingTroops || []).some(
+            t => t.fromX > t.toX && Math.hypot(t.toX - cp.x, t.toY - cp.y) < 18
+          );
           return (
             <g key={`cp-${cp.id}`} transform={`translate(${cp.x}, ${cp.y})`}>
+              {/* Incoming Reinforcement Target Beacon from West Bank */}
+              {isIncomingWest && (
+                <circle
+                  cx="0"
+                  cy="0"
+                  r="23"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="2.5"
+                  strokeDasharray="4,3"
+                  className="animate-spin"
+                />
+              )}
+
               {isManned ? (
                 // 3D Plastic Green Army Figurine standing on border pedestal
                 <g filter="url(#dropShadow)">
@@ -485,11 +502,16 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           );
         })}
 
-        {/* 8. TROOPS ACTIVELY REDEPLOYING FROM BORDER (LEFT) TO SETTLEMENTS (RIGHT) */}
+        {/* 8. TROOPS ACTIVELY MOVING (BOTH LEFT-TO-RIGHT AND RIGHT-TO-LEFT) */}
         {(state.movingTroops || []).map(troop => {
+          const isMovingWest = troop.fromX > troop.toX; // Right to Left (recalled to sovereign border)
           const midX = (troop.fromX + troop.toX) / 2;
-          const midY = Math.min(troop.fromY, troop.toY) - 28;
+          const midY = Math.min(troop.fromY, troop.toY) - 30;
           const pathD = `M ${troop.fromX} ${troop.fromY} Q ${midX} ${midY} ${troop.toX} ${troop.toY}`;
+
+          const trajectoryColor = isMovingWest ? '#3b82f6' : '#22c55e';
+          const auraColor = isMovingWest ? 'rgba(59, 130, 246, 0.45)' : 'rgba(34, 197, 94, 0.4)';
+          const auraBorder = isMovingWest ? '#2563eb' : '#16a34a';
 
           return (
             <g key={troop.id} className="pointer-events-none">
@@ -497,12 +519,12 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               <path
                 d={pathD}
                 fill="none"
-                stroke="#22c55e"
-                strokeWidth="2.5"
+                stroke={trajectoryColor}
+                strokeWidth={isMovingWest ? '3' : '2.5'}
                 strokeDasharray="5,3"
                 strokeLinecap="round"
                 className="animate-pulse"
-                opacity="0.85"
+                opacity="0.9"
               />
 
               {/* Moving Army Figurine leaping along the trajectory arc */}
@@ -513,14 +535,14 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   fill="freeze"
                   repeatCount="1"
                 />
-                {/* Glowing Green Radar Aura */}
-                <circle cx="0" cy="0" r="14" fill="rgba(34, 197, 94, 0.4)" stroke="#16a34a" strokeWidth="1.5" />
-                {/* 3D Green Figurine Model */}
-                <g transform="translate(0, 3) scale(1.15)">
+                {/* Glowing Radar Aura */}
+                <circle cx="0" cy="0" r="14" fill={auraColor} stroke={auraBorder} strokeWidth="1.5" />
+                {/* 3D Figurine Model facing the movement direction */}
+                <g transform={`translate(0, 3) scale(${isMovingWest ? -1.15 : 1.15}, 1.15)`}>
                   <ellipse cx="0" cy="4" rx="7" ry="3.5" fill="#14532d" />
                   <rect x="-2" y="-1" width="1.8" height="4.5" fill="#166534" rx="0.8" />
                   <rect x="0.5" y="-1" width="1.8" height="4.5" fill="#166534" rx="0.8" />
-                  <rect x="-3.5" y="-7.5" width="7" height="7" fill="#15803d" rx="1.5" />
+                  <rect x="-3.5" y="-7.5" width="7" height="7" fill={isMovingWest ? '#1d4ed8' : '#15803d'} rx="1.5" />
                   <ellipse cx="0" cy="-9.5" rx="3" ry="2.5" fill="#14532d" />
                   <ellipse cx="0" cy="-8.5" rx="3.8" ry="1" fill="#166534" />
                 </g>

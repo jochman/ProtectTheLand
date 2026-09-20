@@ -64,8 +64,18 @@ export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> =
           )}
         </div>
 
-        {/* Creative / Rational Strategic Action: Evacuate & Consolidate */}
+        {/* Creative / Rational Strategic Action: Recall or Evacuate */}
         <div className="flex flex-col gap-2">
+          {isGuarded && (
+            <button
+              onClick={() => dispatch({ type: 'RECALL_TROOP', tileId: tile.id })}
+              className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-heebo"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>{state.locale === 'he' ? 'החזרת חייל להגנת הגבול המערבי ⟵' : 'Recall Soldier to Western Border ⟵'}</span>
+            </button>
+          )}
+
           <button
             onClick={() => dispatch({ type: 'EVACUATE_SETTLEMENT', tileId: tile.id })}
             className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-xs font-heebo"

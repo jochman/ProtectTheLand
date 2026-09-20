@@ -631,20 +631,35 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       let newBorderSoldiers = state.soldiersAtBorder;
       let newSettlementSoldiers = state.soldiersAtSettlements;
 
+      const newMovingTroops = [...(state.movingTroops || [])];
+
       if (hadGarrison) {
         newSettlementSoldiers = Math.max(0, newSettlementSoldiers - 1);
         newBorderSoldiers += 1;
 
-        const emptyBorder = Object.keys(updatedTiles).find(
+        const emptyBorderIds = Object.keys(updatedTiles).filter(
           id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
         );
-        if (emptyBorder) {
-          updatedTiles[emptyBorder] = {
-            ...updatedTiles[emptyBorder],
+        if (emptyBorderIds.length > 0) {
+          const chosenBorderId = emptyBorderIds[Math.floor(Math.random() * emptyBorderIds.length)];
+          const borderTile = updatedTiles[chosenBorderId];
+
+          updatedTiles[chosenBorderId] = {
+            ...borderTile,
             garrisonCount: 1,
             isBreached: false,
             hasAlert: false,
           };
+
+          // Animate troop moving from Right (Settlement) to Left (Border)
+          newMovingTroops.push({
+            id: `troop-evac-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            fromX: tile.x,
+            fromY: tile.y,
+            toX: borderTile.x,
+            toY: borderTile.y,
+            createdAt: Date.now(),
+          });
         }
       }
 
@@ -673,6 +688,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
         activeBreaches,
+        movingTroops: newMovingTroops,
         selectedSettlementId: null,
         gameStatus: isRationalVictory ? 'rational_victory' : 'playing',
         ...withNews(state, {
@@ -681,6 +697,158 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             ? `מאחז פונה. הכוחות הוחזרו לעיבוי קו הגבול הריבוני.`
             : `Outpost evacuated. Troops returned to reinforce sovereign border.`,
           source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          category: 'military',
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        }),
+      };
+    }
+
+    case 'RECALL_TROOP': {
+      const tileId = action.tileId;
+      const tile = state.tiles[tileId];
+      if (!tile || tile.garrisonCount <= 0) return state;
+
+      const updatedTiles = { ...state.tiles };
+      const emptyBorderIds = Object.keys(updatedTiles).filter(
+        id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+      );
+
+      if (emptyBorderIds.length === 0) return state;
+
+      const chosenBorderId = emptyBorderIds[Math.floor(Math.random() * emptyBorderIds.length)];
+      const borderTile = updatedTiles[chosenBorderId];
+
+      updatedTiles[tileId] = {
+        ...updatedTiles[tileId],
+        garrisonCount: Math.max(0, updatedTiles[tileId].garrisonCount - 1),
+      };
+
+      updatedTiles[chosenBorderId] = {
+        ...borderTile,
+        garrisonCount: 1,
+        isBreached: false,
+        hasAlert: false,
+      };
+
+      const newSettlementSoldiers = Math.max(0, state.soldiersAtSettlements - 1);
+      const newBorderSoldiers = state.soldiersAtBorder + 1;
+      const newDefenseScore = Math.min(100, Math.round((newBorderSoldiers / 8) * 100));
+
+      // Animate troop moving from Right (Settlement) to Left (Border)
+      const newMovingTroops = [
+        ...(state.movingTroops || []),
+        {
+          id: `troop-recall-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          fromX: tile.x,
+          fromY: tile.y,
+          toX: borderTile.x,
+          toY: borderTile.y,
+          createdAt: Date.now(),
+        },
+      ];
+
+      const activeBreaches = Object.keys(updatedTiles).filter(
+        id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+      );
+
+      sounds.playDeploy();
+
+      return {
+        ...state,
+        soldiersAtBorder: newBorderSoldiers,
+        soldiersAtSettlements: newSettlementSoldiers,
+        defenseScore: newDefenseScore,
+        tiles: updatedTiles,
+        activeBreaches,
+        movingTroops: newMovingTroops,
+        selectedSettlementId: null,
+        ...withNews(state, {
+          id: `recall-${Date.now()}`,
+          headline: state.locale === 'he'
+            ? `כוח צה״ל נסוג מ${tile.settlementName || 'המאחז'} ושב לבצר את קו הגבול המערבי.`
+            : `Troops recalled from ${tile.settlementName || 'outpost'} to secure the western border.`,
+          source: state.locale === 'he' ? 'פיקוד מרכז' : 'Central Command',
+          category: 'military',
+          timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+        }),
+      };
+    }
+
+    case 'RECALL_ALL_TROOPS': {
+      const guardedSettlementIds = Object.keys(state.tiles).filter(
+        id => state.tiles[id].hasSettlement && state.tiles[id].garrisonCount > 0
+      );
+      if (guardedSettlementIds.length === 0) return state;
+
+      const updatedTiles = { ...state.tiles };
+      const emptyBorderIds = Object.keys(updatedTiles).filter(
+        id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+      );
+
+      // Randomly shuffle empty borders so arriving troops fill them organically
+      const shuffledEmptyBorders = [...emptyBorderIds].sort(() => Math.random() - 0.5);
+      const newMovingTroops = [...(state.movingTroops || [])];
+      let recalledCount = 0;
+
+      for (const sId of guardedSettlementIds) {
+        const borderId = shuffledEmptyBorders.pop();
+        if (!borderId) break;
+
+        const sTile = updatedTiles[sId];
+        const bTile = updatedTiles[borderId];
+
+        updatedTiles[sId] = {
+          ...sTile,
+          garrisonCount: 0,
+        };
+
+        updatedTiles[borderId] = {
+          ...bTile,
+          garrisonCount: 1,
+          isBreached: false,
+          hasAlert: false,
+        };
+
+        // Animate each troop moving from Right (Settlement) to Left (Border)
+        newMovingTroops.push({
+          id: `troop-recall-all-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          fromX: sTile.x,
+          fromY: sTile.y,
+          toX: bTile.x,
+          toY: bTile.y,
+          createdAt: Date.now(),
+        });
+
+        recalledCount++;
+      }
+
+      if (recalledCount === 0) return state;
+
+      const newSettlementSoldiers = Math.max(0, state.soldiersAtSettlements - recalledCount);
+      const newBorderSoldiers = state.soldiersAtBorder + recalledCount;
+      const newDefenseScore = Math.min(100, Math.round((newBorderSoldiers / 8) * 100));
+
+      const activeBreaches = Object.keys(updatedTiles).filter(
+        id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
+      );
+
+      sounds.playDeploy();
+
+      return {
+        ...state,
+        soldiersAtBorder: newBorderSoldiers,
+        soldiersAtSettlements: newSettlementSoldiers,
+        defenseScore: newDefenseScore,
+        tiles: updatedTiles,
+        activeBreaches,
+        movingTroops: newMovingTroops,
+        selectedSettlementId: null,
+        ...withNews(state, {
+          id: `recall-all-${Date.now()}`,
+          headline: state.locale === 'he'
+            ? `נסיגה טקטית מלאה! ${recalledCount} לוחמים פונו מהמאחזים וחזרו לאבטח את הגבול המערבי.`
+            : `Full tactical pullback! ${recalledCount} soldiers recalled from outposts to secure the western border.`,
+          source: state.locale === 'he' ? 'המטה הכללי' : 'General Staff',
           category: 'military',
           timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         }),

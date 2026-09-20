@@ -137,4 +137,6 @@ export type GameAction =
   | { type: 'CLEAR_MOVING_TROOP'; id: string }
   | { type: 'OPEN_NEWS_MODAL' }
   | { type: 'CLOSE_NEWS_MODAL' }
-  | { type: 'CYCLE_NEXT_NEWS' };
+  | { type: 'CYCLE_NEXT_NEWS' }
+  | { type: 'RECALL_TROOP'; tileId: string }
+  | { type: 'RECALL_ALL_TROOPS' };

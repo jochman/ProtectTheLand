@@ -34,6 +34,24 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         </div>
       )}
 
+      {/* Quick Tactical Pullback Action (Right to Left) */}
+      {state.soldiersAtSettlements > 0 && state.gameStatus === 'playing' && (
+        <button
+          onClick={() => dispatch({ type: 'RECALL_ALL_TROOPS' })}
+          className="w-full py-1.5 px-3 bg-slate-900/90 hover:bg-slate-900 active:scale-98 text-blue-300 font-bold text-xs rounded-xl shadow-lg border border-blue-500/50 flex items-center justify-between transition-all group"
+        >
+          <span className="flex items-center gap-1.5">
+            <span className="text-sm group-hover:-translate-x-1 transition-transform">⟵</span>
+            <span className="font-heebo">
+              {state.locale === 'he' ? 'החזרת כוחות מהמאחזים לגבול הריבוני' : 'Recall Troops from Outposts to Border'}
+            </span>
+          </span>
+          <span className="text-[10px] bg-blue-950 px-2 py-0.5 rounded-full border border-blue-600/60 text-blue-200 font-mono font-black">
+            {state.soldiersAtSettlements} {state.locale === 'he' ? 'לוחמים' : 'troops'}
+          </span>
+        </button>
+      )}
+
       {/* Three Primary Clay Buttons */}
       <div className="grid grid-cols-3 gap-2 w-full">
         {/* 1. מילואים (Reserves) */}
