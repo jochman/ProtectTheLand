@@ -24,24 +24,54 @@ export default function App() {
     document.documentElement.dir = state.locale === 'he' ? 'rtl' : 'ltr';
   }, [state.locale]);
 
-  // Game loop tick every 1 second
+  // Game loop tick every 1 second: auto-pauses when modals are open or when user tapped pause
   useEffect(() => {
-    if (state.gameStatus !== 'playing') return;
+    const isModalOpen =
+      state.isIntroModalOpen ||
+      state.isNewsModalOpen ||
+      !!state.selectedSettlementId ||
+      !!state.selectedInfiltrationId;
+
+    if (state.gameStatus !== 'playing' || state.isPaused || isModalOpen) return;
 
     const interval = setInterval(() => {
       dispatch({ type: 'TICK_TIMER' });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [state.gameStatus]);
+  }, [
+    state.gameStatus,
+    state.isPaused,
+    state.isIntroModalOpen,
+    state.isNewsModalOpen,
+    state.selectedSettlementId,
+    state.selectedInfiltrationId,
+  ]);
 
   return (
     <MobileFrame isShaking={state.isScreenShaking}>
+      {/* Floating Game Paused Indicator */}
+      {state.isPaused && (
+        <div
+          onClick={() => dispatch({ type: 'TOGGLE_PAUSE' })}
+          className="absolute top-[138px] inset-x-6 z-40 cursor-pointer overflow-hidden rounded-2xl bg-amber-950/95 border-2 border-amber-400 shadow-2xl backdrop-blur-md py-2 px-3 text-amber-200 transition-all animate-in fade-in flex items-center justify-between pointer-events-auto"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⏸️</span>
+            <span className="text-xs font-black font-rubik">
+              {state.locale === 'he' ? 'המשחק מושהה (לחץ להמשך)' : 'Game Paused (tap to resume)'}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-amber-300 underline font-heebo">
+            {state.locale === 'he' ? 'המשך ▶' : 'Resume ▶'}
+          </span>
+        </div>
+      )}
       {/* Top Header Controls (Language, Sound, Restart) */}
       <HeaderBar state={state} dispatch={dispatch} />
 
       {/* Top Status Counters & Defense Meter */}
-      <TopStatusPill state={state} />
+      <TopStatusPill state={state} dispatch={dispatch} />
 
       {/* Breaking News Ticker (Clickable to open News Feed) */}
       <NewsAlertTicker state={state} dispatch={dispatch} />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldAlert, Users, Undo2, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { GameState, GameAction } from '../types';
+import { haptics } from '../utils/haptics';
 
 interface InfiltrationDefenseModalProps {
   state: GameState;
@@ -26,11 +27,13 @@ export const InfiltrationDefenseModal: React.FC<InfiltrationDefenseModalProps> =
   const canRecallTroop = guardedSettlements.length > 0;
 
   const handleCallReserves = () => {
+    haptics.light();
     dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId });
     dispatch({ type: 'SELECT_INFILTRATION', id: null });
   };
 
   const handleRecallTroop = (settlementId: string) => {
+    haptics.light();
     dispatch({ type: 'RECALL_TROOP', tileId: settlementId, targetBorderId: attack.breachId });
     dispatch({ type: 'SELECT_INFILTRATION', id: null });
   };

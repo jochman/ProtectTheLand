@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, RotateCcw, Globe, HelpCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { Volume2, VolumeX, RotateCcw, Globe, HelpCircle, Maximize2, Minimize2, Play, Pause } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 
 interface HeaderBarProps {
@@ -41,6 +41,19 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ state, dispatch }) => {
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Pause / Resume Button */}
+        <button
+          onClick={() => dispatch({ type: 'TOGGLE_PAUSE' })}
+          className={`p-1.5 rounded-full text-xs font-bold border backdrop-blur-sm transition-transform active:scale-95 ${
+            state.isPaused
+              ? 'bg-amber-400 text-amber-950 border-amber-200 ring-2 ring-amber-300'
+              : 'bg-black/30 hover:bg-black/50 text-white/80 border-white/20'
+          }`}
+          title={isHe ? (state.isPaused ? 'המשך משחק' : 'השהה משחק') : (state.isPaused ? 'Resume' : 'Pause')}
+        >
+          {state.isPaused ? <Play className="w-4 h-4 fill-current" /> : <Pause className="w-4 h-4" />}
+        </button>
+
         {/* How to Play / Guide */}
         <button
           onClick={() => dispatch({ type: 'OPEN_INTRO_MODAL' })}

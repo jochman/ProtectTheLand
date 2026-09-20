@@ -3,6 +3,7 @@ import { Sparkles, Flame } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
+import { haptics } from '../utils/haptics';
 
 interface LordOfHostsButtonProps {
   state: GameState;
@@ -19,8 +20,10 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
   const handleClick = () => {
     if (isCracked) return;
     if (isPanic) {
+      haptics.warning();
       dispatch({ type: 'MASH_LORD_OF_HOSTS' });
     } else {
+      haptics.light();
       dispatch({ type: 'CLICK_LORD_OF_HOSTS' });
     }
   };

@@ -189,9 +189,14 @@ export interface GameState {
   interceptedToast: InterceptionToast | null;
   lastCityTaxTimestamps?: Record<string, number>;
   isIntroModalOpen: boolean;
+  isPaused: boolean;
+  infoPopover: { title: string; text: string } | null;
 }
 
 export type GameAction =
+  | { type: 'TOGGLE_PAUSE' }
+  | { type: 'SHOW_INFO_POPOVER'; title: string; text: string }
+  | { type: 'CLEAR_INFO_POPOVER' }
   | { type: 'OPEN_INTRO_MODAL' }
   | { type: 'CLOSE_INTRO_MODAL' }
   | { type: 'BUILD_SETTLEMENT'; tileId?: string }

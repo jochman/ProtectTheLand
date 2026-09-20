@@ -1,5 +1,6 @@
 import React from 'react';
 import { GameState, GameAction, HexTile } from '../types';
+import { haptics } from '../utils/haptics';
 
 interface HexMapCanvasProps {
   state: GameState;
@@ -155,8 +156,10 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               key={tile.id}
               onClick={() => {
                 if (isCandidateForBuild) {
+                  haptics.light();
                   dispatch({ type: 'SELECT_TILE_TO_BUILD', tileId: tile.id });
                 } else if (tile.terrain === 'israel' && tile.label) {
+                  haptics.coin();
                   dispatch({ type: 'COLLECT_CITY_TAX', cityId: tile.id });
                 }
               }}
@@ -296,6 +299,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                         className="cursor-pointer group"
                         onClick={(e) => {
                           e.stopPropagation();
+                          haptics.warning();
                           if (relatedAttack) {
                             dispatch({ type: 'SELECT_INFILTRATION', id: relatedAttack.id });
                           } else if ((state.greenSideAttacks || []).length > 0) {
@@ -468,6 +472,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   className="cursor-pointer group"
                   onClick={(e) => {
                     e.stopPropagation();
+                    haptics.light();
                     dispatch({ type: 'SEAL_BREACH', checkpointId: cp.id });
                   }}
                 >
@@ -530,6 +535,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               className="cursor-pointer group"
               onClick={(e) => {
                 e.stopPropagation();
+                haptics.light();
                 dispatch({ type: 'SELECT_TILE', tileId: s.id });
               }}
             >
@@ -656,6 +662,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             transform={`translate(${coin.x}, ${coin.y})`}
             onClick={(e) => {
               e.stopPropagation();
+              haptics.coin();
               dispatch({ type: 'COLLECT_COIN', id: coin.id });
             }}
             className="cursor-pointer group"
@@ -746,6 +753,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 className="cursor-pointer group"
                 onClick={(e) => {
                   e.stopPropagation();
+                  haptics.warning();
                   dispatch({ type: 'SELECT_INFILTRATION', id: attack.id });
                 }}
               >

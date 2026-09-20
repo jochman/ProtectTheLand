@@ -38,16 +38,16 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
           </button>
         </div>
 
-        {/* The Core Strategic Dilemma Callout */}
+        {/* The Stated Gameplay Objective */}
         <div className="bg-amber-50/90 border border-amber-300 rounded-2xl p-3 text-start flex flex-col gap-1.5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs font-black text-amber-900 font-rubik">
             <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <span>{isHe ? 'מטרת המשחק והדילמה הלאומית:' : 'Game Objective & The Core Dilemma:'}</span>
+            <span>{isHe ? 'המטרה הלאומית: יישוב הגבעות וגאולת ״יהוה צבאות״!' : 'The National Mission: Settle the Hills & Awaken "Lord of Hosts"!'}</span>
           </div>
           <p className="text-xs leading-relaxed text-slate-700">
             {isHe
-              ? 'אתם מקבלי ההחלטות של ישראל. עליכם לתמרן בין לחצים פוליטיים להקמת מאחזים ביו״ש לבין ביצור הגבול הריבוני. זכרו: כל חייל שנשלח לאבטח גבעה מבודדת — נגרע ממוצבי הגבול הריבוני!'
-              : 'You are the policymaker. Balance political pressure to establish West Bank outposts against securing sovereign borders. Remember: every soldier diverted to a remote hilltop leaves a hole in sovereign border defense!'}
+              ? 'אתם מנהיגי המערכה. המשימה שלכם: ליישב את כל גבעות השומרון, לגייס תקציבים קואליציוניים, ולאבטח את המאחזים כדי לטעון את כפתור ״יהוה צבאות״ ל-100% ולהביא את הניצחון המוחלט! אך היזהרו: כל חייל שנעקר מהגבול פוער פרצה מסוכנת...'
+              : 'You lead the nation. Your mission: settle every hilltop in the West Bank, harness coalition funds, and deploy troops to charge the "Lord of Hosts" miracle button to 100% for total victory! But beware: every troop pulled from the border leaves a gap...'}
           </p>
         </div>
 
@@ -67,7 +67,7 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
               <p className="text-[11px] text-slate-600 mt-0.5 leading-tight">
                 {isHe
                   ? 'לחץ על "בניית יישוב" ובחר גבעה ריקה בשומרון. מאחזים מניבים תקציב קואליציוני שוטף.'
-                  : 'Tap "Build Outpost" and pick an empty hilltop. Outposts generate coalition budget income.'}
+                  : 'Tap "Build Outpost" and select an empty hilltop. Outposts generate steady coalition funding.'}
               </p>
             </div>
           </div>
@@ -84,13 +84,13 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
               </span>
               <p className="text-[11px] text-slate-600 mt-0.5 leading-tight">
                 {isHe
-                  ? 'מאחז חשוף מותקף בעימותים וגורר קנסות. אך העברת חייל מהגבול פוערת פרצה מסוכנת בגדר!'
-                  : 'Exposed outposts get damaged and penalized. But shifting troops leaves dangerous gaps in the border fence!'}
+                  ? 'מאחז חשוף ללא חייל נפגע בעימותים. אך העברת חייל מהגבול פוערת פרצה מסוכנת בגדר!'
+                  : 'Ungarrisoned outposts get damaged in clashes. But shifting troops opens dangerous gaps in the border fence!'}
               </p>
             </div>
           </div>
 
-          {/* Step 3: Land HP & Border Defense */}
+          {/* Step 3: Land HP & Interception */}
           <div className="bg-white border border-red-200 rounded-2xl p-2.5 shadow-sm flex items-start gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center flex-shrink-0 mt-0.5">
               <Shield className="w-4 h-4" />
@@ -102,32 +102,27 @@ export const EntranceInstructionModal: React.FC<EntranceInstructionModalProps> =
               </span>
               <p className="text-[11px] text-slate-600 mt-0.5 leading-tight">
                 {isHe
-                  ? 'כל פרצה פתוחה מדממת את חוסן המדינה (0.4- נק\' לשנייה)! חוליות עוינות חודרות לערי העורף (20%- חוסן). בלום חדירות ע״י לחיצה על הפרצה, החזרת לוחם או מילואים.'
-                  : 'Unsealed gaps bleed Homeland HP (-0.4 HP/s)! Hostile squads raid border cities (-20% HP). Intercept them by tapping the gap, recalling soldiers, or calling reserves.'}
+                  ? 'פרצות בגבול מדממות את חוסן המדינה (0.4- נק\' לשנייה)! רכבי מחבלים חודרים לעורף (20%- חוסן). בלום חדירות ע״י לחיצה על הפרצה (⚠️), החזרת לוחם או מילואים.'
+                  : 'Border gaps bleed Homeland HP (-0.4 HP/s)! Hostile squads raid border cities (-20% HP). Intercept them by tapping the gap, recalling soldiers, or calling reserves.'}
               </p>
             </div>
           </div>
 
-          {/* Step 4: Game Endings */}
-          <div className="bg-white border border-emerald-200 rounded-2xl p-2.5 shadow-sm flex items-start gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+          {/* Step 4: The Miracle of Lord of Hosts vs Catastrophe */}
+          <div className="bg-white border border-amber-300 rounded-2xl p-2.5 shadow-sm flex items-start gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
               <Award className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
               <span className="font-black text-slate-900 font-rubik text-xs flex items-center gap-1">
                 <span>4.</span>
-                <span>{isHe ? 'איך מנצחים? ואיך נמנעים מתבוסה?' : 'How to Win vs How You Lose'}</span>
+                <span>{isHe ? 'טעינת נס ״יהוה צבאות״ (או קריסת 7 באוקטובר)' : 'Charging "Lord of Hosts" (or Border Collapse)'}</span>
               </span>
-              <div className="text-[11px] text-slate-600 mt-0.5 flex flex-col gap-0.5 leading-tight">
-                <div>
-                  <span className="font-bold text-red-700">❌ {isHe ? 'תבוסה (7 באוקטובר):' : 'Defeat (Oct 7):'} </span>
-                  <span>{isHe ? 'חוסן המדינה צונח ל-0% או לחיצה 7 פעמים בפאניקה על כפתור האשליה "יהוה צבאות".' : 'Homeland HP hits 0% or mashing the false miracle "Lord of Hosts" button 7 times.'}</span>
-                </div>
-                <div>
-                  <span className="font-bold text-emerald-700">🏆 {isHe ? 'ניצחון בר-קיימא:' : 'Rational Victory:'} </span>
-                  <span>{isHe ? 'בנה 3 מאחזים, חווה את הקושי, קבל החלטה לפנות מאחזים (עד 2 נותרים) ובצר את כל 8 מוצבי הגבול ל-100%!' : 'Build 3 outposts, experience the crisis, then evacuate back (≤2 outposts) and restore 100% border defense!'}</span>
-                </div>
-              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5 leading-tight">
+                {isHe
+                  ? 'כל מאחז שנבנה ומאובטח מקדם את כפתור ״יהוה צבאות״ לקראת פתיחת שערי שמיים (100%). אך היזהרו: אם חוסן המדינה יגיע ל-0% — הגבול יקרוס ואסון 7 באוקטובר יתרחש!'
+                  : 'Every outpost built and secured advances the "Lord of Hosts" miracle meter toward 100%. But beware: if Homeland HP hits 0% — the border will collapse and disaster strikes!'}
+              </p>
             </div>
           </div>
 

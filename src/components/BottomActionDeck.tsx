@@ -3,6 +3,7 @@ import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { LordOfHostsButton } from './LordOfHostsButton';
+import { haptics } from '../utils/haptics';
 
 interface BottomActionDeckProps {
   state: GameState;
@@ -35,6 +36,22 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
   const hasUngarrisonedSettlement = ungarrisonedCount > 0;
   const hasDoubleCrisis = hasBorderBreach && hasUngarrisonedSettlement;
 
+  // Button click handlers with haptic feedback
+  const handleCallReserves = () => {
+    haptics.light();
+    dispatch({ type: 'CALL_RESERVES' });
+  };
+
+  const handleDeployTroops = () => {
+    haptics.light();
+    dispatch({ type: 'DEPLOY_TROOPS' });
+  };
+
+  const handleToggleBuild = () => {
+    haptics.light();
+    dispatch({ type: 'TOGGLE_BUILD_MODE' });
+  };
+
   return (
     <div className="relative w-full px-3 sm:px-4 pb-2 sm:pb-3 pt-1 bg-gradient-to-t from-black/30 to-transparent flex flex-col gap-1 sm:gap-1.5 z-20 flex-shrink-0">
       {/* Build Mode active banner - FLOATING ABSOLUTE to prevent any layout shift */}
@@ -42,7 +59,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         <div className="absolute -top-8 inset-x-4 z-30 py-1 px-3 bg-amber-500 text-amber-950 font-black text-xs rounded-xl text-center shadow-lg animate-pulse font-rubik flex items-center justify-between border border-amber-300">
           <span>👈 {strings.actions.selectTileToBuild}</span>
           <button
-            onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}
+            onClick={handleToggleBuild}
             className="underline text-[11px] font-bold hover:text-white transition-colors"
           >
             {strings.actions.cancel}
@@ -50,13 +67,30 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
         </div>
       )}
 
-      {/* Tactical Situation Advisor (Direct context guidance telling player what to do!) */}
+      {/* Tactical Situation Advisor (With 3-Step Guided Onboarding Quests) */}
       <div className="w-full text-center py-0.5 px-2 rounded-lg text-[10.5px] font-bold font-heebo shadow-sm transition-all flex items-center justify-center gap-1 leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
         {hasAttack ? (
           <span className="text-red-200 bg-red-950/90 px-2 py-0.5 rounded-md border border-red-500/80 animate-pulse font-black flex items-center gap-1">
             <span>🚨</span>
             <span>{isHe ? `חדירה לעבר ${targetAttack?.targetCityName}! לחץ 'מילואים' או על הפרצה לבלימה!` : `Raid on ${targetAttack?.targetCityName}! Call reserves or seal breach!`}</span>
           </span>
+        ) : state.settlementsCount === 0 ? (
+          <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 font-black flex items-center gap-1 animate-pulse">
+            <span>🎯</span>
+            <span>{isHe ? 'משימה 1/3: הקם מאחז ראשון בגבעות (לחץ \'בניית יישוב\')' : 'Quest 1/3: Settle your first hilltop (Tap \'Build Outpost\')'}</span>
+          </span>
+        ) : hasUngarrisonedSettlement ? (
+          canAffordDeploy && state.soldiersAtBorder > 0 ? (
+            <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 font-black flex items-center gap-1">
+              <span>🎯</span>
+              <span>{isHe ? 'משימה 2/3: אבטח את המאחז (לחץ \'פריסת כוחות\' - 25₪)' : 'Quest 2/3: Secure the outpost (Tap \'Deploy Troops\' - ₪25)'}</span>
+            </span>
+          ) : (
+            <span className="text-red-200 bg-red-950/90 px-2 py-0.5 rounded-md border border-red-500/80 flex items-center gap-1">
+              <span>💸</span>
+              <span>{isHe ? 'מאחז חשוף וחסר תקציב לפריסה (25₪)! גבה מס מערי ישראל או אסוף מטבעות' : 'Outpost exposed, need ₪25! Tap cities for taxes or collect coins'}</span>
+            </span>
+          )
         ) : hasDoubleCrisis ? (
           state.reservesBatchesLeft > 0 ? (
             <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">
@@ -69,22 +103,10 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
               <span>{isHe ? 'המילואים אזלו! לחץ על מאחז לבחירת \'פינוי מאחז\' וביצור הגבול' : 'Reserves depleted! Tap outpost to evacuate & fortify border'}</span>
             </span>
           )
-        ) : hasUngarrisonedSettlement && state.soldiersAtBorder > 0 ? (
-          canAffordDeploy ? (
-            <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">
-              <span>🏰</span>
-              <span>{isHe ? 'מאחז חשוף! לחץ \'פריסת כוחות\' (25₪-) לאבטחת המאחז' : 'Outpost exposed! Tap \'Deploy Troops\' (-₪25) to garrison'}</span>
-            </span>
-          ) : (
-            <span className="text-red-200 bg-red-950/90 px-2 py-0.5 rounded-md border border-red-500/80 flex items-center gap-1">
-              <span>💸</span>
-              <span>{isHe ? 'מאחז חשוף וחסר תקציב לפריסה (25₪)! גבה מס מערי ישראל או אסוף מטבעות' : 'Outpost exposed, need ₪25 for deployment! Tap cities for taxes'}</span>
-            </span>
-          )
-        ) : hasBorderBreach && guardedCount > 0 ? (
+        ) : hasBorderBreach ? (
           <span className="text-blue-200 bg-blue-950/90 px-2 py-0.5 rounded-md border border-blue-500/80 flex items-center gap-1">
-            <span>⚠️</span>
-            <span>{isHe ? 'פרצה בגבול! לחץ על נקודת הפרצה (⚠️) להחזרת לוחם או גייס מילואים' : 'Border breach! Tap the gap (⚠️) to recall troop or call reserves'}</span>
+            <span>🎯</span>
+            <span>{isHe ? 'משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או טען את \'יהוה צבאות\'!' : 'Quest 3/3: Border exposed! Seal breach (⚠️) or charge Divine Miracle!'}</span>
           </span>
         ) : canAffordSettlement ? (
           <span className="text-amber-200 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-500/80 flex items-center gap-1">
@@ -103,7 +125,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
         {/* 1. מילואים (Reserves) */}
         <button
-          onClick={() => dispatch({ type: 'CALL_RESERVES' })}
+          onClick={handleCallReserves}
           disabled={state.reservesBatchesLeft <= 0 || state.gameStatus !== 'playing'}
           className={`clay-btn py-1.5 sm:py-2 px-1 text-center transition-all ${
             hasAttack
@@ -139,7 +161,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
 
         {/* 2. פריסת כוחות (Deploy Troops) */}
         <button
-          onClick={() => dispatch({ type: 'DEPLOY_TROOPS' })}
+          onClick={handleDeployTroops}
           disabled={ungarrisonedCount === 0 || state.soldiersAtBorder === 0 || !canAffordDeploy || state.gameStatus !== 'playing'}
           className={`clay-btn py-1.5 sm:py-2 px-1 text-center transition-all ${
             ungarrisonedCount > 0 && state.soldiersAtBorder > 0 && canAffordDeploy
@@ -187,7 +209,7 @@ export const BottomActionDeck: React.FC<BottomActionDeckProps> = ({ state, dispa
 
         {/* 3. בניית יישוב (Build Settlement) */}
         <button
-          onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}
+          onClick={handleToggleBuild}
           disabled={state.gameStatus !== 'playing'}
           className={`clay-btn py-2 sm:py-2.5 px-1 text-center transition-all ${
             state.isBuildMode

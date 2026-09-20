@@ -20,6 +20,8 @@ export const INITIAL_STATE: GameState = {
   defenseScore: 100,
   landHp: 100, // National Resilience starts at 100%
   isIntroModalOpen: true, // Entrance tutorial modal opens on game start
+  isPaused: false,
+  infoPopover: null,
   isBuildMode: false,
   constructions: {},
   collectibleCoins: [],
@@ -199,6 +201,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isIntroModalOpen: false,
+      };
+    }
+
+    case 'TOGGLE_PAUSE': {
+      sounds.playClick();
+      return {
+        ...state,
+        isPaused: !state.isPaused,
+      };
+    }
+
+    case 'SHOW_INFO_POPOVER': {
+      sounds.playClick();
+      return {
+        ...state,
+        infoPopover: {
+          title: action.title,
+          text: action.text,
+        },
+      };
+    }
+
+    case 'CLEAR_INFO_POPOVER': {
+      return {
+        ...state,
+        infoPopover: null,
       };
     }
 

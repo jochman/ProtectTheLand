@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`  
-> **Last Synchronized:** 2026-09-20 15:52:23 UTC (Branch: `main`, Iteration #38)
+> **Last Synchronized:** 2026-09-20 16:04:07 UTC (Branch: `main`, Iteration #39)
 
 ---
 
@@ -265,6 +265,11 @@ export interface GameState {
   latestGrant: FinancialGrant | null;
   greenSideAttacks: GreenSideAttack[];
   lastGreenAttackTick: number;
+  landHp: number;             // 0..100% (National resilience / Homeland integrity)
+  interceptedToast: InterceptionToast | null;
+  isIntroModalOpen: boolean;  // Entrance instruction modal visibility
+  isPaused: boolean;          // Smart pause during modals or user manual pause
+  infoPopover: { title: string; text: string } | null; // Tap-to-explain stat popovers
 }
 ```
 
@@ -465,12 +470,33 @@ To deliver an authentic arcade/tactical mobile feel with **strictly zero vertica
 5. **Interactive Entrance Instruction Modal (`EntranceInstructionModal.tsx`):**
    - Automatically welcomes players on their first visit (persisted via `localStorage: 'oct7_seen_intro_guide'`).
    - Reopenable at any time during gameplay via the dedicated **`❓` (HelpCircle)** button in `HeaderBar`.
-   - Concisely explains:
+   - Concisely frames the satirical narrative mission:
      - **The Core Dilemma:** Zero-sum manpower tradeoff between West Bank outposts and sovereign border defense.
-     - **Step 1:** Building outposts (100₪).
-     - **Step 2:** Troop deployment cost (25₪/soldier) and border breach risk.
-     - **Step 3:** Homeland HP (`landHp`) continuous bleed from holes (-0.4 HP/s) and raid hits (-20% HP).
-     - **Step 4:** Victory conditions (evacuating down to ≤2 outposts with 100% border readiness) vs. Catastrophe collapse (0% HP or 7th mash of "יהוה צבאות").
+     - **National Goal:** Settle all hilltops across Samaria and Judea to awaken the supreme miracle of "יהוה צבאות" at 100%!
+     - **Step 1:** Constructing hill-top outposts (100₪).
+     - **Step 2:** Troop deployment cost (25₪/soldier) to protect outposts from clashes and fines, which pulls soldiers from the border.
+     - **Step 3:** Sovereign border breach risk & Homeland HP (`landHp`) continuous bleed (-0.4 HP/s per hole) and raid hits (-20% HP).
+     - **Step 4:** Charging "יהוה צבאות" to 100% vs. Risk of October 7 collapse (0% HP or button shattering upon 7 panic mashing taps).
+     - **Narrative Integrity:** The tutorial deliberately avoids revealing the rational evacuation victory condition upfront, allowing players to organically discover that prioritizing sovereign borders over messianic expansion is the true path to sustainable security.
+6. **Smart Auto-Pause & Manual Pause Engine:**
+   - **Smart Auto-Pause:** Game loop interval automatically pauses whenever overlay modals are opened (`NewsFeedModal`, `EntranceInstructionModal`, `SettlementInspectorModal`, `InfiltrationDefenseModal`), removing reading pressure on mobile devices.
+   - **Manual Pause Button:** Dedicated `Play` / `Pause` toggle button in `HeaderBar` (`TOGGLE_PAUSE`) with a floating amber banner (`המשחק מושהה - לחץ להמשך / Game Paused - tap to resume`).
+7. **Mobile Tactile Feedback Engine (`src/utils/haptics.ts`):**
+   - Web Vibration API (`navigator.vibrate`) integration for mobile devices:
+     - Light click tick (`haptics.light()`, 10ms) on buttons, troop deployments, and outposts.
+     - Cash & Tax double-pulse (`haptics.coin()`, `[15, 30, 15]ms`) when tapping city taxes or collecting coins.
+     - Infiltration warning pulse (`haptics.warning()`, `[30, 40, 30]ms`) on siren pings and panic mashing.
+     - Impact strike vibration (`haptics.impact()`, `[60, 50, 60]ms`) on border collapse.
+8. **Tap-to-Explain Stat Popovers (`TopStatusPill.tsx`):**
+   - Tapping any stat (Soldiers, Settlements, Budget, Land HP, Border Readiness) triggers a floating informational speech bubble (`SHOW_INFO_POPOVER`) with concise bilingual explanations.
+   - Auto-dismisses after 4.5 seconds or immediately upon tapping `✕` / popover body (`CLEAR_INFO_POPOVER`).
+   - Floats absolutely (`absolute top-full mt-1.5`) with 0px layout height to preserve zero-scroll mobile geometry.
+9. **3-Step Guided Onboarding Quests (`BottomActionDeck.tsx`):**
+   - Built directly into the Tactical Situation Advisor bar during early play:
+     - **Quest 1/3:** `🎯 משימה 1/3: הקם מאחז ראשון בגבעות (לחץ 'בניית יישוב')` (shown when `settlementsCount === 0`).
+     - **Quest 2/3:** `🎯 משימה 2/3: אבטח את המאחז (לחץ 'פריסת כוחות' - 25₪)` (shown when outposts are ungarrisoned).
+     - **Quest 3/3:** `🎯 משימה 3/3: הגבול נחשף! בלום חדירה (⚠️) או טען את 'יהוה צבאות'!` (shown when border breaches emerge).
+     - Emergency raid alerts (`🚨`) dynamically preempt all quests during active combat.
 
 ---
 
