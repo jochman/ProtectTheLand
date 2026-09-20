@@ -1,4 +1,4 @@
-import { GameState, GameAction, NewsItem } from '../types';
+import { GameState, GameAction, NewsItem, GreenSideAttack } from '../types';
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
@@ -64,6 +64,19 @@ export const INITIAL_STATE: GameState = {
   lastClashTick: 0,
   latestPenalty: null,
   lastPenaltyTick: 0,
+  greenSideAttacks: [],
+  lastGreenAttackTick: 0,
+};
+
+export const BORDER_TO_GREEN_CITY: Record<string, { cityId: string; nameHe: string; nameEn: string }> = {
+  'bdr-1': { cityId: 'isr-2', nameHe: 'חיפה והצפון', nameEn: 'Haifa & North' },
+  'bdr-2': { cityId: 'isr-4', nameHe: 'נתניה / השרון', nameEn: 'Netanya / Sharon' },
+  'bdr-3': { cityId: 'isr-6', nameHe: 'תל אביב', nameEn: 'Tel Aviv' },
+  'bdr-4': { cityId: 'isr-8', nameHe: 'השפלה / מודיעין', nameEn: 'Shfela / Modi\'in' },
+  'bdr-5': { cityId: 'isr-10', nameHe: 'אשדוד / אשקלון', nameEn: 'Ashdod / Ashkelon' },
+  'bdr-6': { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' },
+  'bdr-7': { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' },
+  'bdr-8': { cityId: 'isr-12', nameHe: 'באר שבע והנגב', nameEn: 'Beer Sheva & Negev' },
 };
 
 function withNews(state: GameState, item: NewsItem): { currentNews: NewsItem; newsHistory: NewsItem[]; lastNewsTick: number } {
@@ -383,6 +396,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           : `Reserve Exhaustion! Total economic paralysis — ₪0/s passive income!`;
       }
 
+      // Intercept any green side attacks whose breach checkpoint was just re-manned!
+      const sealedCheckpoints = new Set(breachedCheckpoints.slice(0, addedSoldiers - remainingToPlace));
+      const remainingGreenAttacks = (state.greenSideAttacks || []).filter(
+        atk => !sealedCheckpoints.has(atk.breachId)
+      );
+      const hadIntercepted = (state.greenSideAttacks || []).length > remainingGreenAttacks.length;
+
+      if (hadIntercepted) {
+        newsHeadline += state.locale === 'he'
+          ? ' כוחות המילואים בלמו ויירטו חוליות שחדרו לעורף!'
+          : ' Reserve forces intercepted hostile squads penetrating the home front!';
+      }
+
       return {
         ...state,
         soldiersTotal: newTotal,
@@ -392,6 +418,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         defenseScore: newDefenseScore,
         tiles: updatedTiles,
         activeBreaches,
+        greenSideAttacks: remainingGreenAttacks,
         lordOfHosts: {
           ...state.lordOfHosts,
           isPanicMashMode: newDefenseScore === 0,
@@ -401,7 +428,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           headline: newsHeadline,
           source: state.locale === 'he' ? 'אגף כוח אדם והאוצר' : 'Personnel & Treasury',
           category: 'military',
-          isUrgent: callsMade >= 2,
+          isUrgent: callsMade >= 2 || hadIntercepted,
           timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         }),
       };
@@ -493,6 +520,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           updatedTiles[tileId] = {
             ...updatedTiles[tileId],
             hasSettlement: true,
+            hp: 100,
+            maxHp: 100,
           };
           newSettlementsCount += 1;
           sounds.playBuild();
@@ -532,6 +561,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
+      // Heal / repair garrisoned settlements gradually
+      for (const tId of Object.keys(updatedTiles)) {
+        const t = updatedTiles[tId];
+        if (t.hasSettlement && t.garrisonCount > 0 && t.hp !== undefined && t.hp < 100) {
+          updatedTiles[tId] = {
+            ...t,
+            hp: Math.min(100, t.hp + 5),
+          };
+        }
+      }
+
       // 4. Spawn collectible coins on Israel cities
       const coins = [...state.collectibleCoins];
       const reservesMobilized = 3 - state.reservesBatchesLeft;
@@ -556,39 +596,110 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         });
       }
 
-      // 5. Infiltrating trucks
-      const trucks = [...state.infiltratingTrucks];
-      if (state.defenseScore < 30 && state.activeBreaches.length > 0) {
-        if (Math.random() > 0.6 && trucks.length < 5) {
-          const randomBreach = state.activeBreaches[Math.floor(Math.random() * state.activeBreaches.length)];
-          const breachTile = updatedTiles[randomBreach];
-          if (breachTile) {
-            trucks.push({
-              id: `truck-${Date.now()}`,
-              x: breachTile.x,
-              y: breachTile.y,
-              targetX: breachTile.x - 70,
-              targetY: breachTile.y + (Math.random() * 40 - 20),
-              progress: 0,
-            });
-          }
-        }
-      }
-
-      const updatedTrucks = trucks.map(t => ({
-        ...t,
-        progress: Math.min(1, t.progress + 0.1),
-      }));
-
-      const isPanic = state.defenseScore === 0 && state.activeBreaches.length >= 2;
-
-      // 6. Ambient Spicy News & Multi-part Story Arc Progress (paced naturally every 28 seconds)
+      const now = Date.now();
       let nextCurrentNews = state.currentNews;
       let nextNewsHistory = state.newsHistory || [];
       let nextStoryArcs = state.activeStoryArcs || {};
       let nextNewsTick = (state.lastNewsTick || 0) + 1;
 
-      if (nextNewsTick >= 28 && state.defenseScore > 20) {
+      // 5. Attacks on the Green Side of the map via defense line holes (Active Breaches)
+      let activeGreenAttacks = [...(state.greenSideAttacks || [])];
+      let nextGreenAttackTick = (state.lastGreenAttackTick || 0) + 1;
+      let newDefenseScore = state.defenseScore;
+
+      if (state.activeBreaches.length > 0) {
+        // Holes in the border fence allow hostile raids into the green side!
+        if (nextGreenAttackTick >= 20 && activeGreenAttacks.length < 1 && Math.random() < 0.45) {
+          const breachId = state.activeBreaches[Math.floor(Math.random() * state.activeBreaches.length)];
+          const breachTile = updatedTiles[breachId];
+          const targetInfo = BORDER_TO_GREEN_CITY[breachId] || { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' };
+          const targetCityTile = updatedTiles[targetInfo.cityId];
+
+          if (breachTile && targetCityTile) {
+            const attackEvent: GreenSideAttack = {
+              id: `green-attack-${now}-${Math.random().toString(36).slice(2, 6)}`,
+              breachId,
+              targetCityId: targetInfo.cityId,
+              targetCityName: state.locale === 'he' ? targetInfo.nameHe : targetInfo.nameEn,
+              startX: breachTile.x,
+              startY: breachTile.y,
+              targetX: targetCityTile.x,
+              targetY: targetCityTile.y,
+              progress: 0,
+              createdAt: now,
+              durationMs: 7000,
+            };
+            activeGreenAttacks.push(attackEvent);
+            nextGreenAttackTick = 0;
+            sounds.playSiren();
+
+            const breachNewsItem: NewsItem = {
+              id: `breach-raid-news-${now}`,
+              headline: state.locale === 'he'
+                ? `התרעת חדירה: חוליית מחבלים חמושה פרצה דרך מוצב בלתי מאויש לעבר ${targetInfo.nameHe}!`
+                : `Infiltration alert: Armed squad penetrated through unmanned post toward ${targetInfo.nameEn}!`,
+              source: state.locale === 'he' ? 'פיקוד העורף' : 'Home Front Command',
+              category: 'military',
+              isUrgent: true,
+              timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+            };
+            if (nextCurrentNews) {
+              nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
+            }
+            nextCurrentNews = breachNewsItem;
+          }
+        }
+      }
+
+      // Progress active green side attacks and trigger impact on reach
+      const survivingGreenAttacks: GreenSideAttack[] = [];
+      for (const atk of activeGreenAttacks) {
+        const nextProgress = atk.progress + 0.16; // ~6 seconds to cross
+        if (nextProgress >= 1) {
+          // RAID REACHED THE GREEN SIDE CITY!
+          sounds.playPanicMashThud();
+          sounds.playSiren();
+          newDefenseScore = Math.max(0, newDefenseScore - 6);
+          newBudget = Math.max(0, newBudget - 25);
+          updatedTiles[atk.targetCityId] = { ...updatedTiles[atk.targetCityId], hasAlert: true };
+
+          const impactNewsItem: NewsItem = {
+            id: `green-impact-${now}-${atk.id}`,
+            headline: state.locale === 'he'
+              ? `פגיעה בעורף: חוליה חדרה לפאתי ${atk.targetCityName} דרך פרצה בקו הגבול! (25₪- נזק)`
+              : `Home front breach: Squad attacked outskirts of ${atk.targetCityName} through border gap! (-25₪ damage)`,
+            source: state.locale === 'he' ? 'חדשות 12 / מבזק' : 'Breaking News',
+            category: 'military',
+            isUrgent: true,
+            timestamp: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          };
+          if (nextCurrentNews) {
+            nextNewsHistory = [nextCurrentNews, ...nextNewsHistory.filter(n => n.id !== nextCurrentNews?.id)].slice(0, 30);
+          }
+          nextCurrentNews = impactNewsItem;
+        } else {
+          survivingGreenAttacks.push({
+            ...atk,
+            progress: nextProgress,
+          });
+        }
+      }
+      activeGreenAttacks = survivingGreenAttacks;
+
+      // Infiltrating trucks mapped from activeGreenAttacks
+      const updatedTrucks = activeGreenAttacks.map(atk => ({
+        id: atk.id,
+        x: atk.startX,
+        y: atk.startY,
+        targetX: atk.targetX,
+        targetY: atk.targetY,
+        progress: atk.progress,
+      }));
+
+      const isPanic = newDefenseScore === 0 && state.activeBreaches.length >= 2;
+
+      // 6. Ambient Spicy News & Multi-part Story Arc Progress (paced naturally every 28 seconds)
+      if (nextNewsTick >= 28 && newDefenseScore > 20) {
         const { item, nextArcs } = getNextJuicyNews(state);
         nextStoryArcs = nextArcs;
         nextNewsTick = 0;
@@ -599,7 +710,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       // 7. Random West Bank Clashes (עימותים הדדיים) between Jewish settlements and Arabic cities
-      const now = Date.now();
       let activeClashes = (state.clashes || []).filter(c => now - c.createdAt < c.durationMs);
       let nextClashTick = (state.lastClashTick || 0) + 1;
 
@@ -676,13 +786,44 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             clashSource = state.locale === 'he' ? 'דובר צה״ל' : 'IDF Spokesperson';
             sounds.playClash();
           } else {
-            // UNGARRISONED OUTPOST: Severe tension, no military buffer!
+            // UNGARRISONED OUTPOST: Severe tension, no military buffer! Unprotected outpost takes HP damage!
             clashSource = state.locale === 'he' ? 'משטרת מחוז ש״י' : 'District Police';
             isUrgentClash = true;
             sounds.playSiren();
-            updatedTiles[settlement.id] = { ...settlement, hasAlert: true };
             if (newBudget >= 15) {
               newBudget = Math.max(0, newBudget - 15);
+            }
+
+            const currentHp = settlement.hp !== undefined ? settlement.hp : 100;
+            const newHp = Math.max(0, currentHp - 35);
+
+            if (newHp <= 0) {
+              // Settlement destroyed!
+              updatedTiles[settlement.id] = {
+                ...settlement,
+                hasSettlement: false,
+                hp: undefined,
+                maxHp: undefined,
+                settlementName: undefined,
+                garrisonCount: 0,
+                hasAlert: false,
+              };
+              newSettlementsCount = Math.max(0, newSettlementsCount - 1);
+              sounds.playPanicMashThud();
+
+              clashHeadline = state.locale === 'he'
+                ? `אסון במאחז: ${settlementName} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה!`
+                : `Outpost destroyed: ${settlementName} abandoned and burned after being left with no IDF troops!`;
+            } else {
+              updatedTiles[settlement.id] = {
+                ...settlement,
+                hp: newHp,
+                hasAlert: true,
+              };
+              const damageSuffix = state.locale === 'he'
+                ? ` (עמידות המאחז ירדה ל-${newHp}%)`
+                : ` (Outpost HP dropped to ${newHp}%)`;
+              clashHeadline += damageSuffix;
             }
           }
 
@@ -810,6 +951,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         incomeRate: effectiveIncome,
         settlementsCount: newSettlementsCount,
         constructions: updatedConstructions,
+        defenseScore: newDefenseScore,
         tiles: updatedTiles,
         sparks: newSparks,
         collectibleCoins: coins,
@@ -823,6 +965,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastClashTick: nextClashTick,
         latestPenalty,
         lastPenaltyTick: nextPenaltyTick,
+        greenSideAttacks: activeGreenAttacks,
+        lastGreenAttackTick: nextGreenAttackTick,
         lordOfHosts: {
           ...state.lordOfHosts,
           chargePercent: Math.round(newCharge),
@@ -832,6 +976,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           piousToast: toast,
           isPanicMashMode: isPanic,
         },
+      };
+    }
+
+    case 'CLEAR_GREEN_ATTACK': {
+      return {
+        ...state,
+        greenSideAttacks: (state.greenSideAttacks || []).filter(a => a.id !== action.id),
       };
     }
 

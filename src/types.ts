@@ -20,6 +20,8 @@ export interface HexTile {
   subLabel?: string;
   isBreached?: boolean;
   hasAlert?: boolean;
+  hp?: number; // Settlement health 0..100
+  maxHp?: number;
 }
 
 export interface NewsItem {
@@ -76,6 +78,20 @@ export interface FinancialPenalty {
   amount: number;
   reason: string;
   timestamp: number;
+}
+
+export interface GreenSideAttack {
+  id: string;
+  breachId: string;
+  targetCityId: string;
+  targetCityName: string;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  progress: number; // 0..1
+  createdAt: number;
+  durationMs: number;
 }
 
 export interface GameState {
@@ -145,6 +161,8 @@ export interface GameState {
   lastClashTick: number;
   latestPenalty: FinancialPenalty | null;
   lastPenaltyTick: number;
+  greenSideAttacks: GreenSideAttack[];
+  lastGreenAttackTick: number;
 }
 
 export type GameAction =
@@ -167,6 +185,7 @@ export type GameAction =
   | { type: 'CLEAR_MOVING_TROOP'; id: string }
   | { type: 'CLEAR_CLASH'; id: string }
   | { type: 'CLEAR_PENALTY' }
+  | { type: 'CLEAR_GREEN_ATTACK'; id: string }
   | { type: 'OPEN_NEWS_MODAL' }
   | { type: 'CLOSE_NEWS_MODAL' }
   | { type: 'CYCLE_NEXT_NEWS' }

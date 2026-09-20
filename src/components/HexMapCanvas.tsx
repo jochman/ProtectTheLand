@@ -276,19 +276,33 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 />
               )}
 
-              {/* Region or City Label */}
+              {/* Region or City Label & Green Side Attack Alert Indicator */}
               {tile.label && !tile.isLocalCity && !isCandidateForBuild && (
-                <text
-                  x={tile.x}
-                  y={tile.y + 4}
-                  textAnchor="middle"
-                  fill="#ffffff"
-                  fontSize="9.5"
-                  fontWeight="bold"
-                  className="pointer-events-none drop-shadow-md font-heebo"
-                >
-                  {tile.label}
-                </text>
+                <g>
+                  {/* Alert ring when attacked or under threat */}
+                  {(tile.hasAlert || (state.greenSideAttacks || []).some(a => a.targetCityId === tile.id)) && (
+                    <g transform={`translate(${tile.x}, ${tile.y})`}>
+                      <circle cx="0" cy="0" r="24" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" className="animate-pulse" />
+                      <g transform="translate(0, -18)">
+                        <rect x="-26" y="-5.5" width="52" height="11" rx="3" fill="#dc2626" stroke="#fca5a5" strokeWidth="0.8" />
+                        <text x="0" y="2.5" textAnchor="middle" fill="#fff" fontSize="6.5" fontWeight="900" className="font-rubik">
+                          🚨 סכנת חדירה!
+                        </text>
+                      </g>
+                    </g>
+                  )}
+                  <text
+                    x={tile.x}
+                    y={tile.y + 4}
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    fontSize="9.5"
+                    fontWeight="bold"
+                    className="pointer-events-none drop-shadow-md font-heebo"
+                  >
+                    {tile.label}
+                  </text>
+                </g>
               )}
             </g>
           );
@@ -440,6 +454,25 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 <polygon points="0,9 11,0 22,9" fill="url(#roofGrad)" stroke="#9a3412" strokeWidth="1" />
               </g>
 
+              {/* Unprotected Settlement HP Bar */}
+              {!isGuarded && (
+                <g transform="translate(0, -18)" filter="url(#dropShadow)">
+                  <rect x="-18" y="-3.5" width="36" height="7" rx="3.5" fill="rgba(15, 23, 42, 0.9)" stroke="#475569" strokeWidth="0.8" />
+                  <rect
+                    x="-17"
+                    y="-2.5"
+                    width={Math.max(2, (((s.hp ?? 100) / 100) * 34))}
+                    height="5"
+                    rx="2.5"
+                    fill={(s.hp ?? 100) > 60 ? '#22c55e' : (s.hp ?? 100) > 30 ? '#f59e0b' : '#ef4444'}
+                    className={(s.hp ?? 100) <= 30 ? 'animate-pulse' : ''}
+                  />
+                  <text x="0" y="1.8" textAnchor="middle" fill="#ffffff" fontSize="5.5" fontWeight="900" className="font-rubik select-none">
+                    {s.hp ?? 100}% HP
+                  </text>
+                </g>
+              )}
+
               {/* Garrisoned Guard or Warning */}
               {isGuarded ? (
                 <g transform="translate(12, 6)">
@@ -509,23 +542,46 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           </g>
         ))}
 
-        {/* 7. INFILTRATING ENEMY TRUCKS */}
-        {state.infiltratingTrucks.map(truck => {
-          const currentX = truck.x + (truck.targetX - truck.x) * truck.progress;
-          const currentY = truck.y + (truck.targetY - truck.y) * truck.progress;
+        {/* 7. GREEN SIDE ATTACKS VIA BORDER DEFENSE LINE HOLES */}
+        {(state.greenSideAttacks || []).map(attack => {
+          const currentX = attack.startX + (attack.targetX - attack.startX) * attack.progress;
+          const currentY = attack.startY + (attack.targetY - attack.startY) * attack.progress;
 
           return (
-            <g key={truck.id} transform={`translate(${currentX}, ${currentY})`} filter="url(#dropShadow)">
-              <circle cx="10" cy="3" r="5" fill="rgba(217, 119, 6, 0.4)" />
-              <circle cx="18" cy="4" r="3" fill="rgba(217, 119, 6, 0.25)" />
-              <rect x="-11" y="-5" width="22" height="10" fill="#f8fafc" rx="2" stroke="#334155" strokeWidth="1" />
-              <rect x="-10" y="-3" width="7" height="6" fill="#94a3b8" rx="1" />
-              <circle cx="4" cy="-8" r="3" fill="#dc2626" />
-              <rect x="3" y="-5" width="2.5" height="5" fill="#991b1b" />
-              <line x1="8" y1="-12" x2="8" y2="-5" stroke="#475569" strokeWidth="1" />
-              <polygon points="8,-12 14,-10 8,-8" fill="#ef4444" />
-              <circle cx="-6" cy="6" r="2.5" fill="#0f172a" />
-              <circle cx="6" cy="6" r="2.5" fill="#0f172a" />
+            <g key={attack.id}>
+              {/* Red threat vector connecting border breach hole to green side city */}
+              <line
+                x1={attack.startX}
+                y1={attack.startY}
+                x2={attack.targetX}
+                y2={attack.targetY}
+                stroke="#dc2626"
+                strokeWidth="2.5"
+                strokeDasharray="4 3"
+                opacity="0.75"
+              />
+
+              {/* Moving Hostile Raider Vehicle with Flag and Dust Trail */}
+              <g transform={`translate(${currentX}, ${currentY})`} filter="url(#dropShadow)">
+                <circle cx="10" cy="3" r="5" fill="rgba(217, 119, 6, 0.4)" />
+                <circle cx="18" cy="4" r="3" fill="rgba(217, 119, 6, 0.25)" />
+                <rect x="-11" y="-5" width="22" height="10" fill="#1e293b" rx="2" stroke="#dc2626" strokeWidth="1" />
+                <rect x="-10" y="-3" width="7" height="6" fill="#64748b" rx="1" />
+                <circle cx="4" cy="-8" r="3" fill="#dc2626" />
+                <rect x="3" y="-5" width="2.5" height="5" fill="#991b1b" />
+                <line x1="8" y1="-12" x2="8" y2="-5" stroke="#475569" strokeWidth="1" />
+                <polygon points="8,-12 14,-10 8,-8" fill="#ef4444" />
+                <circle cx="-6" cy="6" r="2.5" fill="#020617" />
+                <circle cx="6" cy="6" r="2.5" fill="#020617" />
+
+                {/* Target City Label Badge */}
+                <g transform="translate(0, -16)">
+                  <rect x="-26" y="-6" width="52" height="12" rx="3" fill="rgba(153, 27, 27, 0.95)" stroke="#fca5a5" strokeWidth="0.8" />
+                  <text x="0" y="2.5" textAnchor="middle" fill="#ffffff" fontSize="6.5" fontWeight="900" className="font-rubik select-none">
+                    🎯 חדירה: {attack.targetCityName}
+                  </text>
+                </g>
+              </g>
             </g>
           );
         })}

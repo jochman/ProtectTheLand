@@ -64,6 +64,29 @@ export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> =
           )}
         </div>
 
+        {/* Unprotected Settlement Durability / HP Bar */}
+        {!isGuarded && (
+          <div className="p-3 rounded-2xl bg-white border border-amber-200 shadow-sm flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs font-bold">
+              <span className="text-slate-700">עמידות המאחז (HP):</span>
+              <span className={(tile.hp ?? 100) <= 30 ? 'text-red-600 font-black animate-pulse' : 'text-emerald-700'}>
+                {tile.hp ?? 100}%
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  (tile.hp ?? 100) > 60 ? 'bg-emerald-500' : (tile.hp ?? 100) > 30 ? 'bg-amber-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${tile.hp ?? 100}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-slate-500">
+              בהיעדר חיילי צה״ל, המאחז סופג נזק בכל עימות ועלול להיחרב!
+            </p>
+          </div>
+        )}
+
         {/* Creative / Rational Strategic Action: Recall or Evacuate */}
         <div className="flex flex-col gap-2">
           {isGuarded && (
