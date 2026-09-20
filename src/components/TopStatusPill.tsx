@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Coins } from 'lucide-react';
 import { GameState } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
@@ -22,41 +22,56 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
 
   return (
     <div className="flex flex-col items-center gap-1.5 px-4 z-20">
-      {/* Upper Pill: Soldiers and Settlements */}
-      <div className="status-pill flex items-center justify-around w-56 px-4 py-1.5 rounded-full shadow-lg">
+      {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
+      <div className="status-pill flex items-center justify-around w-full max-w-[340px] px-3 py-1.5 rounded-full shadow-lg border border-amber-100/60">
+        
         {/* Soldiers Counter */}
-        <div className="flex items-center gap-2" title={strings.stats.soldiers}>
-          {/* Soldier Figurine Token */}
-          <div className="w-6 h-6 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 text-emerald-800 fill-current drop-shadow-sm">
+        <div className="flex items-center gap-1.5" title={strings.stats.soldiers}>
+          <div className="w-5 h-5 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-800 fill-current drop-shadow-sm">
               <circle cx="12" cy="7" r="4" />
               <path d="M5.5 21v-3.5c0-1.5 1-2.5 2.5-3h8c1.5.5 2.5 1.5 2.5 3V21H5.5z" />
             </svg>
           </div>
-          <span className="text-2xl font-black text-slate-800 tracking-tight font-rubik">
+          <span className="text-xl font-black text-slate-800 tracking-tight font-rubik">
             {state.soldiersAtBorder + state.soldiersAtSettlements}
           </span>
         </div>
 
-        <div className="w-px h-6 bg-slate-200 mx-1" />
+        <div className="w-px h-5 bg-slate-200" />
 
         {/* Settlements Counter */}
-        <div className="flex items-center gap-2" title={strings.stats.settlements}>
-          {/* 3D Clay House Token */}
-          <div className="w-6 h-6 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-5 h-5 text-amber-700 fill-current drop-shadow-sm">
+        <div className="flex items-center gap-1.5" title={strings.stats.settlements}>
+          <div className="w-5 h-5 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-amber-700 fill-current drop-shadow-sm">
               <polygon points="12,3 2,11 5,11 5,21 19,21 19,11 22,11" />
               <rect x="10" y="14" width="4" height="7" fill="#4a2810" />
             </svg>
           </div>
-          <span className="text-2xl font-black text-slate-800 tracking-tight font-rubik">
+          <span className="text-xl font-black text-slate-800 tracking-tight font-rubik">
             {state.settlementsCount}
           </span>
         </div>
+
+        <div className="w-px h-5 bg-slate-200" />
+
+        {/* Coalition Budget ₪ Counter */}
+        <div className="flex items-center gap-1.5" title={strings.stats.budget}>
+          <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-100 border border-amber-300">
+            <Coins className="w-3.5 h-3.5 text-amber-600" />
+          </div>
+          <div className="flex items-baseline">
+            <span className="text-xl font-black text-amber-700 tracking-tight font-rubik">
+              {state.budget}
+            </span>
+            <span className="text-xs font-bold text-amber-800 ml-0.5">₪</span>
+          </div>
+        </div>
+
       </div>
 
       {/* Lower Pill: Defense Bar */}
-      <div className="status-pill flex items-center justify-between w-64 px-3 py-1.5 rounded-full shadow-md gap-2">
+      <div className="status-pill flex items-center justify-between w-64 px-3 py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60">
         {/* Progress Fill Bar */}
         <div className="flex-1 bg-amber-100/80 rounded-full h-4 p-0.5 border border-amber-300/60 overflow-hidden shadow-inner relative">
           <div

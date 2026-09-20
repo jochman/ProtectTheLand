@@ -9,7 +9,7 @@ interface HexMapCanvasProps {
 export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) => {
   const tiles = Object.values(state.tiles);
 
-  // Helper to generate hexagonal SVG path centered at (cx, cy) with radius r
+  // Helper to generate hexagonal SVG points centered at (cx, cy) with radius r
   const getHexPoints = (cx: number, cy: number, r: number = 38) => {
     const points: string[] = [];
     for (let i = 0; i < 6; i++) {
@@ -25,36 +25,65 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
     <div className="relative flex-1 w-full overflow-hidden flex items-center justify-center my-1 select-none">
       <svg
         viewBox="0 0 430 570"
-        className="w-full h-full max-h-[570px] drop-shadow-md"
+        className="w-full h-full max-h-[570px] drop-shadow-xl"
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Subtle gradient for Israel green terrain */}
-          <linearGradient id="israelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a3d97f" />
-            <stop offset="100%" stopColor="#8ac667" />
+          {/* Enhanced Gradients for authentic 3D isometric look */}
+          <linearGradient id="israelTerrain" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#a7de7e" />
+            <stop offset="60%" stopColor="#93cc6b" />
+            <stop offset="100%" stopColor="#7cb354" />
           </linearGradient>
 
-          {/* Gradient for West Bank ochre terrain */}
-          <linearGradient id="westBankGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f7dc8d" />
-            <stop offset="100%" stopColor="#eec366" />
+          <linearGradient id="westBankTerrain" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fae08f" />
+            <stop offset="60%" stopColor="#ecc062" />
+            <stop offset="100%" stopColor="#dba743" />
           </linearGradient>
 
-          {/* Sea gradient */}
-          <linearGradient id="seaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#68b4ea" />
-            <stop offset="100%" stopColor="#4395cf" />
+          <linearGradient id="buildCandidate" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fff3b0" />
+            <stop offset="100%" stopColor="#f59e0b" />
           </linearGradient>
 
-          {/* Dead Sea */}
-          <linearGradient id="deadSeaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5396cc" />
-            <stop offset="100%" stopColor="#3b7cb0" />
+          <linearGradient id="seaWater" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#71bfee" />
+            <stop offset="70%" stopColor="#4da3db" />
+            <stop offset="100%" stopColor="#317eb3" />
           </linearGradient>
 
-          {/* Glowing pulse filter for breached borders */}
-          <filter id="alertGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <linearGradient id="deadSea" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#5ea0d4" />
+            <stop offset="100%" stopColor="#356d98" />
+          </linearGradient>
+
+          {/* Roof gradient for 3D houses */}
+          <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f97316" />
+            <stop offset="100%" stopColor="#c2410c" />
+          </linearGradient>
+
+          {/* House wall gradient */}
+          <linearGradient id="wallGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#fef3c7" />
+            <stop offset="100%" stopColor="#fae8b0" />
+          </linearGradient>
+
+          {/* Gold Coin Gradient */}
+          <radialGradient id="coinGrad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#fff7a1" />
+            <stop offset="45%" stopColor="#ffd700" />
+            <stop offset="100%" stopColor="#cc9900" />
+          </radialGradient>
+
+          {/* Shadow Filter */}
+          <filter id="dropShadow" x="-20%" y="-20%" width="150%" height="150%">
+            <feDropShadow dx="1" dy="3" stdDeviation="2" floodColor="#000000" floodOpacity="0.25" />
+          </filter>
+
+          {/* Alert Glow */}
+          <filter id="redAlertGlow" x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
@@ -62,60 +91,106 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
         {/* 1. RENDER BASE HEX TILES */}
         {tiles.map((tile: HexTile) => {
-          let fill = 'url(#westBankGrad)';
-          let stroke = '#dfb55c';
+          let fill = 'url(#westBankTerrain)';
+          let stroke = '#cfa03c';
 
-          if (tile.terrain === 'israel') {
-            fill = 'url(#israelGrad)';
-            stroke = '#72aa50';
+          const isCandidateForBuild =
+            state.isBuildMode &&
+            tile.terrain === 'westbank' &&
+            !tile.hasSettlement &&
+            !state.constructions[tile.id];
+
+          if (isCandidateForBuild) {
+            fill = 'url(#buildCandidate)';
+            stroke = '#b45309';
+          } else if (tile.terrain === 'israel') {
+            fill = 'url(#israelTerrain)';
+            stroke = '#6b9e45';
           } else if (tile.terrain === 'sea') {
-            fill = 'url(#seaGrad)';
-            stroke = '#3c81b5';
+            fill = 'url(#seaWater)';
+            stroke = '#2f74a8';
           } else if (tile.label === 'ים המלח') {
-            fill = 'url(#deadSeaGrad)';
-            stroke = '#346d9c';
+            fill = 'url(#deadSea)';
+            stroke = '#2b5f87';
           } else if (tile.terrain === 'border') {
-            fill = tile.garrisonCount > 0 ? '#b8dc92' : '#eecba1';
-            stroke = '#d89b65';
+            fill = tile.garrisonCount > 0 ? '#afd985' : '#ebd1b2';
+            stroke = '#ba7b44';
           }
-
-          const isClickable = tile.hasSettlement;
 
           return (
             <g
               key={tile.id}
               onClick={() => {
-                if (isClickable) {
-                  dispatch({ type: 'SELECT_TILE', tileId: tile.id });
+                if (isCandidateForBuild) {
+                  dispatch({ type: 'SELECT_TILE_TO_BUILD', tileId: tile.id });
                 }
               }}
-              className={isClickable ? 'cursor-pointer hover:opacity-90' : ''}
+              className={isCandidateForBuild ? 'cursor-pointer animate-pulse' : ''}
             >
+              {/* Tile Base Shadow for 3D Bevel effect */}
+              <polygon
+                points={getHexPoints(tile.x, tile.y + 3, 38)}
+                fill="rgba(0,0,0,0.12)"
+              />
+
+              {/* Top Hex Polygon */}
               <polygon
                 points={getHexPoints(tile.x, tile.y, 38)}
                 fill={fill}
                 stroke={stroke}
-                strokeWidth="2"
+                strokeWidth={isCandidateForBuild ? 3.5 : 2}
+                strokeDasharray={isCandidateForBuild ? '4,3' : 'none'}
                 strokeLinejoin="round"
-                className="transition-colors duration-200"
+                className="transition-colors duration-300"
               />
 
-              {/* Decorative terrain touches (trees in Israel, rocks in West Bank) */}
-              {tile.terrain === 'israel' && !tile.label && (
-                <g opacity="0.3" transform={`translate(${tile.x - 6}, ${tile.y - 12})`}>
-                  <circle cx="6" cy="4" r="3" fill="#2d5e1e" />
-                  <circle cx="10" cy="8" r="3.5" fill="#387426" />
-                </g>
-              )}
-              {tile.terrain === 'westbank' && !tile.hasSettlement && (
-                <g opacity="0.3" transform={`translate(${tile.x - 8}, ${tile.y - 6})`}>
-                  <rect x="2" y="2" width="4" height="3" rx="1" fill="#8f6735" />
-                  <rect x="8" y="4" width="5" height="4" rx="1.5" fill="#a4773d" />
+              {/* Build Candidate Indicator (+100 ₪) */}
+              {isCandidateForBuild && (
+                <g transform={`translate(${tile.x}, ${tile.y})`}>
+                  <circle cx="0" cy="0" r="15" fill="#f59e0b" stroke="#fff" strokeWidth="1.5" />
+                  <text x="0" y="4" textAnchor="middle" fill="#fff" fontSize="12" fontWeight="900">
+                    +
+                  </text>
+                  <text x="0" y="24" textAnchor="middle" fill="#78350f" fontSize="8" fontWeight="bold">
+                    100 ₪
+                  </text>
                 </g>
               )}
 
-              {/* Region or Town label */}
-              {tile.label && (
+              {/* Organic 3D Trees scattered in Israel */}
+              {tile.terrain === 'israel' && !tile.label && !isCandidateForBuild && (
+                <g opacity="0.45" transform={`translate(${tile.x - 8}, ${tile.y - 12})`}>
+                  {/* Tree 1 */}
+                  <circle cx="4" cy="5" r="4.5" fill="#2d6a2d" />
+                  <circle cx="4" cy="3.5" r="3" fill="#4ade80" />
+                  {/* Tree 2 */}
+                  <circle cx="12" cy="11" r="5" fill="#1b4d1b" />
+                  <circle cx="12" cy="9.5" r="3.5" fill="#34d399" />
+                </g>
+              )}
+
+              {/* Organic Rocks & Bushes in West Bank */}
+              {tile.terrain === 'westbank' && !tile.hasSettlement && !state.constructions[tile.id] && !isCandidateForBuild && (
+                <g opacity="0.4" transform={`translate(${tile.x - 10}, ${tile.y - 8})`}>
+                  <ellipse cx="6" cy="6" rx="5" ry="3" fill="#a17435" />
+                  <ellipse cx="14" cy="10" rx="6" ry="4" fill="#8c5e23" />
+                  <circle cx="10" cy="4" r="2.5" fill="#65a30d" />
+                </g>
+              )}
+
+              {/* Sea Waves in Mediterranean */}
+              {tile.terrain === 'sea' && (
+                <path
+                  d={`M ${tile.x - 15} ${tile.y - 4} Q ${tile.x} ${tile.y - 10} ${tile.x + 15} ${tile.y - 4} M ${tile.x - 12} ${tile.y + 8} Q ${tile.x} ${tile.y + 3} ${tile.x + 12} ${tile.y + 8}`}
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              )}
+
+              {/* Region or City Label */}
+              {tile.label && !isCandidateForBuild && (
                 <text
                   x={tile.x}
                   y={tile.y + 4}
@@ -123,7 +198,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                   fill="#ffffff"
                   fontSize="10"
                   fontWeight="bold"
-                  className="pointer-events-none drop-shadow-sm font-heebo"
+                  className="pointer-events-none drop-shadow-md font-heebo"
                 >
                   {tile.label}
                 </text>
@@ -132,44 +207,50 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           );
         })}
 
-        {/* 2. RENDER THE UNDULATING GREEN LINE / BORDER BARRIER */}
+        {/* 2. UNDULATING GREEN LINE / BORDER BARRIER WITH DEPTH */}
+        <path
+          d="M 195 40 Q 185 100 185 135 T 175 210 T 165 285 T 160 360 T 160 435 Q 140 460 120 485 L 180 490"
+          fill="none"
+          stroke="rgba(0,0,0,0.2)"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
         <path
           d="M 195 40 Q 185 100 185 135 T 175 210 T 165 285 T 160 360 T 160 435 Q 140 460 120 485 L 180 490"
           fill="none"
           stroke={state.defenseScore < 30 ? '#ef4444' : '#e04238'}
           strokeWidth="4"
-          strokeDasharray={state.defenseScore < 50 ? '6,3' : 'none'}
+          strokeDasharray={state.defenseScore < 50 ? '7,4' : 'none'}
           className={state.defenseScore < 30 ? 'animate-pulse' : ''}
+          strokeLinecap="round"
         />
 
-        {/* 3. RENDER BORDER CHECKPOINT GARRISONS & BREACH ALERTS */}
+        {/* 3. BORDER CHECKPOINTS & WATCHTOWERS */}
         {tiles.filter(t => t.isBorderCheckpoint).map(cp => {
           const isManned = cp.garrisonCount > 0;
           return (
-            <g key={`checkpoint-${cp.id}`} transform={`translate(${cp.x}, ${cp.y})`}>
+            <g key={`cp-${cp.id}`} transform={`translate(${cp.x}, ${cp.y})`}>
               {isManned ? (
-                // Manned soldier figure
-                <g>
-                  <circle cx="0" cy="0" r="13" fill="rgba(255,255,255,0.7)" stroke="#22c55e" strokeWidth="2" />
-                  {/* Miniature Green Soldier Figurine */}
-                  <circle cx="0" cy="-4" r="3.5" fill="#1b4d1b" />
-                  <path d="M -3 0 L 3 0 L 4 7 L -4 7 Z" fill="#2d6a2d" />
-                  <rect x="-2" y="7" width="1.5" height="4" fill="#1b4d1b" />
-                  <rect x="0.5" y="7" width="1.5" height="4" fill="#1b4d1b" />
+                // 3D Plastic Green Army Figurine standing on border pedestal
+                <g filter="url(#dropShadow)">
+                  {/* Glowing neon green base halo */}
+                  <ellipse cx="0" cy="6" rx="14" ry="7" fill="rgba(34,197,94,0.3)" stroke="#22c55e" strokeWidth="1.5" />
+                  {/* Soldier figurine base */}
+                  <ellipse cx="0" cy="5" rx="9" ry="4.5" fill="#14532d" />
+                  {/* Legs */}
+                  <rect x="-3" y="-1" width="2.5" height="6" fill="#166534" rx="1" />
+                  <rect x="0.5" y="-1" width="2.5" height="6" fill="#166534" rx="1" />
+                  {/* Torso */}
+                  <rect x="-4.5" y="-9" width="9" height="9" fill="#15803d" rx="2" />
+                  {/* Helmet */}
+                  <ellipse cx="0" cy="-12" rx="4.5" ry="3.5" fill="#14532d" />
+                  <ellipse cx="0" cy="-11" rx="5" ry="1.5" fill="#166534" />
                 </g>
               ) : (
-                // UNMANNED / BREACHED CHECKPOINT ALERT
-                <g filter="url(#alertGlow)" className="animate-pulse">
-                  <circle cx="0" cy="0" r="14" fill="#ef4444" stroke="#ffffff" strokeWidth="2.5" />
-                  <text
-                    x="0"
-                    y="5"
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="14"
-                    fontWeight="900"
-                    className="font-rubik"
-                  >
+                // Breach Emergency Klaxon
+                <g filter="url(#redAlertGlow)" className="animate-bounce">
+                  <circle cx="0" cy="0" r="15" fill="#ef4444" stroke="#ffffff" strokeWidth="2.5" />
+                  <text x="0" y="5.5" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900" className="font-rubik">
                     !
                   </text>
                 </g>
@@ -178,65 +259,106 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           );
         })}
 
-        {/* 4. RENDER SETTLEMENTS IN WEST BANK */}
+        {/* 4. UNDER CONSTRUCTION SITES (SCAFFOLDING & CRANE) */}
+        {Object.entries(state.constructions).map(([tileId, c]) => {
+          const t = state.tiles[tileId];
+          if (!t) return null;
+          return (
+            <g key={`const-${tileId}`} transform={`translate(${t.x}, ${t.y})`} filter="url(#dropShadow)">
+              {/* Construction Ring */}
+              <circle cx="0" cy="0" r="24" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4,4" className="animate-spin" />
+              {/* Scaffolding icon */}
+              <rect x="-10" y="-8" width="20" height="16" fill="none" stroke="#78350f" strokeWidth="1.5" />
+              <line x1="-10" y1="-8" x2="10" y2="8" stroke="#78350f" strokeWidth="1" />
+              <line x1="-10" y1="8" x2="10" y2="-8" stroke="#78350f" strokeWidth="1" />
+              {/* Progress text */}
+              <rect x="-18" y="14" width="36" height="11" rx="3" fill="#1e293b" />
+              <text x="0" y="22" textAnchor="middle" fill="#fef08a" fontSize="7" fontWeight="bold">
+                {c.progress}% בבנייה
+              </text>
+            </g>
+          );
+        })}
+
+        {/* 5. BUILT SETTLEMENTS (ROBUST CLICK TARGET + 3D ISOMETRIC HOUSE) */}
         {tiles.filter(t => t.hasSettlement).map(s => {
           const isGuarded = s.garrisonCount > 0;
           return (
-            <g key={`settlement-${s.id}`} transform={`translate(${s.x}, ${s.y})`} className="cursor-pointer">
+            <g
+              key={`settlement-group-${s.id}`}
+              transform={`translate(${s.x}, ${s.y})`}
+              className="cursor-pointer group"
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: 'SELECT_TILE', tileId: s.id });
+              }}
+            >
+              {/* Generous Transparent Hit-Area Circle (ensures clicks never misfire!) */}
+              <circle cx="0" cy="0" r="32" fill="transparent" pointerEvents="all" />
+
               {/* Red Dotted Security Perimeter */}
               <circle
                 cx="0"
                 cy="0"
-                r="22"
+                r="24"
                 fill="rgba(239, 68, 68, 0.08)"
                 stroke="#dc2626"
                 strokeWidth="2"
                 strokeDasharray="3,3"
+                className="group-hover:stroke-width-3 transition-all"
               />
 
-              {/* 3D Clay Settlement House Model */}
-              <g transform="translate(-10, -10)">
-                {/* House Base */}
-                <rect x="2" y="8" width="16" height="12" fill="#f5ede0" rx="1.5" stroke="#d5c3aa" strokeWidth="1" />
-                {/* Slanted Roof */}
-                <polygon points="1,8 10,0 19,8" fill="#d97706" stroke="#b45309" strokeWidth="1" />
-                {/* Door */}
-                <rect x="7" y="13" width="5" height="7" fill="#78350f" rx="0.5" />
+              {/* 3D Isometric Mediterranean House Model */}
+              <g filter="url(#dropShadow)" transform="translate(-11, -12)">
+                {/* Cast shadow under house */}
+                <ellipse cx="11" cy="20" rx="12" ry="5" fill="rgba(0,0,0,0.22)" />
+                {/* House Base Walls */}
+                <rect x="2" y="9" width="18" height="11" fill="url(#wallGrad)" rx="1.5" stroke="#d5c3aa" strokeWidth="1" />
+                {/* Front Door */}
+                <rect x="8" y="13" width="5" height="7" fill="#78350f" rx="0.5" />
+                {/* Window */}
+                <rect x="3.5" y="11.5" width="3" height="3" fill="#60a5fa" stroke="#3b82f6" strokeWidth="0.5" />
+                {/* Chimney */}
+                <rect x="14" y="2" width="2.5" height="5" fill="#991b1b" />
+                {/* Terracotta Pitched Roof */}
+                <polygon points="0,9 11,0 22,9" fill="url(#roofGrad)" stroke="#9a3412" strokeWidth="1" />
               </g>
 
-              {/* Guarding Soldier if present */}
+              {/* Garrisoned Guard or Warning */}
               {isGuarded ? (
-                <g transform="translate(10, 6)">
-                  <circle cx="0" cy="0" r="8" fill="#ffffff" stroke="#16a34a" strokeWidth="1.5" />
-                  <circle cx="0" cy="-2.5" r="2.5" fill="#1b4d1b" />
-                  <path d="M -2 0.5 L 2 0.5 L 2.5 5 L -2.5 5 Z" fill="#2d6a2d" />
+                <g transform="translate(12, 6)">
+                  <circle cx="0" cy="0" r="9" fill="#ffffff" stroke="#16a34a" strokeWidth="1.5" />
+                  <circle cx="0" cy="-2.5" r="2.5" fill="#14532d" />
+                  <path d="M -2.5 0.5 L 2.5 0.5 L 3 5.5 L -3 5.5 Z" fill="#15803d" />
                 </g>
               ) : (
-                <g transform="translate(10, 6)" className="animate-bounce">
-                  <circle cx="0" cy="0" r="7" fill="#ef4444" />
-                  <text x="0" y="3" textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold">!</text>
+                <g transform="translate(12, 6)" className="animate-bounce">
+                  <circle cx="0" cy="0" r="8" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
+                  <text x="0" y="3" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="bold">!</text>
                 </g>
               )}
 
-              {/* Settlement Name Tag */}
+              {/* Settlement Name Tag (Crisp & Clickable) */}
               {s.settlementName && (
                 <g transform="translate(0, 24)">
                   <rect
-                    x="-24"
-                    y="-6"
-                    width="48"
-                    height="12"
-                    rx="3"
-                    fill="rgba(0,0,0,0.65)"
+                    x="-26"
+                    y="-7"
+                    width="52"
+                    height="14"
+                    rx="4"
+                    fill="rgba(24, 24, 27, 0.85)"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth="0.8"
                   />
                   <text
                     x="0"
                     y="3"
                     textAnchor="middle"
                     fill="#ffffff"
-                    fontSize="7"
+                    fontSize="7.5"
                     fontWeight="bold"
-                    className="font-heebo"
+                    className="font-heebo pointer-events-none"
                   >
                     {s.settlementName}
                   </text>
@@ -246,37 +368,65 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           );
         })}
 
-        {/* 5. RENDER INFILTRATING ENEMY TRUCKS (DURING BREACHES) */}
+        {/* 6. COLLECTIBLE COINS FLOATING OVER ISRAEL CITIES */}
+        {state.collectibleCoins.map(coin => (
+          <g
+            key={coin.id}
+            transform={`translate(${coin.x}, ${coin.y})`}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch({ type: 'COLLECT_COIN', id: coin.id });
+            }}
+            className="cursor-pointer animate-bounce"
+          >
+            {/* Transparent Hit Area */}
+            <circle cx="0" cy="0" r="20" fill="transparent" />
+            {/* 3D Gold Shekel Coin */}
+            <circle cx="0" cy="0" r="11" fill="url(#coinGrad)" stroke="#a16207" strokeWidth="1.5" filter="url(#dropShadow)" />
+            <circle cx="0" cy="0" r="8.5" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.6" />
+            <text x="0" y="4" textAnchor="middle" fill="#713f12" fontSize="9" fontWeight="900" className="font-rubik">
+              ₪
+            </text>
+            <text x="0" y="-14" textAnchor="middle" fill="#facc15" fontSize="8" fontWeight="bold" className="drop-shadow-sm font-heebo">
+              +25
+            </text>
+          </g>
+        ))}
+
+        {/* 7. INFILTRATING ENEMY TRUCKS */}
         {state.infiltratingTrucks.map(truck => {
           const currentX = truck.x + (truck.targetX - truck.x) * truck.progress;
           const currentY = truck.y + (truck.targetY - truck.y) * truck.progress;
 
           return (
-            <g key={truck.id} transform={`translate(${currentX}, ${currentY})`} className="animate-pulse">
-              {/* Dust / exhaust effect */}
-              <circle cx="8" cy="2" r="4" fill="rgba(200, 160, 100, 0.5)" />
-              {/* White Pickup Truck Model */}
-              <rect x="-9" y="-4" width="18" height="9" fill="#f8fafc" rx="2" stroke="#475569" strokeWidth="1" />
-              <rect x="-9" y="-2" width="6" height="5" fill="#94a3b8" />
-              {/* Armed Attacker Figure on truck bed */}
-              <circle cx="3" cy="-7" r="2.5" fill="#dc2626" />
-              <rect x="2" y="-4.5" width="2" height="4" fill="#991b1b" />
-              {/* Wheels */}
-              <circle cx="-5" cy="5" r="2" fill="#0f172a" />
-              <circle cx="5" cy="5" r="2" fill="#0f172a" />
+            <g key={truck.id} transform={`translate(${currentX}, ${currentY})`} filter="url(#dropShadow)">
+              {/* Dust Trail */}
+              <circle cx="10" cy="3" r="5" fill="rgba(217, 119, 6, 0.4)" />
+              <circle cx="18" cy="4" r="3" fill="rgba(217, 119, 6, 0.25)" />
+              {/* 3D White 4x4 Pickup Truck */}
+              <rect x="-11" y="-5" width="22" height="10" fill="#f8fafc" rx="2" stroke="#334155" strokeWidth="1" />
+              <rect x="-10" y="-3" width="7" height="6" fill="#94a3b8" rx="1" />
+              {/* Red Flag / Attacker Figure */}
+              <circle cx="4" cy="-8" r="3" fill="#dc2626" />
+              <rect x="3" y="-5" width="2.5" height="5" fill="#991b1b" />
+              <line x1="8" y1="-12" x2="8" y2="-5" stroke="#475569" strokeWidth="1" />
+              <polygon points="8,-12 14,-10 8,-8" fill="#ef4444" />
+              {/* Off-road Wheels */}
+              <circle cx="-6" cy="6" r="2.5" fill="#0f172a" />
+              <circle cx="6" cy="6" r="2.5" fill="#0f172a" />
             </g>
           );
         })}
 
-        {/* Big Region Titles */}
+        {/* Region Geographic Titles */}
         <text
-          x="100"
-          y="535"
+          x="105"
+          y="545"
           textAnchor="middle"
-          fill="#365314"
-          fontSize="16"
+          fill="#274608"
+          fontSize="17"
           fontWeight="900"
-          opacity="0.8"
+          opacity="0.85"
           className="font-rubik pointer-events-none drop-shadow-sm"
         >
           {state.locale === 'he' ? 'ישראל' : 'ISRAEL'}
@@ -284,12 +434,12 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
         <text
           x="300"
-          y="535"
+          y="545"
           textAnchor="middle"
-          fill="#78350f"
-          fontSize="16"
+          fill="#612805"
+          fontSize="17"
           fontWeight="900"
-          opacity="0.8"
+          opacity="0.85"
           className="font-rubik pointer-events-none drop-shadow-sm"
         >
           {state.locale === 'he' ? 'הגדה המערבית' : 'WEST BANK'}

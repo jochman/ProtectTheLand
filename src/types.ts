@@ -41,14 +41,29 @@ export interface GameState {
   soundEnabled: boolean;
   gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
   
-  // Numerical stats
+  // Numerical stats & Resources
+  budget: number; // Coalition funds / Resources (₪)
+  maxBudget: number;
   settlementsCount: number;
   soldiersTotal: number;
   soldiersAtBorder: number;
   soldiersAtSettlements: number;
   reservesBatchesLeft: number; // Max 3
   defenseScore: number; // 0% to 100%
+  isBuildMode: boolean; // True when player tapped "Build" and is selecting a hex
   
+  // Active constructions in progress (tileId -> progress 0..100)
+  constructions: Record<string, { progress: number; tileName: string }>;
+
+  // Collectible budget coins spawning on Israel cities
+  collectibleCoins: {
+    id: string;
+    x: number;
+    y: number;
+    amount: number;
+    createdAt: number;
+  }[];
+
   // The Satirical "יהוה צבאות" Deception Engine
   lordOfHosts: {
     chargePercent: number; // 12% -> 99.0% -> 99.9%
@@ -82,6 +97,9 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'BUILD_SETTLEMENT'; tileId?: string }
+  | { type: 'TOGGLE_BUILD_MODE' }
+  | { type: 'SELECT_TILE_TO_BUILD'; tileId: string }
+  | { type: 'COLLECT_COIN'; id: string }
   | { type: 'DEPLOY_TROOPS' }
   | { type: 'CALL_RESERVES' }
   | { type: 'CLICK_LORD_OF_HOSTS' }

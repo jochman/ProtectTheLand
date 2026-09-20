@@ -19,8 +19,14 @@ export const SettlementInspectorModal: React.FC<SettlementInspectorModalProps> =
   const isGuarded = tile.garrisonCount > 0;
 
   return (
-    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-amber-50 border-2 border-amber-300 w-full max-w-xs rounded-3xl p-5 shadow-2xl text-slate-800 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200">
+    <div
+      onClick={() => dispatch({ type: 'SELECT_TILE', tileId: null })}
+      className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-amber-50 border-2 border-amber-300 w-full max-w-xs rounded-3xl p-5 shadow-2xl text-slate-800 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-200 cursor-default"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-amber-200 pb-3">
           <div className="flex items-center gap-2">

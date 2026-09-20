@@ -8,12 +8,20 @@ export const INITIAL_STATE: GameState = {
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
+  budget: 150, // Initial coalition funds (₪)
+  maxBudget: 400,
   settlementsCount: 0,
   soldiersTotal: 8,
   soldiersAtBorder: 8,
   soldiersAtSettlements: 0,
   reservesBatchesLeft: 3,
   defenseScore: 100,
+  isBuildMode: false,
+  constructions: {},
+  collectibleCoins: [
+    { id: 'coin-1', x: 110, y: 215, amount: 25, createdAt: Date.now() }, // Tel Aviv
+    { id: 'coin-2', x: 130, y: 65, amount: 25, createdAt: Date.now() },  // Haifa
+  ],
   lordOfHosts: {
     chargePercent: 12,
     stage: 1,
@@ -36,6 +44,8 @@ export const INITIAL_STATE: GameState = {
   isScreenShaking: false,
   sparks: [],
 };
+
+const SETTLEMENT_COST = 100;
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   const strings = state.locale === 'he' ? he : en;
@@ -62,70 +72,92 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, soundEnabled: nextSound };
     }
 
-    case 'BUILD_SETTLEMENT': {
+    case 'TOGGLE_BUILD_MODE': {
       if (state.gameStatus !== 'playing') return state;
 
-      // Find next unbuilt candidate tile
-      const nextTileId = action.tileId || SETTLEMENT_CANDIDATE_IDS.find(id => !state.tiles[id]?.hasSettlement);
-      if (!nextTileId || !state.tiles[nextTileId]) return state;
-
-      const updatedTiles = { ...state.tiles };
-      updatedTiles[nextTileId] = {
-        ...updatedTiles[nextTileId],
-        hasSettlement: true,
-      };
-
-      const newSettlementsCount = state.settlementsCount + 1;
-      sounds.playBuild();
-
-      // Calculate new deceptive Lord of Hosts charge percent
-      let newCharge = Math.min(99.0, 12 + newSettlementsCount * 6.5);
-      let newStage = state.lordOfHosts.stage;
-      let stageGoalText = state.lordOfHosts.stageGoalText;
-
-      if (newSettlementsCount >= 6 && newStage === 1) {
-        newStage = 2;
-        stageGoalText = strings.lordOfHosts.stage2Goal;
-        newCharge = Math.max(newCharge, 55);
-        sounds.playDeploy();
-      } else if (newSettlementsCount >= 11 && newStage === 2) {
-        newStage = 3;
-        stageGoalText = strings.lordOfHosts.stage3Goal;
-        newCharge = Math.max(newCharge, 85);
-        sounds.playDeploy();
-      } else if (newSettlementsCount >= 15) {
-        newCharge = 99.0;
+      if (state.budget < SETTLEMENT_COST) {
+        sounds.playError();
+        return {
+          ...state,
+          lordOfHosts: {
+            ...state.lordOfHosts,
+            piousToast: state.locale === 'he'
+              ? 'אין מספיק תקציב לבנייה! אסוף כספים קואליציוניים (100 ₪ נדרשים)'
+              : 'Not enough budget! Collect funds from cities (₪100 required)',
+          },
+        };
       }
 
-      // Add soul spark animation
-      const targetTile = updatedTiles[nextTileId];
-      const newSpark = {
-        id: `spark-${Date.now()}-${Math.random()}`,
-        startX: targetTile.x,
-        startY: targetTile.y,
-        targetX: 200,
-        targetY: 720,
-        createdAt: Date.now(),
+      sounds.playClick();
+      return {
+        ...state,
+        isBuildMode: !state.isBuildMode,
+        selectedSettlementId: null,
       };
-      sounds.playSparkChime();
+    }
+
+    case 'SELECT_TILE_TO_BUILD': {
+      if (state.gameStatus !== 'playing') return state;
+      const tileId = action.tileId;
+      const tile = state.tiles[tileId];
+
+      if (!tile || tile.terrain !== 'westbank' || tile.hasSettlement || state.constructions[tileId]) {
+        return state;
+      }
+
+      if (state.budget < SETTLEMENT_COST) {
+        sounds.playError();
+        return {
+          ...state,
+          isBuildMode: false,
+          lordOfHosts: {
+            ...state.lordOfHosts,
+            piousToast: state.locale === 'he'
+              ? 'אין מספיק תקציב! אסוף מטבעות מהערים (100 ₪ נדרשים)'
+              : 'Insufficient budget! (₪100 required)',
+          },
+        };
+      }
+
+      sounds.playHammer();
 
       return {
         ...state,
-        settlementsCount: newSettlementsCount,
-        tiles: updatedTiles,
-        lordOfHosts: {
-          ...state.lordOfHosts,
-          chargePercent: Math.round(newCharge),
-          stage: newStage,
-          stageGoalText,
-          piousToast: null,
+        budget: state.budget - SETTLEMENT_COST,
+        isBuildMode: false,
+        constructions: {
+          ...state.constructions,
+          [tileId]: {
+            progress: 10,
+            tileName: tile.settlementName || 'מאחז חדש',
+          },
         },
-        sparks: [...state.sparks, newSpark],
         currentNews: {
-          id: `build-${Date.now()}`,
-          headline: `${strings.news.settlementBuilt} (${updatedTiles[nextTileId].settlementName || 'מאחז חדש'})`,
-          source: 'מבזק',
+          id: `const-${Date.now()}`,
+          headline: `החלה הכשרת קרקע והקמת ${tile.settlementName || 'מאחז חדש'}!`,
+          source: 'מנהלת ההתיישבות',
         },
+      };
+    }
+
+    case 'BUILD_SETTLEMENT': {
+      // Direct quick-build fallback if triggered directly
+      const nextTileId = action.tileId || SETTLEMENT_CANDIDATE_IDS.find(
+        id => !state.tiles[id]?.hasSettlement && !state.constructions[id]
+      );
+      if (!nextTileId) return state;
+      return gameReducer(state, { type: 'SELECT_TILE_TO_BUILD', tileId: nextTileId });
+    }
+
+    case 'COLLECT_COIN': {
+      const coin = state.collectibleCoins.find(c => c.id === action.id);
+      if (!coin) return state;
+
+      sounds.playCoinCollect();
+      return {
+        ...state,
+        budget: Math.min(state.maxBudget, state.budget + coin.amount),
+        collectibleCoins: state.collectibleCoins.filter(c => c.id !== action.id),
       };
     }
 
@@ -157,7 +189,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const borderId = mannedBorderIds.pop();
         if (!borderId) break;
 
-        // Move soldier from border to settlement
         updatedTiles[borderId] = {
           ...updatedTiles[borderId],
           garrisonCount: updatedTiles[borderId].garrisonCount - 1,
@@ -181,12 +212,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const newSettlementSoldiers = state.soldiersAtSettlements + transferredCount;
       const newDefenseScore = Math.round((newBorderSoldiers / 8) * 100);
 
-      // Check breaches
       const activeBreaches = Object.keys(updatedTiles).filter(
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      // In-game news headline based on defense drop
       let newsHeadline = strings.news.troopsDiverted;
       if (newDefenseScore <= 50) {
         newsHeadline = strings.news.chiefOfStaffWarning;
@@ -197,7 +226,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         sounds.playSiren();
       }
 
-      // If defense is critically low, activate miracle countdown!
       let countdown = state.lordOfHosts.countdownSeconds;
       let newStage = state.lordOfHosts.stage;
       if (newDefenseScore <= 35 && countdown === null) {
@@ -242,7 +270,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       sounds.playReserves();
 
-      // Re-garrison any breached border checkpoints
       const updatedTiles = { ...state.tiles };
       let remainingToPlace = addedSoldiers;
       const breachedCheckpoints = Object.keys(updatedTiles).filter(
@@ -346,21 +373,99 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       let countdown = state.lordOfHosts.countdownSeconds;
       let toast = state.lordOfHosts.piousToast;
 
+      // 1. Ticking countdown
       if (countdown !== null && countdown > 0) {
         countdown -= 1;
       } else if (countdown === 0) {
-        // Shifting excuse when countdown ends!
         countdown = 20;
         toast = strings.lordOfHosts.excuses[5];
         sounds.playSparkChime();
       }
 
-      // Check if breaches exist and spawn infiltrating pickup trucks
+      // 2. Passive budget income
+      const newBudget = Math.min(state.maxBudget, state.budget + 6);
+
+      // 3. Update constructions
+      const updatedConstructions = { ...state.constructions };
+      const updatedTiles = { ...state.tiles };
+      let newSettlementsCount = state.settlementsCount;
+      let newCharge = state.lordOfHosts.chargePercent;
+      let newStage = state.lordOfHosts.stage;
+      let stageGoalText = state.lordOfHosts.stageGoalText;
+      const newSparks = [...state.sparks];
+
+      for (const [tileId, c] of Object.entries(updatedConstructions)) {
+        if (c.progress >= 100) {
+          // Completed!
+          delete updatedConstructions[tileId];
+          updatedTiles[tileId] = {
+            ...updatedTiles[tileId],
+            hasSettlement: true,
+          };
+          newSettlementsCount += 1;
+          sounds.playBuild();
+
+          // Update deceptive Lord of Hosts charge percent
+          newCharge = Math.min(99.0, 12 + newSettlementsCount * 6.5);
+          if (newSettlementsCount >= 6 && newStage === 1) {
+            newStage = 2;
+            stageGoalText = strings.lordOfHosts.stage2Goal;
+            newCharge = Math.max(newCharge, 55);
+            sounds.playDeploy();
+          } else if (newSettlementsCount >= 11 && newStage === 2) {
+            newStage = 3;
+            stageGoalText = strings.lordOfHosts.stage3Goal;
+            newCharge = Math.max(newCharge, 85);
+            sounds.playDeploy();
+          } else if (newSettlementsCount >= 15) {
+            newCharge = 99.0;
+          }
+
+          // Add soul spark animation
+          const targetTile = updatedTiles[tileId];
+          newSparks.push({
+            id: `spark-${Date.now()}-${Math.random()}`,
+            startX: targetTile.x,
+            startY: targetTile.y,
+            targetX: 200,
+            targetY: 720,
+            createdAt: Date.now(),
+          });
+          sounds.playSparkChime();
+        } else {
+          updatedConstructions[tileId] = {
+            ...c,
+            progress: c.progress + 30, // 3-4 ticks to build
+          };
+        }
+      }
+
+      // 4. Spawn collectible coins on Israel cities
+      const coins = [...state.collectibleCoins];
+      if (coins.length < 3 && Math.random() > 0.5) {
+        const israelCityTiles = [
+          { x: 110, y: 215 }, // Tel Aviv
+          { x: 120, y: 140 }, // Netanya
+          { x: 105, y: 290 }, // Shfela
+          { x: 95, y: 365 },  // Ashdod
+          { x: 95, y: 440 },  // Beer Sheva
+        ];
+        const randomCity = israelCityTiles[Math.floor(Math.random() * israelCityTiles.length)];
+        coins.push({
+          id: `coin-${Date.now()}`,
+          x: randomCity.x,
+          y: randomCity.y,
+          amount: 25,
+          createdAt: Date.now(),
+        });
+      }
+
+      // 5. Infiltrating trucks
       const trucks = [...state.infiltratingTrucks];
       if (state.defenseScore < 30 && state.activeBreaches.length > 0) {
         if (Math.random() > 0.6 && trucks.length < 5) {
           const randomBreach = state.activeBreaches[Math.floor(Math.random() * state.activeBreaches.length)];
-          const breachTile = state.tiles[randomBreach];
+          const breachTile = updatedTiles[randomBreach];
           if (breachTile) {
             trucks.push({
               id: `truck-${Date.now()}`,
@@ -374,21 +479,28 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
-      // Advance trucks
       const updatedTrucks = trucks.map(t => ({
         ...t,
         progress: Math.min(1, t.progress + 0.1),
       }));
 
-      // If defense is 0% and breaches uncontained, activate panic mode
       const isPanic = state.defenseScore === 0 && state.activeBreaches.length >= 2;
 
       return {
         ...state,
+        budget: newBudget,
+        settlementsCount: newSettlementsCount,
+        constructions: updatedConstructions,
+        tiles: updatedTiles,
+        sparks: newSparks,
+        collectibleCoins: coins,
         isScreenShaking: false,
         infiltratingTrucks: updatedTrucks,
         lordOfHosts: {
           ...state.lordOfHosts,
+          chargePercent: Math.round(newCharge),
+          stage: newStage,
+          stageGoalText,
           countdownSeconds: countdown,
           piousToast: toast,
           isPanicMashMode: isPanic,
@@ -397,8 +509,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'SELECT_TILE': {
+      // Robust tile selection for inspector
       return {
         ...state,
+        isBuildMode: false,
         selectedSettlementId: action.tileId,
       };
     }
@@ -424,7 +538,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         newSettlementSoldiers = Math.max(0, newSettlementSoldiers - 1);
         newBorderSoldiers += 1;
 
-        // Place freed soldier back to an empty border checkpoint
         const emptyBorder = Object.keys(updatedTiles).find(
           id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
         );
@@ -450,7 +563,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         id => updatedTiles[id].isBorderCheckpoint && updatedTiles[id].garrisonCount === 0
       );
 
-      // Check if player achieved rational victory (all 8 border checkpoints fully manned, 0 breaches, <= 2 settlements)
       const isRationalVictory = newDefenseScore === 100 && newSettlementsCount <= 2 && state.settlementsCount >= 3;
       if (isRationalVictory) {
         sounds.playVictory();
