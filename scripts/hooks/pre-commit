@@ -42,6 +42,13 @@ if [ -n "$CODE_CHANGED" ]; then
   MODE=${MODE:-100644}
   BLOB=$(git hash-object -w "$SPEC_TMP")
   git update-index --add --cacheinfo "$MODE,$BLOB,spec.md"
+  # Mirror only the generated metadata line into the worktree. This keeps a
+  # successful commit clean while preserving any other unstaged spec edits.
+  if grep -q "\*\*Last Synchronized:\*\*" "$REPO_ROOT/spec.md"; then
+    sed -i "s|> \*\*Last Synchronized:\*\*.*|$METADATA|" "$REPO_ROOT/spec.md"
+  else
+    sed -i "/\*\*Repository:\*\*/a $METADATA" "$REPO_ROOT/spec.md"
+  fi
   echo "[hook:pre-commit] staged spec.md metadata synchronized."
 fi
 
