@@ -21,11 +21,10 @@ export function BottomActionDeck({ state, dispatch }: { state: GameState; dispat
     : objective(state);
   const staffed = Object.values(state.tiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
   const progress = translate(state.locale, 'progress.counts', [staffed, RULES.victoryOutposts, RULES.checkpoints - state.activeBreaches.length, RULES.checkpoints, state.defenseStreak, RULES.victoryDefenses]);
-  const reset = state.defenseResetReason ? translate(state.locale, `progress.reset.${state.defenseResetReason}`) : null;
   return <div className="action-deck relative z-20 flex shrink-0 flex-col gap-1 px-3 pb-2 pt-1">
     <div role="status" className="flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-2 text-start text-xs font-bold leading-snug text-slate-900">
       <div className="min-w-0 flex-1">
-        {state.tutorialStep === 'done' ? <><span data-testid="victory-progress" className="block text-[10px] tabular-nums">{progress}</span><span className="block truncate text-[10px]">{reset || instruction}</span></> : instruction}
+        {state.tutorialStep === 'done' ? <><span data-testid="victory-progress" className="block text-[10px] tabular-nums">{progress}</span><span className="block truncate text-[10px]">{instruction}</span></> : instruction}
       </div>
     </div>
     <div className="grid grid-cols-3 gap-1.5">

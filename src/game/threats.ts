@@ -61,7 +61,6 @@ export function pruneThreats(state: GameState): GameState {
 export function tickThreats(input: GameState): GameState {
   if (input.tutorialStep !== 'done' || input.gameStatus !== 'playing') return input;
   let state = pruneThreats(input);
-  if (!holdsExpandedLine(state)) state = { ...state, defenseStreak: 0 };
   for (const threat of state.threats.filter(t => t.deadline <= state.elapsedSeconds)) {
     const missing = Math.max(0, threat.required - threatDefense(state, threat));
     const deaths = Math.min(state.citizens, missing * RULES.threatDeathsPerMissing);
@@ -73,8 +72,8 @@ export function tickThreats(input: GameState): GameState {
     const textEn = missing ? `${tileName(tile, 'en')}: ${missing} troops short. ${deaths.toLocaleString('en-US')} citizens killed. Support returned to the available pool.`
       : `${tileName(tile, 'en')}: attack repelled! Support returned to the available pool.`;
     state = { ...state,
-      defenseStreak: missing === 0 && holdsExpandedLine(state)
-        ? Math.min(RULES.victoryDefenses, state.defenseStreak + 1) : 0,
+      defenseStreak: missing === 0
+        ? Math.min(RULES.victoryDefenses, state.defenseStreak + 1) : state.defenseStreak,
       citizens: state.citizens - deaths,
       budget: Math.max(0, state.budget - missing * 4),
       tiles: { ...state.tiles, [tile.id]: tile.hasSettlement ? { ...tile, citizens,

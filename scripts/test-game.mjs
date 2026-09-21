@@ -578,17 +578,17 @@ test('an idle fully guarded board loses pressure battles while active reinforcem
   assert.equal(active.defenseStreak, 3);
 });
 
-test('three outposts require three defended attacks; pre-expansion attacks do not count', () => {
+test('successful defenses accumulate across different expansion stages', () => {
   let opening = sendSupport(tactical());
   opening = tick(opening, 24);
   assert.equal(opening.metrics.intercepted, 1);
-  assert.equal(opening.defenseStreak, 0);
-  let s = tactical(3);
+  assert.equal(opening.defenseStreak, 1);
+  let s = { ...tactical(3), defenseStreak: opening.defenseStreak };
   // Two reserve calls provide enough manpower to earn the economy medal.
   s.soldiersTotal = 16;
   s.reservesBatchesLeft = 1;
   s.metrics.reserveCalls = 2;
-  for (let attack = 1; attack <= 3; attack++) {
+  for (let attack = 2; attack <= 3; attack++) {
     while (!s.threats.length) s = tick(s);
     const threat = s.threats[0];
     while (threatDefense(s, threat) + incomingSupport(s, threat.id) < threat.required) s = sendSupport(s, threat);
@@ -602,29 +602,25 @@ test('three outposts require three defended attacks; pre-expansion attacks do no
   assert.equal(medals({ ...s, metrics: { ...s.metrics, reserveCalls: 3 } })[1].earned, false);
 });
 
-test('evacuation, missing guards, failed battles and destruction reset the defense streak', () => {
+test('earned defenses survive evacuation, missing guards, failed battles and destruction', () => {
   const ready = () => ({ ...tactical(3), defenseStreak: 2 });
   let s = reduce(ready(), { type: 'EVACUATE_SETTLEMENT', tileId: outposts[0] });
-  assert.equal(s.defenseStreak, 0);
-  assert.equal(s.defenseResetReason, 'outposts');
-  assert.match(s.currentNews.headlineEn, /fewer than three/);
+  assert.equal(s.defenseStreak, 2);
   assert.equal(s.gameStatus, 'playing');
   for (const border of [false, true]) {
     s = ready();
     const source = border ? 'bdr-1' : outposts.slice(0, 3).find(id => id !== s.threats[0].tileId);
     s = sendSupport(s, s.threats[0], source);
-    assert.equal(s.defenseStreak, 0);
-    assert.equal(s.defenseResetReason, border ? 'border' : 'guard');
+    assert.equal(s.defenseStreak, 2);
   }
   s = tick(ready(), 24);
-  assert.equal(s.defenseStreak, 0);
-  assert.equal(s.defenseResetReason, 'battle');
+  assert.equal(s.defenseStreak, 2);
   assert.equal(s.gameStatus, 'playing');
   s = ready();
   s.tiles[s.threats[0].tileId].citizens = 150;
   s = tick(s, 24);
   assert.equal(s.settlementsCount, 2);
-  assert.equal(s.defenseStreak, 0);
+  assert.equal(s.defenseStreak, 2);
   assert.equal(s.gameStatus, 'playing');
 });
 
@@ -638,7 +634,14 @@ test('cancelling a threat earns no defense credit, and pauses cannot advance pro
   assert.strictEqual(tick(s, 100), s);
 });
 
-test('three defenses wait for construction; failed overlapping battles resume pressure', () => {
+test('adding a settlement and later failed encounters do not erase successful defenses', () => {
+  let expansion = { ...tactical(3), defenseStreak: 2 };
+  expansion = reduce(expansion, { type: 'BUILD_SETTLEMENT', tileId: outposts[3] });
+  expansion = tick(expansion, 5);
+  assert.equal(expansion.settlementsCount, 4);
+  assert.equal(expansion.defenseStreak, 2);
+  assert.equal(expansion.gameStatus, 'playing', 'the new outpost must still be staffed before victory');
+
   let s = { ...tactical(3), defenseStreak: 2 };
   s = sendSupport(sendSupport(s));
   s = tick(s, 23);
@@ -647,7 +650,7 @@ test('three defenses wait for construction; failed overlapping battles resume pr
   assert.equal(s.defenseStreak, 3);
   assert.equal(s.gameStatus, 'playing');
   s = tick(s, 4);
-  assert.equal(s.defenseStreak, 0, 'the new outpost must be staffed too');
+  assert.equal(s.defenseStreak, 3, 'earned defenses remain while the new outpost awaits staffing');
   assert.equal(s.gameStatus, 'playing');
   s = tick(tactical(4), 18);
   s.defenseStreak = 2;
@@ -658,6 +661,6 @@ test('three defenses wait for construction; failed overlapping battles resume pr
   assert.equal(s.threats.length, 1);
   assert.equal(s.gameStatus, 'playing');
   s = tick(s, s.threats[0].deadline - s.elapsedSeconds);
-  assert.equal(s.defenseStreak, 0);
-  assert.ok(s.threats.length > 0, 'pressure resumes after the remaining battle fails');
+  assert.equal(s.defenseStreak, 3);
+  assert.equal(s.gameStatus, 'rational_victory', 'a later failure does not erase three earlier successful defenses');
 });

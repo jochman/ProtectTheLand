@@ -147,7 +147,7 @@ try {
     await victoryPage.getByRole('button', { name: /^Staff / }).first().click();
   }
   assert.equal(await victoryPage.getByRole('dialog').count(), 0);
-  const victory = victoryPage.getByRole('dialog').filter({ hasText: 'You held at least three outposts' });
+  const victory = victoryPage.getByRole('dialog').filter({ hasText: 'You earned three successful defenses' });
   for (let second = 0; second < 180 && !(await victory.count()); second++) {
     const reinforce = victoryPage.locator('.action-deck').getByRole('button', { name: /Reinforce/ });
     for (let tap = 0; tap < 6 && await reinforce.count() && !(await reinforce.isDisabled()); tap++) await reinforce.click();

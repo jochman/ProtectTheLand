@@ -66,8 +66,8 @@ export const en = {
     shareBtn: "Share Result",
     
     victoryTitle: "Sustainable Security!",
-    victorySubtitle: "Three attacks repelled while holding the line",
-    victoryBody: "You defended at least three outposts and all eight border posts through three consecutive attacks. Review the resources and reserve call-ups needed to sustain that coverage.",
+    victorySubtitle: "Three attacks repelled and the line is staffed",
+    victoryBody: "You earned three successful defenses and finished with at least three staffed outposts and all eight border posts guarded. Review the resources and reserve call-ups needed to sustain that coverage.",
     victoryRestartBtn: "Play Again",
 
   },

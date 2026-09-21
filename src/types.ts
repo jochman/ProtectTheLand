@@ -139,9 +139,8 @@ export interface GameState {
   elapsedSeconds: number;
   /** Maximum concurrent outposts reached after completing the guided opening. */
   peakSettlementsCount: number;
-  /** Consecutive tactical attacks repelled while maintaining the expanded defensive line. */
+  /** Cumulative successful tactical defenses; the legacy field name is retained for state compatibility. */
   defenseStreak: number;
-  defenseResetReason: 'battle' | 'outposts' | 'border' | 'guard' | 'raid' | 'citizens' | null;
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;

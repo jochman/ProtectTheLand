@@ -3,7 +3,7 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon, holdsExpandedLine } from './rules';
+import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 import { pruneThreats, reinforceThreat, tickThreats } from './threats';
@@ -11,7 +11,7 @@ import { pruneThreats, reinforceThreat, tickThreats } from './threats';
 export const INITIAL_STATE: GameState = {
   threats: [], reinforcements: [], nextThreatAt: null, threatSequence: 0,
   selectedThreatId: null, threatFeedback: null,
-  elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, defenseResetReason: null, seed: 7102023,
+  elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, seed: 7102023,
   tutorialStep: 'build', isDeployMode: false,
   metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, threatDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
   timeline: [],
@@ -265,20 +265,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       gaps: activeBreaches.length, citizens: next.citizens, intercepted }];
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
-  if (!holdsExpandedLine(next)) next.defenseStreak = 0;
-  if (state.defenseStreak > 0 && next.defenseStreak === 0) {
-    const reason = next.metrics.threatDamage > state.metrics.threatDamage ? 'battle'
-      : next.settlementsCount < RULES.victoryOutposts ? 'outposts'
-      : activeBreaches.length ? 'border'
-      : Object.values(next.tiles).some(t => t.hasSettlement && t.garrisonCount === 0) ? 'guard'
-      : next.greenSideAttacks.length ? 'raid' : 'citizens';
-    next.defenseResetReason = reason;
-    next = { ...next, ...withNews(next, { id: `streak-reset-${next.elapsedSeconds}-${next.timeline.length}`,
-      headline: translate(next.locale, `progress.reset.${reason}`),
-      headlineHe: translate('he', `progress.reset.${reason}`), headlineEn: translate('en', `progress.reset.${reason}`),
-      source: translate(next.locale, 'progress.title'), sourceHe: translate('he', 'progress.title'), sourceEn: translate('en', 'progress.title'),
-      timestamp: `${next.elapsedSeconds}s`, category: 'military' }) };
-  } else if (next.defenseStreak > 0) next.defenseResetReason = null;
   if (next.gameStatus === 'playing' && !completedTutorial && hasWon(next)) {
     next = { ...next, gameStatus: 'rational_victory', selectedSettlementId: null, selectedInfiltrationId: null };
     sounds.playVictory();
