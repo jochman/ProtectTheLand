@@ -1,6 +1,5 @@
 import { translate } from '../locales/translate';
 import React from 'react';
-import { List } from 'lucide-react';
 import { GameState, GameAction, HexTile } from '../types';
 import { haptics } from '../utils/haptics';
 import { simulationNow } from '../game/rules';
@@ -52,7 +51,6 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
 
   return (
     <div data-testid="game-map" className="relative w-full flex-1 min-h-[220px] max-h-full overflow-hidden flex items-center justify-center my-0 select-none" onClickCapture={markTarget} onFocusCapture={markTarget}>
-      <button className="map-locations absolute top-0 right-1 z-10 grid h-11 w-11 place-items-center rounded-xl border border-amber-300 bg-amber-50/95 text-amber-950 shadow-sm" aria-label={translate(state.locale, 'map.locations')} title={translate(state.locale, 'map.locations')} onClick={() => dispatch({ type: 'OPEN_MAP_LIST' })}><List className="h-5 w-5" /></button>
       <svg
         viewBox="0 0 460 565"
         className="w-full h-full drop-shadow-xl"
@@ -559,7 +557,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
             >
               {/* Generous Transparent Hit-Area Circle (ensures clicks never misfire!) */}
               <circle cx="0" cy="0" r="36" fill="transparent" pointerEvents="all" />
-              {(state.isDeployMode || state.tutorialStep === 'deploy') && !isGuarded && <circle r="30" fill="none" stroke="#92400e" strokeWidth="4" strokeDasharray="6 3" pointerEvents="none" />}
+              {!isGuarded && <circle r="30" fill="rgba(245,158,11,0.15)" stroke="#92400e" strokeWidth={state.isDeployMode ? 4 : 2} strokeDasharray="6 3" pointerEvents="none" />}
 
               {/* Incoming Reinforcement Target Ping */}
               {isIncoming && (

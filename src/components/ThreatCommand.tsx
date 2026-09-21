@@ -2,14 +2,21 @@ import { selectLocale, translate } from '../locales/translate';
 import { type Dispatch } from 'react';
 import { TriangleAlert, X } from 'lucide-react';
 import type { GameAction, GameState } from '../types';
-import { availableTroops, objective, RULES } from '../game/rules';
-import { incomingSupport, threatDefense } from '../game/threats';
+import { objective, RULES, troopSource } from '../game/rules';
+import { dangerStatus, incomingSupport, threatDefense } from '../game/threats';
 import { tileName } from '../game/hexGridData';
 
 interface Props { state: GameState; dispatch: Dispatch<GameAction> }
 
 export function ThreatStatus({ state, dispatch }: Props) {
   const threat = state.threats[0];
+  const danger = dangerStatus(state);
+  if (danger) return <div className="game-goal danger-status z-10 shrink-0 px-3" data-critical={danger.critical}>
+    <div className="danger-strip" data-testid="danger-strip" role="status" aria-live="polite" aria-atomic="true">
+      <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+      <span>{translate(state.locale, danger.critical ? 'danger.critical' : 'danger.warning')} · {translate(state.locale, `danger.${danger.advice}`)}</span>
+    </div>
+  </div>;
   if (state.tutorialStep !== 'done') return <div className="game-goal z-10 shrink-0 px-3 py-1 text-center text-[11px] font-bold leading-snug text-slate-800">{objective(state)}</div>;
   const feedback = state.threatFeedback && state.threatFeedback.until > state.elapsedSeconds ? state.threatFeedback : null;
   return <div className="game-goal threat-status z-10 shrink-0 px-3">
@@ -35,8 +42,10 @@ export function ThreatCommand({ state, dispatch }: Props) {
   const remaining = threat.deadline - state.elapsedSeconds;
   const full = ready + incoming >= threat.required;
   const tooLate = remaining < RULES.reinforcementTravel;
-  const sources = Object.values(state.tiles).filter(t => t.id !== tile.id && t.garrisonCount > 0 && (t.hasSettlement || t.isBorderCheckpoint));
-  const send = (sourceId: string) => dispatch({ type: 'REINFORCE_THREAT', threatId: threat.id, sourceId });
+  const source = troopSource(state, tile.id, true);
+  const sourceTile = source ? state.tiles[source] : null;
+  const exposesPost = sourceTile?.garrisonCount === 1;
+  const send = () => dispatch({ type: 'REINFORCE_THREAT', threatId: threat.id });
   const close = () => dispatch({ type: 'SELECT_THREAT', id: null });
   return <div className="absolute inset-0 z-50 grid place-items-center bg-black/75 p-3" onClick={close}>
     <section tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="threat-title"
@@ -55,15 +64,11 @@ export function ThreatCommand({ state, dispatch }: Props) {
       <p className="mb-3 text-xs text-red-800">{translate(state.locale, 'components.ThreatCommand.75', [])}</p>
       {full || tooLate ? <p className="rounded-xl bg-amber-100 p-3 text-sm font-bold">{tooLate && !full ? (translate(state.locale, 'components.ThreatCommand.77', []))
         : translate(state.locale, 'components.ThreatCommand.78', [])}</p> : <>
-        <button disabled={availableTroops(state) === 0} className="min-h-11 w-full rounded-xl bg-emerald-700 p-3 text-sm font-bold text-white disabled:opacity-40" onClick={() => send('available')}>
-          {translate(state.locale, 'components.ThreatCommand.80', [availableTroops(state)])}</button>
-        <details className="mt-3 rounded-xl border border-amber-300 p-2">
-        <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold">{translate(state.locale, 'components.ThreatCommand.82', [])}</summary>
-        <div className="grid grid-cols-2 gap-2">{sources.map(source => <button key={source.id} className="min-h-11 rounded-xl border border-amber-300 bg-white p-2 text-start text-xs"
-          onClick={() => send(source.id)}>{tileName(source, state.locale)}<span className="mt-1 block font-bold text-red-800">{source.isBorderCheckpoint
-            ? translate(state.locale, 'components.ThreatCommand.borderSource', [])
-            : translate(state.locale, 'components.ThreatCommand.outpostSource', [])}</span></button>)}</div>
-        </details>
+        <p className="mb-2 text-xs font-bold">{translate(state.locale, !source ? 'deploy.noTroops' : exposesPost
+          ? sourceTile.isBorderCheckpoint ? 'components.ThreatCommand.borderSource' : 'components.ThreatCommand.outpostSource'
+          : 'deploy.autoSafe')}</p>
+        <button disabled={!source} className="min-h-11 w-full rounded-xl bg-emerald-700 p-3 text-sm font-bold text-white disabled:opacity-40" onClick={send}>
+          {translate(state.locale, 'reinforce.send')}</button>
         {state.reservesBatchesLeft > 0 && <button className="mt-3 min-h-11 w-full rounded-xl bg-blue-700 p-2 text-sm font-bold text-white" onClick={() => dispatch({ type: 'CALL_RESERVES' })}>
           {translate(state.locale, 'components.ThreatCommand.88', [])}</button>}
       </>}

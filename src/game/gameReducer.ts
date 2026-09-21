@@ -3,7 +3,7 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { RULES, AVAILABLE_TROOP_SOURCE, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon, holdsExpandedLine } from './rules';
+import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon, holdsExpandedLine } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 import { pruneThreats, reinforceThreat, tickThreats } from './threats';
@@ -12,13 +12,13 @@ export const INITIAL_STATE: GameState = {
   threats: [], reinforcements: [], nextThreatAt: null, threatSequence: 0,
   selectedThreatId: null, threatFeedback: null,
   elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, defenseResetReason: null, seed: 7102023,
-  tutorialStep: 'build', isDeployMode: false, pendingBorderId: null,
+  tutorialStep: 'build', isDeployMode: false,
   metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, threatDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
   timeline: [],
   locale: 'he',
   soundEnabled: true,
   gameStatus: 'playing',
-  budget: 100, // Balanced initial funds (₪) - exactly covers 1st settlement (100₪) or troop deployment (25₪)
+  budget: 100, // Balanced initial funds (₪) - exactly covers 1st settlement (100₪) or troop deployment (15₪)
   maxBudget: 300, // Balanced treasury cap
   incomeRate: RULES.civilianIncome,
   settlementsCount: 0,
@@ -32,7 +32,6 @@ export const INITIAL_STATE: GameState = {
   isPaused: false,
   infoPopover: null,
   isToolkitOpen: false,
-  isMapListOpen: false,
   reduceMotion: false,
   actionHistory: [],
   isBuildMode: false,
@@ -239,11 +238,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (state.tutorialStep === 'done') next.peakSettlementsCount = Math.max(state.peakSettlementsCount, next.settlementsCount);
   if (state.tutorialStep !== 'done' && !completedTutorial) {
     next.tutorialStep = !secure ? 'observe' : next.settlementsCount === 0 ? 'build' : 'deploy';
-    if (next.tutorialStep === 'build') { next.isDeployMode = false; next.pendingBorderId = null; }
+    if (next.tutorialStep === 'build') { next.isDeployMode = false; }
   }
   if (action.type === 'DEPLOY_TROOP' && next.tiles[action.settlementId]?.garrisonCount > state.tiles[action.settlementId]?.garrisonCount) {
     next.isDeployMode = false;
-    next.pendingBorderId = null;
     if (state.tutorialStep !== 'done' && !completedTutorial) next.tutorialStep = 'observe';
   }
   const interventions: Partial<Record<GameAction['type'], GameState['timeline'][number]['kind']>> = {
@@ -260,7 +258,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     next.metrics.intercepted += intercepted;
     next.metrics.reserveCalls += Math.max(0, state.reservesBatchesLeft - next.reservesBatchesLeft);
     next.timeline = [...next.timeline, { second: next.elapsedSeconds, kind,
-      borderId: 'borderId' in action ? action.borderId ?? undefined : 'checkpointId' in action ? action.checkpointId : undefined,
+      borderId: action.type === 'DEPLOY_TROOP' ? action.borderId ?? troopSource(state, action.settlementId) ?? undefined
+        : action.type === 'REINFORCE_THREAT' ? action.sourceId ?? troopSource(state, state.threats.find(t => t.id === action.threatId)?.tileId ?? '', true) ?? undefined
+        : 'checkpointId' in action ? action.checkpointId : undefined,
       gaps: activeBreaches.length, hp: next.landHp, intercepted }];
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
@@ -296,7 +296,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
     case 'SELECT_THREAT':
       return { ...state, selectedThreatId: state.threats.some(t => t.id === action.id) ? action.id : null,
         selectedSettlementId: null, selectedInfiltrationId: null, infoPopover: null,
-        isDeployMode: false, isBuildMode: false, pendingBorderId: null };
+        isDeployMode: false, isBuildMode: false };
     case 'REINFORCE_THREAT':
       return reinforceThreat(state, action.threatId, action.sourceId);
     case 'SET_LOCALE': {
@@ -331,11 +331,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
     case 'OPEN_TOOLKIT':
       return { ...state, isToolkitOpen: true };
-    case 'OPEN_MAP_LIST':
-      return { ...state, isMapListOpen: true };
-    case 'CLOSE_MAP_LIST':
-      return { ...state, isMapListOpen: false };
-
     case 'CLOSE_TOOLKIT':
       return { ...state, isToolkitOpen: false };
 
@@ -386,8 +381,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       };
     }
 
-    case 'PREVIEW_DEPLOYMENT':
-      return { ...state, pendingBorderId: action.borderId };
     case 'TOGGLE_BUILD_MODE': {
       if (state.gameStatus !== 'playing') return state;
 
@@ -530,22 +523,24 @@ function reduceGame(state: GameState, action: GameAction): GameState {
     case 'DEPLOY_TROOPS': {
       if (state.gameStatus !== 'playing') return state;
       return { ...state, isDeployMode: !state.isDeployMode, isBuildMode: false,
-        selectedSettlementId: null, pendingBorderId: null };
+        selectedSettlementId: null };
     }
 
     case 'DEPLOY_TROOP': {
       if (state.gameStatus !== 'playing') return state;
       const DEPLOY_COST_PER_SOLDIER = RULES.deployCost;
       const settlement = state.tiles[action.settlementId];
-      const border = state.tiles[action.borderId];
-      const fromAvailable = action.borderId === AVAILABLE_TROOP_SOURCE;
+      const sourceId = action.borderId ?? troopSource(state, action.settlementId);
+      if (!sourceId) return state;
+      const border = state.tiles[sourceId];
+      const fromAvailable = sourceId === AVAILABLE_TROOP_SOURCE;
       const sourceValid = fromAvailable ? availableTroops(state) > 0 : border?.isBorderCheckpoint && border.garrisonCount > 0;
       if (!settlement || !settlement.hasSettlement || settlement.garrisonCount > 0 || !sourceValid || state.budget < DEPLOY_COST_PER_SOLDIER) {
         sounds.playPenalty();
         return state;
       }
       const updatedTiles = { ...state.tiles };
-      if (!fromAvailable) updatedTiles[action.borderId] = { ...border, garrisonCount: border.garrisonCount - 1,
+      if (!fromAvailable) updatedTiles[sourceId] = { ...border, garrisonCount: border.garrisonCount - 1,
         isBreached: border.garrisonCount === 1, hasAlert: border.garrisonCount === 1 };
       updatedTiles[action.settlementId] = { ...settlement, garrisonCount: 1 };
       const newMovingTroops = [...state.movingTroops, {
@@ -1499,7 +1494,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isBuildMode: false,
-        pendingBorderId: action.tileId && availableTroops(state) > 0 ? AVAILABLE_TROOP_SOURCE : null,
         selectedSettlementId: action.tileId,
       };
     }

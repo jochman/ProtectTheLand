@@ -6,12 +6,86 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false, 
 after(() => server.close());
 const { gameReducer: reduce, INITIAL_STATE } = await server.ssrLoadModule('/src/game/gameReducer.ts');
 const { SETTLEMENT_CANDIDATE_IDS: outposts } = await server.ssrLoadModule('/src/game/hexGridData.ts');
-const { incomeFor, availableTroops, medals } = await server.ssrLoadModule('/src/game/rules.ts');
-const { threatDefense, incomingSupport } = await server.ssrLoadModule('/src/game/threats.ts');
+const { incomeFor, availableTroops, medals, RULES, troopSource } = await server.ssrLoadModule('/src/game/rules.ts');
+const { threatDefense, incomingSupport, dangerStatus } = await server.ssrLoadModule('/src/game/threats.ts');
 const start = () => reduce(structuredClone(INITIAL_STATE), { type: 'RESTART_GAME' });
 const tick = (state, count = 1) => { for (let i = 0; i < count; i++) state = reduce(state, { type: 'TICK_TIMER' }); return state; };
 const built = () => tick(reduce(start(), { type: 'BUILD_SETTLEMENT' }), 7);
 const deployed = () => reduce(built(), { type: 'DEPLOY_TROOP', settlementId: outposts[0], borderId: 'bdr-1' });
+
+test('automatic deployment uses free troops, then spare guards, and records the chosen source', () => {
+  let s = built();
+  s.soldiersTotal++;
+  let next = reduce(s, { type: 'DEPLOY_TROOP', settlementId: outposts[0] });
+  assert.equal(next.activeBreaches.length, 0);
+  assert.equal(next.timeline.at(-1).borderId, 'available');
+  assert.equal(next.budget, s.budget - 15);
+  s.tiles['bdr-3'].garrisonCount++;
+  assert.equal(troopSource(s, outposts[0]), 'bdr-3');
+  next = reduce(s, { type: 'DEPLOY_TROOP', settlementId: outposts[0] });
+  assert.equal(next.tiles['bdr-3'].garrisonCount, 1);
+  assert.equal(next.activeBreaches.length, 0);
+  assert.equal(next.timeline.at(-1).borderId, 'bdr-3');
+  s = built();
+  s.threats = [{ id: 'protect', tileId: 'bdr-1', required: 2, deadline: s.elapsedSeconds + 24 }];
+  assert.equal(troopSource(s, outposts[0]), 'bdr-2');
+  next = reduce(s, { type: 'DEPLOY_TROOP', settlementId: outposts[0] });
+  assert.deepEqual(next.activeBreaches, ['bdr-2']);
+  assert.equal(next.soldiersTotal, 8);
+  const before = next.budget;
+  next = reduce(next, { type: 'DEPLOY_TROOP', settlementId: outposts[0] });
+  assert.equal(next.budget, before, 'double send does not charge or duplicate soldiers');
+});
+
+test('automatic reinforcement preserves coverage, excludes its target and rejects unavailable troops', () => {
+  let s = built();
+  s.threats = [{ id: 'auto', tileId: 'bdr-1', required: 3, deadline: s.elapsedSeconds + 24 }];
+  s.soldiersTotal++;
+  s.tiles[outposts[0]].garrisonCount = 1;
+  assert.equal(troopSource(s, 'bdr-1', true), outposts[0]);
+  let next = reduce(s, { type: 'REINFORCE_THREAT', threatId: 'auto' });
+  assert.equal(next.activeBreaches.length, 0);
+  assert.equal(next.tiles[outposts[0]].garrisonCount, 0);
+  assert.equal(next.reinforcements.length, 1);
+  assert.equal(next.timeline.at(-1).borderId, outposts[0]);
+  assert.equal(availableTroops(next), 0);
+  s.soldiersTotal++;
+  next = reduce(s, { type: 'REINFORCE_THREAT', threatId: 'auto' });
+  assert.equal(next.tiles[outposts[0]].garrisonCount, 1);
+  assert.equal(next.timeline.at(-1).borderId, 'available');
+  for (const tile of Object.values(s.tiles)) tile.garrisonCount = tile.id === 'bdr-1' ? 1 : 0;
+  s.soldiersTotal = 1;
+  assert.equal(troopSource(s, 'bdr-1', true), null);
+  next = reduce(s, { type: 'REINFORCE_THREAT', threatId: 'auto' });
+  assert.equal(next.reinforcements.length, 0);
+});
+
+test('danger reflects health thresholds, lethal attacks, timely support and terminal states', () => {
+  const s = start();
+  assert.equal(dangerStatus(s), null);
+  s.landHp = 35;
+  assert.equal(dangerStatus(s), null);
+  s.landHp = 34.9;
+  assert.deepEqual(dangerStatus(s), { critical: false, advice: 'hold' });
+  s.landHp = 20;
+  assert.equal(dangerStatus(s).critical, false);
+  s.landHp = 19.9;
+  s.activeBreaches = ['bdr-2'];
+  assert.deepEqual(dangerStatus(s), { critical: true, advice: 'seal' });
+  s.landHp = 36;
+  s.threats = [{ id: 'lethal', tileId: 'bdr-1', required: 7, deadline: 24 }];
+  assert.deepEqual(dangerStatus(s), { critical: true, advice: 'reinforce' });
+  s.reinforcements = [{ id: 'support', threatId: 'lethal', fromX: 0, fromY: 0, departedAt: 0, arrivesAt: 24 }];
+  assert.equal(dangerStatus(s), null, 'support arriving at the deadline prevents the lethal warning');
+  s.reinforcements[0].arrivesAt = 25;
+  assert.equal(dangerStatus(s).critical, true);
+  s.threats = [];
+  s.landHp = 12;
+  s.greenSideAttacks = [{ id: 'raid' }];
+  assert.deepEqual(dangerStatus(s), { critical: true, advice: 'seal' });
+  s.gameStatus = 'catastrophe';
+  assert.equal(dangerStatus(s), null);
+});
 
 const miracleState = (gaps = 6) => {
   const s = start();
@@ -86,17 +160,16 @@ test('normal clicks cannot start grace, and readiness stays latched after the se
   assert.equal(s.lordOfHosts.isPanicMashMode, true);
 });
 
-test('guided construction, preview, deployment and recall complete the tutorial without ending the game', () => {
+test('guided construction, deployment and recall complete the tutorial without ending the game', () => {
   let s = built();
   assert.equal(s.tutorialStep, 'deploy');
   s = reduce(s, { type: 'DEPLOY_TROOPS' });
   assert.equal(s.isDeployMode, true);
   s = reduce(s, { type: 'SELECT_TILE', tileId: outposts[0] });
   const budget = s.budget;
-  s = reduce(s, { type: 'PREVIEW_DEPLOYMENT', borderId: 'bdr-1' });
   assert.equal(s.budget, budget);
   s = reduce(s, { type: 'DEPLOY_TROOP', settlementId: outposts[0], borderId: 'bdr-1' });
-  assert.equal(s.budget, budget - 25);
+  assert.equal(s.budget, budget - RULES.deployCost);
   assert.equal(s.tutorialStep, 'observe');
   assert.deepEqual(s.activeBreaches, ['bdr-1']);
   assert.equal(s.incomeRate, 6);
@@ -130,14 +203,6 @@ test('tutorial recovers from evacuation and accepts reserve or available-pool st
   assert.equal(s.nextThreatAt, s.elapsedSeconds + 20);
 });
 
-test('location picker pauses the simulation and closing it preserves manual pause', () => {
-  let s = reduce(deployed(), { type: 'OPEN_MAP_LIST' });
-  assert.strictEqual(tick(s, 30), s);
-  s = reduce(s, { type: 'TOGGLE_PAUSE' });
-  s = reduce(s, { type: 'CLOSE_MAP_LIST' });
-  assert.equal(s.isPaused, true);
-  assert.strictEqual(tick(s), s);
-});
 
 for (const action of completionActions) {
   test(`tutorial completion via ${action.type} keeps the game running`, () => {
@@ -260,10 +325,9 @@ test('twenty soldiers can staff two new outposts from the available pool without
   for (let i = 0; i < 2; i++) {
     s = tick(reduce(s, { type: 'BUILD_SETTLEMENT', tileId: outposts[i] }), 5);
     s = reduce(s, { type: 'SELECT_TILE', tileId: outposts[i] });
-    assert.equal(s.pendingBorderId, 'available');
     const budget = s.budget;
     s = reduce(s, { type: 'DEPLOY_TROOP', settlementId: outposts[i], borderId: 'available' });
-    assert.equal(s.budget, budget - 25);
+    assert.equal(s.budget, budget - RULES.deployCost);
     assert.equal(s.soldiersTotal, 20);
     assert.equal(availableTroops(s), 11 - i);
     assert.equal(s.tiles[outposts[0]].garrisonCount, 1);

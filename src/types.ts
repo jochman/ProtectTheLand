@@ -145,7 +145,6 @@ export interface GameState {
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;
-  pendingBorderId: string | null; // Checkpoint id, 'available' for the unassigned pool, or no preview.
   metrics: { exposureDamage: number; raidDamage: number; clashDamage: number; threatDamage: number; intercepted: number; miracleClicks: number; reserveCalls: number };
   timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'reinforce' | 'threat'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
   locale: 'he' | 'en';
@@ -227,15 +226,13 @@ export interface GameState {
   isPaused: boolean;
   infoPopover: { title: string; text: string } | null;
   isToolkitOpen: boolean;
-  isMapListOpen: boolean;
   reduceMotion: boolean;
   actionHistory: { id: string; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate'; timestamp: number }[];
 }
 
 export type GameAction =
   | { type: 'SELECT_THREAT'; id: string | null }
-  | { type: 'REINFORCE_THREAT'; threatId: string; sourceId: string }
-  | { type: 'PREVIEW_DEPLOYMENT'; borderId: string | null }
+  | { type: 'REINFORCE_THREAT'; threatId: string; sourceId?: string }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SHOW_INFO_POPOVER'; title: string; text: string }
   | { type: 'CLEAR_INFO_POPOVER' }
@@ -247,7 +244,7 @@ export type GameAction =
   | { type: 'COLLECT_COIN'; id: string }
   | { type: 'COLLECT_CITY_TAX'; cityId: string }
   | { type: 'DEPLOY_TROOPS' }
-  | { type: 'DEPLOY_TROOP'; settlementId: string; borderId: string }
+  | { type: 'DEPLOY_TROOP'; settlementId: string; borderId?: string }
   | { type: 'CALL_RESERVES' }
   | { type: 'CLICK_LORD_OF_HOSTS' }
   | { type: 'MASH_LORD_OF_HOSTS' }
@@ -259,8 +256,6 @@ export type GameAction =
   | { type: 'TOGGLE_SOUND' }
   | { type: 'TOGGLE_REDUCE_MOTION' }
   | { type: 'OPEN_TOOLKIT' }
-  | { type: 'OPEN_MAP_LIST' }
-  | { type: 'CLOSE_MAP_LIST' }
   | { type: 'CLOSE_TOOLKIT' }
   | { type: 'RESTART_GAME' }
   | { type: 'TICK_TIMER' }

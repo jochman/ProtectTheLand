@@ -36,11 +36,11 @@ const STAT_INFO = {
   budget: {
     he: {
       title: '💰 תקציב קואליציוני (₪)',
-      text: 'המשאבים הכספיים שלך. משמשים לבניית מאחזים (100₪) ולפריסת כוחות (25₪). מופק מקצב הכנסה שוטף ומתגבר בעזרת מאחזים מאוישים (+2₪/ש׳).',
+      text: 'המשאבים הכספיים שלך. משמשים לבניית מאחזים (100₪) ולפריסת כוחות (15₪). מופק מקצב הכנסה שוטף ומתגבר בעזרת מאחזים מאוישים (+2₪/ש׳).',
     },
     en: {
       title: '💰 Coalition Budget (₪)',
-      text: 'Your political funding. Used to construct outposts (₪100) and deploy troops (₪25). Generated from baseline civilian revenue and boosted by guarded outposts (+₪2/s).',
+      text: 'Your political funding. Used to construct outposts (₪100) and deploy troops (₪15). Generated from baseline civilian revenue and boosted by guarded outposts (+₪2/s).',
     },
   },
   landHp: {

@@ -57,12 +57,8 @@ try {
     await check.keyboard.press('Escape');
     assert.equal(await stats.evaluate(el => el === document.activeElement), true);
     await check.getByRole('button', { name: locale === 'en' ? /Build outpost/ : /בניית מאחז/ }).click();
-    await check.getByRole('button', { name: locale === 'en' ? 'Choose location' : 'בחירת מיקום' }).click();
-    const locations = check.getByRole('dialog');
-    const sizes = await locations.locator('button').evaluateAll(buttons => buttons.map(b => b.getBoundingClientRect().height));
-    assert.ok(sizes.every(height => height >= 44));
-    await check.screenshot({ path: `/tmp/octgame-locations-${locale}.png` });
-    await locations.getByRole('button', { name: locale === 'en' ? /Build outpost/ : /בניית מאחז/ }).first().click();
+    assert.equal(await check.locator('.map-locations').count(), 0);
+    await check.getByRole('button', { name: locale === 'en' ? /Build here/ : /בנה כאן/ }).first().click();
     await check.clock.runFor(1000);
     assert.match(await check.locator('.action-deck').innerText(), locale === 'en' ? /Construction \d+%/ : /בנייה בתהליך \d+%/);
     await check.clock.runFor(7000);
@@ -70,19 +66,15 @@ try {
     assert.match(await check.getByTestId('victory-progress').innerText(), /1\/3.*8\/8.*0\/3/);
     await check.clock.runFor(21000);
     await check.getByTestId('threat-status').click();
-    const summary = check.getByRole('dialog').locator('summary');
-    await summary.focus();
-    await check.keyboard.press('Shift+Tab');
-    assert.match(await check.evaluate(() => document.activeElement.textContent), locale === 'en' ? /Send available troop/ : /שלח חייל זמין/);
-    await check.keyboard.press('Tab');
-    assert.equal(await summary.evaluate(el => el === document.activeElement), true);
+    assert.equal(await check.getByRole('dialog').locator('details').count(), 0);
+    const send = check.getByRole('dialog').getByRole('button', { name: locale === 'en' ? /Send reinforcement/ : /שלח תגבור/ });
+    await send.focus();
     await check.keyboard.press('Enter');
-    await check.keyboard.press('Tab');
-    assert.equal(await check.getByRole('dialog').locator('details button').first().evaluate(el => el === document.activeElement), true);
+    assert.match(await check.getByTestId('threat-strength').innerText(), /1\/2.*1/);
     await check.keyboard.press('Escape');
     assert.equal(await check.getByTestId('threat-status').evaluate(el => el === document.activeElement), true);
     await check.close();
-    console.log(`Recovery, construction feedback, location targets, persistent help and disclosure keyboard focus passed: ${locale}`);
+    console.log(`Recovery, construction feedback, direct map targets, persistent help and reinforcement keyboard input passed: ${locale}`);
   }
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', error => failures.push(error.message));
@@ -96,8 +88,7 @@ try {
   await page.clock.runFor(8000);
   await page.getByRole('button', { name: /Deploy troop/ }).click();
   await page.getByRole('button', { name: /Select outpost/ }).first().click();
-  await page.getByRole('button', { name: /Sector 1/ }).click();
-  await page.getByRole('button', { name: 'Confirm troop deployment' }).click();
+  await page.getByRole('button', { name: /Send troop/ }).click();
   await page.getByRole('button', { name: 'Seal gap bdr-1' }).click();
   assert.equal(await page.getByRole('dialog').count(), 0);
   await page.getByRole('button', { name: /Staff 3\+ outposts/ }).waitFor();
@@ -127,7 +118,7 @@ try {
   for (let second = 0; second < 120 && !(await victory.count()); second++) {
     if (await page.getByTestId('threat-status').count()) {
       await page.getByTestId('threat-status').click();
-      const send = page.getByRole('button', { name: /Send available troop/ });
+      const send = page.getByRole('button', { name: /Send reinforcement/ });
       while (await send.count()) {
         assert.equal(await send.isDisabled(), false);
         await send.click();
@@ -147,9 +138,42 @@ try {
   await page.getByRole('button', { name: /Build here/ }).first().click();
   await page.clock.runFor(8000);
   await page.getByRole('button', { name: /Select outpost/ }).first().click();
-  await page.getByRole('button', { name: /Sector 1/ }).click();
-  await page.getByRole('button', { name: 'Confirm troop deployment' }).click();
-  await page.clock.runFor(300000);
+  await page.getByRole('button', { name: /Send troop/ }).click();
+  // Let a real exposed border deteriorate and inspect both warning tiers.
+  let sawWarning = false;
+  let sawCritical = false;
+  for (let second = 0; second < 300; second++) {
+    await page.clock.runFor(1000);
+    const strip = page.getByTestId('danger-strip');
+    if (await strip.count()) {
+      const critical = await strip.locator('..').getAttribute('data-critical') === 'true';
+      if ((!critical && !sawWarning) || (critical && !sawCritical)) {
+        for (const locale of ['en', 'he']) {
+          if (locale === 'he') await page.getByTitle('Toggle Language').click();
+          for (const [width, height] of [[320, 568], [360, 640], [390, 844], [430, 932], [568, 320], [844, 390], [1280, 720]]) {
+            await page.setViewportSize({ width, height });
+            const geometry = await strip.evaluate(el => {
+              const rect = el.getBoundingClientRect();
+              const map = document.querySelector('[data-testid="game-map"]').getBoundingClientRect();
+              return { height: innerHeight, scroll: document.documentElement.scrollHeight, map: map.height,
+                bottom: document.querySelector('.action-deck').getBoundingClientRect().bottom,
+                fits: el.scrollWidth <= el.clientWidth, top: rect.top, stripBottom: rect.bottom };
+            });
+            assert.equal(geometry.scroll, height, JSON.stringify(geometry));
+            assert.ok(geometry.map >= 220 && geometry.bottom <= height + 1 && geometry.fits, JSON.stringify(geometry));
+            assert.equal(await page.getByRole('dialog').count(), 0);
+            if (width === 320 || width === 568) await page.screenshot({ path: `/tmp/octgame-danger-${critical}-${locale}-${width}.png` });
+          }
+        }
+        await page.getByTitle('החלף שפה').click();
+        await page.setViewportSize({ width: 390, height: 844 });
+      }
+      sawWarning ||= !critical;
+      sawCritical ||= critical;
+    }
+    if (await page.getByRole('dialog').filter({ hasText: 'Resilience reached zero' }).count()) break;
+  }
+  assert.ok(sawWarning && sawCritical, 'both danger tiers appear before defeat');
   await page.getByRole('dialog').filter({ hasText: 'Resilience reached zero' }).waitFor();
   await page.getByRole('button', { name: 'Play again', exact: true }).click();
   assert.equal(await page.getByRole('dialog').count(), 0);
@@ -160,8 +184,9 @@ try {
   await page.clock.runFor(30000);
   await page.getByRole('button', { name: /Deploy troop/ }).click();
   await page.getByRole('button', { name: /Select outpost/ }).first().click();
-  assert.equal(await page.getByRole('button', { name: /Available soldiers: 12/ }).getAttribute('aria-pressed'), 'true');
-  await page.getByRole('button', { name: 'Confirm troop deployment' }).click();
+  assert.equal(await page.getByRole('button', { name: /Available soldiers:|Sector / }).count(), 0);
+  assert.match(await page.getByRole('dialog').innerText(), /posts stay guarded/);
+  await page.getByRole('button', { name: /Send troop/ }).click();
   assert.equal(await page.getByTestId('available-troops').innerText(), '11 free');
   assert.equal(await page.getByRole('button', { name: /Seal gap/ }).count(), 0);
   await page.setViewportSize({ width: 320, height: 568 });
@@ -194,7 +219,7 @@ try {
   const beforePause = await page.getByTestId('threat-strength').innerText();
   await page.clock.runFor(10000);
   assert.equal(await page.getByTestId('threat-strength').innerText(), beforePause);
-  await page.getByRole('button', { name: /שלח חייל זמין/ }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /שלח תגבור/ }).click();
   assert.match(await page.getByTestId('threat-strength').innerText(), /1\/2.*1 בדרך/);
   await page.getByRole('button', { name: 'חזור למפה' }).click();
   assert.equal(await page.getByTestId('available-troops').innerText(), '10 זמינים');
@@ -210,15 +235,13 @@ try {
   assert.match(await page.locator('.game-goal').innerText(), /attack repelled/);
   await page.clock.runFor(2000);
   await page.getByTestId('threat-status').click();
-  await page.getByText('Transfer a guard from another post ▾', { exact: true }).click();
-  await page.getByRole('button', { name: /Sector 1.*Opens a border gap/ }).click();
+  await page.getByRole('button', { name: /Send reinforcement/ }).click();
   await page.getByRole('button', { name: 'Return to map' }).click();
-  await page.getByRole('button', { name: 'Seal gap bdr-1' }).click();
   assert.equal(await page.getByTestId('available-troops').innerText(), '10 free');
+  assert.equal(await page.getByRole('button', { name: /Seal gap/ }).count(), 0);
   await page.clock.runFor(24000);
   assert.equal(await page.getByTestId('available-troops').innerText(), '11 free');
-  assert.equal(await page.getByRole('button', { name: /Seal gap/ }).count(), 0);
-  console.log('Threats: both locales and all viewports; planning pause, dispatch, travel, guard transfer, interception and return to pool passed.');
+  console.log('Threats: both locales and all viewports; planning pause, automatic dispatch, travel, interception and return to pool passed.');
   console.log('Tutorial continues; dismantling does not win; three defended attacks with three outposts win; defeat and restart passed.');
   // Reach the miracle through real controls: build first, then divert six guards.
   for (const locale of ['en', 'he']) {
@@ -242,8 +265,7 @@ try {
     assert.ok(parseFloat(await miracle.getByTestId('miracle-fill').evaluate(el => el.style.width)) > parseFloat(initialFill));
     for (let i = 0; i < 6; i++) {
       await miracle.getByRole('button', { name: /Select outpost/ }).nth(i).click();
-      await miracle.getByRole('button', { name: new RegExp(`Sector ${i + 1}`) }).click();
-      await miracle.getByRole('button', { name: 'Confirm troop deployment' }).click();
+      await miracle.getByRole('button', { name: /Send troop/ }).click();
       assert.equal(await button.getAttribute('data-ready'), i === 5 ? 'true' : 'false');
     }
     if (locale === 'he') await miracle.getByTitle('Toggle Language').click();

@@ -6,7 +6,7 @@ export function ModalAccessibility({ state, dispatch }: { state: GameState; disp
   const key = state.isIntroModalOpen ? 'intro' : state.isToolkitOpen ? 'toolkit'
     : state.isNewsModalOpen ? 'news' : state.gameStatus !== 'playing' ? 'result'
     : state.selectedThreatId ? 'threat' : state.selectedSettlementId ? 'outpost'
-    : state.selectedInfiltrationId ? 'infiltration' : state.isMapListOpen ? 'map' : state.infoPopover ? 'info' : '';
+    : state.selectedInfiltrationId ? 'infiltration' : state.infoPopover ? 'info' : '';
   useEffect(() => {
     if (!key) return;
     const panel = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')].at(-1);
@@ -31,7 +31,6 @@ export function ModalAccessibility({ state, dispatch }: { state: GameState; disp
       intro: { type: 'CLOSE_INTRO_MODAL' }, toolkit: { type: 'CLOSE_TOOLKIT' }, news: { type: 'CLOSE_NEWS_MODAL' },
       threat: { type: 'SELECT_THREAT', id: null }, outpost: { type: 'SELECT_TILE', tileId: null },
       infiltration: { type: 'SELECT_INFILTRATION', id: null }, info: { type: 'CLEAR_INFO_POPOVER' },
-      map: { type: 'CLOSE_MAP_LIST' },
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && close[key]) { event.preventDefault(); event.stopPropagation(); dispatch(close[key]!); }

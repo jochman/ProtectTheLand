@@ -19,7 +19,7 @@ import { StrategyToolkitModal } from './components/StrategyToolkitModal';
 import { isGamePaused } from './game/rules';
 import { ThreatCommand, ThreatStatus } from './components/ThreatCommand';
 import { ModalAccessibility } from './components/ModalAccessibility';
-import { MapLocationList } from './components/MapLocationList';
+import { dangerStatus } from './game/threats';
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
@@ -48,7 +48,6 @@ export default function App() {
     state.selectedInfiltrationId,
     state.selectedThreatId,
     state.isToolkitOpen,
-    state.isMapListOpen,
     state.infoPopover,
   ]);
 
@@ -125,7 +124,7 @@ export default function App() {
       )}
 
       {/* Critical Defense Perimeter Alert Vignette */}
-      {state.defenseScore <= 25 && state.gameStatus === 'playing' && (
+      {(state.defenseScore <= 25 || dangerStatus(state)?.critical) && state.gameStatus === 'playing' && (
         <div className="pointer-events-none absolute inset-0 ring-4 ring-inset ring-red-600/60 animate-pulse z-30" />
       )}
 
@@ -147,7 +146,6 @@ export default function App() {
       <NewsFeedModal state={state} dispatch={dispatch} />
       <EntranceInstructionModal state={state} dispatch={dispatch} />
       <StrategyToolkitModal state={state} dispatch={dispatch} />
-      <MapLocationList state={state} dispatch={dispatch} />
       <ModalAccessibility state={state} dispatch={dispatch} />
     </MobileFrame>
   );

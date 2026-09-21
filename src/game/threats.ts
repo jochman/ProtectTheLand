@@ -1,6 +1,6 @@
 import { translate } from '../locales/translate';
 import type { GameState, TacticalThreat } from '../types';
-import { availableTroops, holdsExpandedLine, randomStream, RULES } from './rules';
+import { availableTroops, holdsExpandedLine, randomStream, RULES, troopSource } from './rules';
 import { tileName } from './hexGridData';
 
 export const threatDefense = (state: GameState, threat: TacticalThreat) =>
@@ -10,8 +10,11 @@ export const threatDefense = (state: GameState, threat: TacticalThreat) =>
 export const incomingSupport = (state: GameState, id: string) => state.reinforcements.filter(
   troop => troop.threatId === id && troop.arrivesAt > state.elapsedSeconds).length;
 
-export function reinforceThreat(state: GameState, threatId: string, sourceId: string): GameState {
+export function reinforceThreat(state: GameState, threatId: string, requestedSource?: string): GameState {
   const threat = state.threats.find(t => t.id === threatId);
+  if (!threat) return state;
+  const sourceId = requestedSource ?? troopSource(state, threat.tileId, true);
+  if (!sourceId) return state;
   const source = state.tiles[sourceId];
   const fromPool = sourceId === 'available';
   if (!threat || state.elapsedSeconds + RULES.reinforcementTravel > threat.deadline
@@ -31,6 +34,19 @@ export function reinforceThreat(state: GameState, threatId: string, sourceId: st
       departedAt: state.elapsedSeconds, arrivesAt: state.elapsedSeconds + RULES.reinforcementTravel,
     }],
   };
+}
+
+export function dangerStatus(state: GameState): { critical: boolean; advice: 'reinforce' | 'seal' | 'guard' | 'hold' } | null {
+  if (state.gameStatus !== 'playing') return null;
+  const missing = (t: TacticalThreat) => Math.max(0, t.required - (state.tiles[t.tileId]?.garrisonCount ?? 0)
+    - state.reinforcements.filter(r => r.threatId === t.id && r.arrivesAt <= t.deadline).length);
+  const lethalThreat = state.threats.some(t => missing(t) * RULES.threatDamagePerMissing >= state.landHp);
+  const lethalRaid = state.greenSideAttacks.length > 0 && state.landHp <= RULES.raidDamage;
+  if (state.landHp >= 35 && !lethalThreat && !lethalRaid) return null;
+  return { critical: state.landHp < 20 || lethalThreat || lethalRaid,
+    advice: lethalRaid ? 'seal' : lethalThreat ? 'reinforce' : state.activeBreaches.length ? 'seal'
+      : state.threats.some(t => missing(t) > 0) ? 'reinforce'
+      : Object.values(state.tiles).some(t => t.hasSettlement && !t.garrisonCount) ? 'guard' : 'hold' };
 }
 
 // Temporary troops are accounted for separately from permanent guards. Removing an

@@ -4,7 +4,7 @@ import type { GameState } from '../types';
 export const AVAILABLE_TROOP_SOURCE = 'available';
 
 export const RULES = {
-  buildCost: 100, deployCost: 25, civilianIncome: 4, guardedIncome: 2,
+  buildCost: 100, deployCost: 15, civilianIncome: 4, guardedIncome: 2,
   budgetBase: 300, budgetPerOutpost: 25, gapDamage: 0.4,
   raidDamage: 12, raidCost: 10, clashDamage: 10,
   recoveryRate: 0.5, checkpoints: 8,
@@ -20,7 +20,18 @@ export const incomeFor = (state: GameState) => Math.max(1, RULES.civilianIncome 
   + Object.values(state.tiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length * RULES.guardedIncome;
 export const availableTroops = (state: GameState) => Math.max(0, state.soldiersTotal
   - Object.values(state.tiles).reduce((sum, t) => sum + t.garrisonCount, 0) - state.reinforcements.length);
-export const isGamePaused = (state: GameState) => state.isPaused || state.isIntroModalOpen || state.isToolkitOpen || state.isMapListOpen
+// Stable priorities keep automatic transfers predictable and preserve coverage where possible.
+export function troopSource(state: GameState, targetId: string, reinforcement = false): string | null {
+  if (availableTroops(state) > 0) return AVAILABLE_TROOP_SOURCE;
+  const threatened = new Set(state.threats.map(t => t.tileId));
+  const candidates = Object.values(state.tiles).filter(t => t.id !== targetId && t.garrisonCount > 0
+    && (t.isBorderCheckpoint || (reinforcement && t.hasSettlement)));
+  const rank = (t: typeof candidates[number]) => (t.garrisonCount > 1 ? 0 : 4)
+    + (threatened.has(t.id) ? 2 : 0) + (t.isBorderCheckpoint ? 1 : 0);
+  candidates.sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
+  return candidates[0]?.id ?? null;
+}
+export const isGamePaused = (state: GameState) => state.isPaused || state.isIntroModalOpen || state.isToolkitOpen
   || state.isNewsModalOpen || !!state.selectedSettlementId || !!state.selectedInfiltrationId || !!state.selectedThreatId || !!state.infoPopover;
 
 // A separate stream for each event family keeps cosmetic actions out of threat generation.

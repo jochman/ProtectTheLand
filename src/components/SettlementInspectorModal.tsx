@@ -1,20 +1,16 @@
 import { translate } from '../locales/translate';
 import type { Dispatch } from 'react';
 import type { GameAction, GameState } from '../types';
-import { RULES, AVAILABLE_TROOP_SOURCE, availableTroops } from '../game/rules';
-import { BORDER_TO_GREEN_CITY } from '../game/gameReducer';
+import { RULES, AVAILABLE_TROOP_SOURCE, availableTroops, troopSource } from '../game/rules';
 import { tileName } from '../game/hexGridData';
 
 export function SettlementInspectorModal({ state, dispatch }: { state: GameState; dispatch: Dispatch<GameAction> }) {
   const tile = state.selectedSettlementId ? state.tiles[state.selectedSettlementId] : null;
   if (!tile?.hasSettlement) return null;
-  const he = state.locale === 'he';
   const guarded = tile.garrisonCount > 0;
-  const borders = Object.values(state.tiles).filter(t => t.isBorderCheckpoint && t.garrisonCount > 0);
   const spareCount = availableTroops(state);
-  const fromAvailable = state.pendingBorderId === AVAILABLE_TROOP_SOURCE;
-  const border = state.pendingBorderId ? state.tiles[state.pendingBorderId] : null;
-  const opensGap = border?.garrisonCount === 1;
+  const source = troopSource(state, tile.id);
+  const opensGap = source && source !== AVAILABLE_TROOP_SOURCE && state.tiles[source]?.garrisonCount === 1;
   const close = () => dispatch({ type: 'SELECT_TILE', tileId: null });
   return <div className="absolute inset-0 z-50 grid place-items-center bg-black/70 p-3" onClick={close}>
     <section role="dialog" aria-modal="true" aria-labelledby="outpost-title" className="modal-panel w-full max-w-sm rounded-3xl bg-amber-50 p-4 text-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -23,18 +19,14 @@ export function SettlementInspectorModal({ state, dispatch }: { state: GameState
       {state.threats.filter(t => t.tileId === tile.id).map(threat => <button key={threat.id}
         className="mt-3 min-h-11 w-full rounded-xl bg-red-800 p-3 text-sm font-bold text-white"
         onClick={() => dispatch({ type: 'SELECT_THREAT', id: threat.id })}>{translate(state.locale, 'components.SettlementInspectorModal.24', [])}</button>)}
-      {!guarded && <div className="mt-3">
-        <h3 className="text-sm font-bold">{translate(state.locale, 'components.SettlementInspectorModal.26', [])}</h3>
-        {spareCount > 0 && <button aria-pressed={fromAvailable} className={`mt-2 min-h-11 w-full rounded-xl border p-2 text-start text-sm font-bold ${fromAvailable ? 'border-emerald-700 bg-emerald-100' : 'border-emerald-300 bg-white'}`} onClick={() => dispatch({ type: 'PREVIEW_DEPLOYMENT', borderId: AVAILABLE_TROOP_SOURCE })}>{translate(state.locale, 'components.SettlementInspectorModal.27', [spareCount])}</button>}
-        <div className="mt-2 grid grid-cols-2 gap-2">{borders.map(b => <button key={b.id} aria-pressed={border?.id === b.id} className={`min-h-11 rounded-xl border p-2 text-start text-xs ${border?.id === b.id ? 'border-amber-700 bg-amber-200' : 'border-amber-300 bg-white'}`} onClick={() => dispatch({ type: 'PREVIEW_DEPLOYMENT', borderId: b.id })}>
-          {translate(state.locale, 'components.SettlementInspectorModal.29', [])} {b.id.replace('bdr-', '')} · {he ? BORDER_TO_GREEN_CITY[b.id]?.nameHe : BORDER_TO_GREEN_CITY[b.id]?.nameEn}
-        </button>)}</div>
-        {(border || fromAvailable) && <div className={`mt-3 rounded-xl border p-3 text-sm leading-relaxed ${opensGap ? 'border-red-300 bg-red-50' : 'border-emerald-300 bg-emerald-50'}`}>
-          <p>{translate(state.locale, 'components.SettlementInspectorModal.32', [RULES.deployCost, RULES.guardedIncome])}</p>
-          <p>{translate(state.locale, fromAvailable ? 'deploy.available' : opensGap ? 'deploy.gap' : 'components.SettlementInspectorModal.33', [RULES.gapDamage])}</p>
-          <button disabled={state.budget < RULES.deployCost || (fromAvailable && spareCount === 0)} className="mt-2 min-h-11 w-full rounded-xl bg-amber-800 p-2 font-bold text-white disabled:opacity-50" onClick={() => dispatch({ type: 'DEPLOY_TROOP', settlementId: tile.id, borderId: fromAvailable ? AVAILABLE_TROOP_SOURCE : border!.id })}>{translate(state.locale, 'components.SettlementInspectorModal.34', [])}</button>
-        </div>}
-        {(state.budget < RULES.deployCost || (!borders.length && spareCount === 0)) && <p className="mt-2 text-sm text-red-800">{translate(state.locale, 'components.SettlementInspectorModal.36', [])}</p>}
+      {!guarded && <div className="mt-3 rounded-xl border border-amber-300 bg-white p-3 text-sm">
+        <p>{translate(state.locale, 'components.SettlementInspectorModal.32', [RULES.deployCost, RULES.guardedIncome])}</p>
+        <p className={opensGap ? 'mt-2 font-bold text-red-800' : 'mt-2 text-emerald-800'}>{translate(state.locale,
+          !source ? 'deploy.noTroops' : opensGap ? 'deploy.gap' : 'deploy.autoSafe', [RULES.gapDamage])}</p>
+        <button disabled={!source || state.budget < RULES.deployCost} className="mt-3 min-h-11 w-full rounded-xl bg-amber-800 p-3 font-bold text-white disabled:opacity-50"
+          onClick={() => dispatch({ type: 'DEPLOY_TROOP', settlementId: tile.id })}>{translate(state.locale, 'deploy.send', [RULES.deployCost])}</button>
+        {state.budget < RULES.deployCost && <p className="mt-2 text-red-800">{translate(state.locale, 'deploy.needBudget', [RULES.deployCost])}</p>}
+        {!source && state.reservesBatchesLeft > 0 && <button className="mt-2 min-h-11 w-full rounded-xl bg-blue-700 p-2 font-bold text-white" onClick={() => dispatch({ type: 'CALL_RESERVES' })}>{translate(state.locale, 'actions.reserves')}</button>}
       </div>}
       {guarded && <button disabled={!state.activeBreaches.length} className="mt-3 min-h-11 w-full rounded-xl bg-blue-700 p-3 text-sm font-bold text-white disabled:opacity-50" onClick={() => dispatch(spareCount > 0
         ? { type: 'SEAL_BREACH', checkpointId: state.greenSideAttacks[0]?.breachId || state.activeBreaches[0] }
