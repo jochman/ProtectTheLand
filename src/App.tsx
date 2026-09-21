@@ -8,16 +8,13 @@ import { NewsAlertTicker } from './components/NewsAlertTicker';
 import { HexMapCanvas } from './components/HexMapCanvas';
 import { BottomActionDeck } from './components/BottomActionDeck';
 import { SoulSparksOverlay } from './components/SoulSparksOverlay';
-import { SettlementInspectorModal } from './components/SettlementInspectorModal';
 import { October7DefeatModal } from './components/October7DefeatModal';
 import { RationalVictoryModal } from './components/RationalVictoryModal';
 import { FloatingEmergencyAlert } from './components/FloatingEmergencyAlert';
-import { InfiltrationDefenseModal } from './components/InfiltrationDefenseModal';
-import { NewsFeedModal } from './components/NewsFeedModal';
 import { EntranceInstructionModal } from './components/EntranceInstructionModal';
 import { StrategyToolkitModal } from './components/StrategyToolkitModal';
 import { isGamePaused } from './game/rules';
-import { ThreatCommand, ThreatStatus } from './components/ThreatCommand';
+import { ThreatStatus } from './components/ThreatCommand';
 import { ModalAccessibility } from './components/ModalAccessibility';
 import { dangerStatus } from './game/threats';
 
@@ -100,10 +97,10 @@ export default function App() {
       <HeaderBar state={state} dispatch={dispatch} />
 
       {/* Top Status Counters & Defense Meter */}
-      <TopStatusPill state={state} dispatch={dispatch} />
+      <TopStatusPill state={state} />
 
-      {/* Breaking News Ticker (Clickable to open News Feed) */}
-      <NewsAlertTicker state={state} dispatch={dispatch} />
+      {/* Read-only breaking news ticker */}
+      <NewsAlertTicker state={state} />
       <ThreatStatus state={state} dispatch={dispatch} />
 
       {/* Floating Operational Emergency Alert (0px layout footprint, never resizes map) */}
@@ -154,12 +151,8 @@ export default function App() {
       <BottomActionDeck state={state} dispatch={dispatch} />
 
       {/* Modals */}
-      <InfiltrationDefenseModal state={state} dispatch={dispatch} />
-      <SettlementInspectorModal state={state} dispatch={dispatch} />
-      <ThreatCommand state={state} dispatch={dispatch} />
       <October7DefeatModal state={state} dispatch={dispatch} />
       <RationalVictoryModal state={state} dispatch={dispatch} />
-      <NewsFeedModal state={state} dispatch={dispatch} />
       <EntranceInstructionModal state={state} dispatch={dispatch} />
       <StrategyToolkitModal state={state} dispatch={dispatch} />
       <ModalAccessibility state={state} dispatch={dispatch} />

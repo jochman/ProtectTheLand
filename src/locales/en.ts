@@ -70,11 +70,6 @@ export const en = {
     victoryBody: "You defended at least three outposts and all eight border posts through three consecutive attacks. Review the resources and reserve call-ups needed to sustain that coverage.",
     victoryRestartBtn: "Play Again",
 
-    inspectorTitle: "Outpost / Settlement Point",
-    inspectorGuarded: "Protected by military garrison",
-    inspectorUnguarded: "Unguarded! Vulnerable to attack!",
-    evacuateBtn: "Dismantle Outpost & Reinforce Border",
-    closeBtn: "Close",
   },
   tooltips: {
     borderDefense: "Sovereign border garrison index",

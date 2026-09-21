@@ -70,11 +70,6 @@ export const he = {
     victoryBody: "הגנתם על לפחות שלושה מאחזים ועל שמונת מוצבי הגבול לאורך שלוש התקפות רצופות. בדקו את המשאבים וגיוסי המילואים שנדרשו לשמירת הכיסוי.",
     victoryRestartBtn: "שחקו שוב",
 
-    inspectorTitle: "מאחז / נקודת התיישבות",
-    inspectorGuarded: "מאובטח ע״י חייל",
-    inspectorUnguarded: "ללא הגנה צבאית!",
-    evacuateBtn: "פינוי מאחז וחיזוק קו הגבול",
-    closeBtn: "סגור",
   },
   tooltips: {
     borderDefense: "מדד כיסוי גבולות המדינה",

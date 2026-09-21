@@ -1,14 +1,12 @@
-import { translate } from '../locales/translate';
 import React from 'react';
-import { AlertTriangle, Radio, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
-import { GameState, GameAction } from '../types';
+import { AlertTriangle, Radio } from 'lucide-react';
+import { GameState } from '../types';
 
 interface NewsAlertTickerProps {
   state: GameState;
-  dispatch: React.Dispatch<GameAction>;
 }
 
-export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatch }) => {
+export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state }) => {
   if (!state.currentNews) return null;
 
   const isUrgent = Boolean(state.currentNews.isUrgent);
@@ -17,18 +15,11 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
   return (
     <div className="px-3 py-0.5 z-20 w-full h-[36px] min-h-[36px] max-h-[36px] sm:h-[40px] sm:min-h-[40px] sm:max-h-[40px] flex-shrink-0">
       <div
-        role="button"
-        tabIndex={0}
-        onClick={() => dispatch({ type: 'OPEN_NEWS_MODAL' })}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            dispatch({ type: 'OPEN_NEWS_MODAL' });
-          }
-        }}
-        className={`group flex items-center gap-2 px-3 py-1 rounded-2xl border text-xs shadow-md transition-all duration-200 cursor-pointer select-none hover:shadow-lg hover:border-amber-400 active:scale-[0.98] h-full w-full overflow-hidden ${
+        role="status"
+        className={`flex items-center gap-2 px-3 py-1 rounded-2xl border text-xs shadow-md select-none h-full w-full overflow-hidden ${
           isUrgent
-            ? 'bg-red-600/95 text-white border-red-400 shadow-red-500/20 hover:bg-red-600'
-            : 'bg-white/95 text-slate-800 border-amber-200/80 backdrop-blur-md hover:bg-amber-50/60'
+            ? 'bg-red-600/95 text-white border-red-400 shadow-red-500/20'
+            : 'bg-white/95 text-slate-800 border-amber-200/80 backdrop-blur-md'
         }`}
       >
         <div className="flex-shrink-0">
@@ -53,19 +44,6 @@ export const NewsAlertTicker: React.FC<NewsAlertTickerProps> = ({ state, dispatc
           <span className="font-semibold text-xs tracking-tight truncate flex-1 min-w-0">
             {isHe ? (state.currentNews.headlineHe || state.currentNews.headline) : (state.currentNews.headlineEn || state.currentNews.headline)}
           </span>
-        </div>
-
-        {/* Clickable prompt hint */}
-        <div className="flex-shrink-0 flex items-center gap-0.5 text-slate-400 group-hover:text-amber-700 transition-colors whitespace-nowrap">
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span className="text-[10px] font-extrabold hidden xs:inline">
-            {translate(state.locale, 'components.NewsAlertTicker.61', [])}
-          </span>
-          {isHe ? (
-            <ChevronLeft className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform" />
-          ) : (
-            <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-          )}
         </div>
       </div>
     </div>

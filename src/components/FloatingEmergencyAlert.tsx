@@ -100,7 +100,7 @@ export const FloatingEmergencyAlert: React.FC<FloatingEmergencyAlertProps> = ({ 
           <button
             onClick={(e) => {
               e.stopPropagation();
-              dispatch({ type: 'SELECT_INFILTRATION', id: firstAttack.id });
+              dispatch({ type: 'SEAL_BREACH', checkpointId: firstAttack.breachId });
               handleDismiss();
             }}
             className="mt-2 w-full py-1.5 px-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-98 border border-amber-300 rounded-xl font-black text-xs text-white shadow-lg flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"

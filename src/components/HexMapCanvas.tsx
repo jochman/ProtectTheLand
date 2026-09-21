@@ -304,11 +304,8 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                         onClick={(e) => {
                           e.stopPropagation();
                           haptics.warning();
-                          if (relatedAttack) {
-                            dispatch({ type: 'SELECT_INFILTRATION', id: relatedAttack.id });
-                          } else if ((state.greenSideAttacks || []).length > 0) {
-                            dispatch({ type: 'SELECT_INFILTRATION', id: state.greenSideAttacks[0].id });
-                          }
+                          const attack = relatedAttack || state.greenSideAttacks[0];
+                          if (attack) dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId });
                         }}
                       >
                         <circle cx="0" cy="0" r="24" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" className="animate-pulse" />
@@ -544,15 +541,17 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
               key={`settlement-group-${s.id}`}
               data-map-id={s.id}
               transform={`translate(${s.x}, ${s.y})`}
-              className="cursor-pointer group"
-              role="button"
-              tabIndex={0}
-              aria-label={translate(state.locale, 'components.HexMapCanvas.539', [s.settlementName || s.id])}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); dispatch({ type: 'SELECT_TILE', tileId: s.id }); } }}
+              className={!isGuarded ? 'cursor-pointer group' : 'group'}
+              role={!isGuarded ? 'button' : undefined}
+              tabIndex={!isGuarded ? 0 : undefined}
+              aria-label={!isGuarded ? translate(state.locale, 'components.HexMapCanvas.directDeploy', [s.settlementName || s.id]) : undefined}
+              onKeyDown={e => { if (!isGuarded && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); dispatch({ type: 'DEPLOY_TROOP', settlementId: s.id }); } }}
               onClick={(e) => {
                 e.stopPropagation();
-                haptics.light();
-                dispatch({ type: 'SELECT_TILE', tileId: s.id });
+                if (!isGuarded) {
+                  haptics.light();
+                  dispatch({ type: 'DEPLOY_TROOP', settlementId: s.id });
+                }
               }}
             >
               {/* Generous Transparent Hit-Area Circle (ensures clicks never misfire!) */}
@@ -764,7 +763,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 onClick={(e) => {
                   e.stopPropagation();
                   haptics.warning();
-                  dispatch({ type: 'SELECT_INFILTRATION', id: attack.id });
+                  dispatch({ type: 'SEAL_BREACH', checkpointId: attack.breachId });
                 }}
               >
                 <circle cx="10" cy="3" r="5" fill="rgba(217, 119, 6, 0.4)" />
@@ -1045,7 +1044,7 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
           const ready = threatDefense(state, threat);
           const covered = ready >= threat.required;
           const label = translate(state.locale, 'components.HexMapCanvas.1043', [tileName(target, 'he')]);
-          const open = () => dispatch({ type: 'SELECT_THREAT', id: threat.id });
+          const open = () => dispatch({ type: 'REINFORCE_THREAT', threatId: threat.id });
           return <g key={threat.id} role="button" tabIndex={0} aria-label={label} className="cursor-pointer"
             onClick={open} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } }}>
             <circle cx={target.x} cy={target.y} r="32" fill="transparent" pointerEvents="all" stroke={covered ? '#15803d' : '#b91c1c'} strokeWidth="3" strokeDasharray="5 3" />
