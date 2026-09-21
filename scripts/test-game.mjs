@@ -6,7 +6,7 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false, 
 after(() => server.close());
 const { gameReducer: reduce, INITIAL_STATE } = await server.ssrLoadModule('/src/game/gameReducer.ts');
 const { SETTLEMENT_CANDIDATE_IDS: outposts, tileName } = await server.ssrLoadModule('/src/game/hexGridData.ts');
-const { incomeFor, availableTroops, medals, RULES, troopSource } = await server.ssrLoadModule('/src/game/rules.ts');
+const { incomeFor, availableTroops, RULES, troopSource, totalSettlementSites, isLordOfHostsOperational } = await server.ssrLoadModule('/src/game/rules.ts');
 const { threatDefense, incomingSupport, dangerStatus } = await server.ssrLoadModule('/src/game/threats.ts');
 const start = () => reduce(structuredClone(INITIAL_STATE), { type: 'RESTART_GAME' });
 const tick = (state, count = 1) => { for (let i = 0; i < count; i++) state = reduce(state, { type: 'TICK_TIMER' }); return state; };
@@ -109,27 +109,42 @@ test('danger reflects citizen thresholds, lethal attacks, timely support and ter
   assert.equal(dangerStatus(s), null);
 });
 
-const miracleState = (gaps = 6) => {
+const conquestState = (builtCount, staffedCount = 0) => {
   const s = start();
-  for (let i = 1; i <= gaps; i++) s.tiles[`bdr-${i}`].garrisonCount = 0;
-  return reduce(s, { type: 'COLLECT_COIN', coinId: 'missing' });
+  s.tutorialStep = 'done';
+  s.soldiersTotal = 100;
+  outposts.slice(0, builtCount).forEach((id, index) => {
+    s.tiles[id].hasSettlement = true;
+    s.tiles[id].citizens = RULES.outpostCitizens;
+    s.tiles[id].maxCitizens = RULES.outpostCitizens;
+    s.tiles[id].garrisonCount = index < staffedCount ? 1 : 0;
+  });
+  return reduce(s, { type: 'COLLECT_COIN', id: 'missing' });
 };
 
-test('miracle fills with expansion and border pressure, but becomes ready only at 25 defense', () => {
-  assert.ok(built().lordOfHosts.chargePercent > start().lordOfHosts.chargePercent);
-  assert.ok(deployed().lordOfHosts.chargePercent > built().lordOfHosts.chargePercent);
-  assert.equal(miracleState(5).lordOfHosts.isPanicMashMode, false);
-  let s = miracleState();
-  assert.equal(s.defenseScore, 25);
+test('Lord of Hosts advances at 3, 8 and all settlements, then requires every guard', () => {
+  assert.equal(start().lordOfHosts.chargePercent, 0);
+  let s = conquestState(3);
+  assert.equal(s.lordOfHosts.chargePercent, 35);
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  assert.equal(s.lordOfHosts.piousToast, 'הבטחנו שזה יספיק, אבל אלוהים זקוק לתמיכה נוספת');
+  s = reduce(conquestState(8), { type: 'SET_LOCALE', locale: 'en' });
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  assert.equal(s.lordOfHosts.chargePercent, 65);
+  assert.equal(s.lordOfHosts.piousToast, 'The land takeover is progressing, but not enough');
+  s = reduce(conquestState(totalSettlementSites), { type: 'SET_LOCALE', locale: 'en' });
+  s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
+  assert.equal(s.lordOfHosts.chargePercent, 96);
+  assert.equal(s.lordOfHosts.piousToast, 'We conquered all of the land, but the settlements are not guarded enough');
+  s = conquestState(totalSettlementSites, totalSettlementSites);
+  assert.equal(isLordOfHostsOperational(s), true);
   assert.equal(s.lordOfHosts.isPanicMashMode, true);
   assert.equal(s.lordOfHosts.chargePercent, 100);
-  s = reduce(s, { type: 'CALL_RESERVES' });
-  assert.equal(s.lordOfHosts.isPanicMashMode, false);
-  assert.ok(s.lordOfHosts.chargePercent < 100);
+  assert.equal(s.gameStatus, 'playing');
 });
 
-test('five miracle taps finish the effect while the first tap protects even critically few citizens', () => {
-  let s = { ...miracleState(), citizens: 100 };
+test('five fully operational taps turn completed conquest into catastrophe', () => {
+  let s = { ...conquestState(totalSettlementSites, totalSettlementSites), citizens: 100 };
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
   assert.equal(s.lordOfHosts.mashCount, 1);
   const elapsed = s.elapsedSeconds;
@@ -155,30 +170,26 @@ test('five miracle taps finish the effect while the first tap protects even crit
 });
 
 test('miracle grace expires once, freezes threats too, and later taps cannot renew it', () => {
-  let s = miracleState();
-  s.tutorialStep = 'done';
+  let s = conquestState(totalSettlementSites, totalSettlementSites);
   s.nextThreatAt = s.elapsedSeconds + 1;
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
-  const citizens = s.citizens;
   s = tick(s, 8);
-  assert.equal(s.citizens, citizens);
   assert.equal(s.threats.length, 0);
   assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
   assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
   s = tick(s);
-  assert.ok(s.citizens < citizens);
   assert.equal(s.elapsedSeconds, 1);
   assert.ok(s.threats.length > 0);
 });
 
-test('normal clicks cannot start grace, and readiness stays latched after the sequence starts', () => {
-  const idle = reduce(start(), { type: 'MASH_LORD_OF_HOSTS' });
+test('milestone clicks only show promises, while operational readiness latches after activation', () => {
+  const idle = reduce(conquestState(8), { type: 'MASH_LORD_OF_HOSTS' });
   assert.equal(idle.lordOfHosts.mashCount, 0);
   assert.equal(idle.lordOfHosts.graceSecondsRemaining, 0);
-  let s = reduce(miracleState(), { type: 'CLICK_LORD_OF_HOSTS' });
-  s = reduce(s, { type: 'CALL_RESERVES' });
-  assert.ok(s.defenseScore > 25);
+  let s = reduce(conquestState(totalSettlementSites, totalSettlementSites), { type: 'CLICK_LORD_OF_HOSTS' });
+  s.tiles[outposts[0]].garrisonCount = 0;
+  s = reduce(s, { type: 'COLLECT_COIN', id: 'missing' });
   assert.equal(s.lordOfHosts.isPanicMashMode, true);
 });
 
@@ -253,16 +264,15 @@ const expanded = () => {
 };
 
 for (const action of completionActions) {
-  test(`${action.type} cannot win by expanding then dismantling`, () => {
+  test(`${action.type} leaves the expansion campaign running`, () => {
     const s = reduce(expanded(), action);
     assert.equal(s.gameStatus, 'playing');
-    assert.equal(s.defenseStreak, 0);
     assert.equal(s.defenseScore, 100);
     assert.equal(s.incomeRate, incomeFor(s));
   });
 }
 
-test('a secured border alone and repeated first-outpost recalls cannot win', () => {
+test('a secured border and repeated first-outpost recalls never end the campaign', () => {
   assert.equal(tick(start(), 130).gameStatus, 'playing');
   let s = reduce(deployed(), { type: 'SEAL_BREACH', checkpointId: 'bdr-1' });
   s = tick(s, 10);
@@ -295,7 +305,6 @@ test('restarts clear progression, preserve preferences and repeat threat outcome
   const replay = reduce({ ...a, locale: 'en', reduceMotion: true, soundEnabled: false }, { type: 'RESTART_GAME' });
   assert.equal(replay.tutorialStep, 'build');
   assert.equal(replay.peakSettlementsCount, 0);
-  assert.equal(replay.defenseStreak, 0);
   assert.equal(replay.settlementsCount, 0);
   assert.equal(replay.seed, a.seed);
   assert.equal(replay.locale, 'en');
@@ -540,22 +549,21 @@ test('reject invalid, excessive and late dispatches; arrival exactly at deadline
   assert.equal(sendSupport(empty).reinforcements.length, 0);
 });
 
-test('victory waits for active battles and restart clears tactical state', () => {
+test('resolved battles never create a victory ending and restart clears tactical state', () => {
   let s = sendSupport(sendSupport(tactical(3)));
-  s.defenseStreak = 2;
   s = tick(s, 4);
   assert.equal(s.gameStatus, 'playing');
   s = tick(s, 20);
-  assert.equal(s.gameStatus, 'rational_victory');
+  assert.equal(s.gameStatus, 'playing');
+  assert.ok(s.metrics.intercepted >= 1);
   const restarted = reduce(s, { type: 'RESTART_GAME' });
   assert.deepEqual(restarted.threats, []);
   assert.deepEqual(restarted.reinforcements, []);
   assert.equal(restarted.nextThreatAt, null);
   assert.equal(restarted.metrics.threatDamage, 0);
-  assert.equal(restarted.defenseStreak, 0);
 });
 
-test('an idle fully guarded board loses pressure battles while active reinforcement sustains it', () => {
+test('an idle board collapses while active reinforcement sustains an endless campaign', () => {
   const idle = tick(tactical(4), 180);
   assert.equal(idle.gameStatus, 'catastrophe');
   let active = tactical(4);
@@ -570,97 +578,20 @@ test('an idle fully guarded board loses pressure battles while active reinforcem
     active = tick(active);
     assert.equal(accountTroops(active), 20);
   }
-  assert.equal(active.gameStatus, 'rational_victory');
+  assert.equal(active.gameStatus, 'playing');
   assert.equal(active.citizens, RULES.nationalCitizens);
   assert.equal(active.metrics.threatDamage, 0);
   assert.ok(active.metrics.intercepted >= 3);
-  assert.equal(active.threats.length, 0);
-  assert.equal(active.defenseStreak, 3);
+  assert.ok(active.threatSequence >= 3);
 });
 
-test('successful defenses accumulate across different expansion stages', () => {
-  let opening = sendSupport(tactical());
-  opening = tick(opening, 24);
-  assert.equal(opening.metrics.intercepted, 1);
-  assert.equal(opening.defenseStreak, 1);
-  let s = { ...tactical(3), defenseStreak: opening.defenseStreak };
-  // Two reserve calls provide enough manpower to earn the economy medal.
-  s.soldiersTotal = 16;
-  s.reservesBatchesLeft = 1;
-  s.metrics.reserveCalls = 2;
-  for (let attack = 2; attack <= 3; attack++) {
-    while (!s.threats.length) s = tick(s);
-    const threat = s.threats[0];
-    while (threatDefense(s, threat) + incomingSupport(s, threat.id) < threat.required) s = sendSupport(s, threat);
-    s = tick(s, threat.deadline - s.elapsedSeconds);
-    assert.equal(s.defenseStreak, attack);
-    assert.equal(s.gameStatus, attack === 3 ? 'rational_victory' : 'playing');
-  }
-  assert.equal(s.settlementsCount, 3);
-  assert.equal(s.citizens, RULES.nationalCitizens);
-  assert.equal(medals(s)[1].earned, true);
-  assert.equal(medals({ ...s, metrics: { ...s.metrics, reserveCalls: 3 } })[1].earned, false);
-});
-
-test('earned defenses survive evacuation, missing guards, failed battles and destruction', () => {
-  const ready = () => ({ ...tactical(3), defenseStreak: 2 });
-  let s = reduce(ready(), { type: 'EVACUATE_SETTLEMENT', tileId: outposts[0] });
-  assert.equal(s.defenseStreak, 2);
+test('full staffed conquest makes the button operational but never ends the war', () => {
+  let s = conquestState(totalSettlementSites, totalSettlementSites);
+  assert.equal(s.settlementsCount, totalSettlementSites);
+  assert.equal(isLordOfHostsOperational(s), true);
+  assert.equal(s.lordOfHosts.isPanicMashMode, true);
   assert.equal(s.gameStatus, 'playing');
-  for (const border of [false, true]) {
-    s = ready();
-    const source = border ? 'bdr-1' : outposts.slice(0, 3).find(id => id !== s.threats[0].tileId);
-    s = sendSupport(s, s.threats[0], source);
-    assert.equal(s.defenseStreak, 2);
-  }
-  s = tick(ready(), 24);
-  assert.equal(s.defenseStreak, 2);
+  s = tick(s, 21);
   assert.equal(s.gameStatus, 'playing');
-  s = ready();
-  s.tiles[s.threats[0].tileId].citizens = 150;
-  s = tick(s, 24);
-  assert.equal(s.settlementsCount, 2);
-  assert.equal(s.defenseStreak, 2);
-  assert.equal(s.gameStatus, 'playing');
-});
-
-test('cancelling a threat earns no defense credit, and pauses cannot advance progress', () => {
-  let s = { ...tactical(4), defenseStreak: 1 };
-  s = reduce(s, { type: 'EVACUATE_SETTLEMENT', tileId: s.threats[0].tileId });
-  assert.equal(s.settlementsCount, 3);
-  assert.equal(s.threats.length, 0);
-  assert.equal(s.defenseStreak, 1);
-  s = reduce(s, { type: 'TOGGLE_PAUSE' });
-  assert.strictEqual(tick(s, 100), s);
-});
-
-test('adding a settlement and later failed encounters do not erase successful defenses', () => {
-  let expansion = { ...tactical(3), defenseStreak: 2 };
-  expansion = reduce(expansion, { type: 'BUILD_SETTLEMENT', tileId: outposts[3] });
-  expansion = tick(expansion, 5);
-  assert.equal(expansion.settlementsCount, 4);
-  assert.equal(expansion.defenseStreak, 2);
-  assert.equal(expansion.gameStatus, 'playing', 'the new outpost must still be staffed before victory');
-
-  let s = { ...tactical(3), defenseStreak: 2 };
-  s = sendSupport(sendSupport(s));
-  s = tick(s, 23);
-  s = reduce(s, { type: 'BUILD_SETTLEMENT', tileId: outposts[3] });
-  s = tick(s);
-  assert.equal(s.defenseStreak, 3);
-  assert.equal(s.gameStatus, 'playing');
-  s = tick(s, 4);
-  assert.equal(s.defenseStreak, 3, 'earned defenses remain while the new outpost awaits staffing');
-  assert.equal(s.gameStatus, 'playing');
-  s = tick(tactical(4), 18);
-  s.defenseStreak = 2;
-  const first = s.threats[0];
-  for (let i = 0; i < 3; i++) s = sendSupport(s, first);
-  s = tick(s, first.deadline - s.elapsedSeconds);
-  assert.equal(s.defenseStreak, 3);
-  assert.equal(s.threats.length, 1);
-  assert.equal(s.gameStatus, 'playing');
-  s = tick(s, s.threats[0].deadline - s.elapsedSeconds);
-  assert.equal(s.defenseStreak, 3);
-  assert.equal(s.gameStatus, 'rational_victory', 'a later failure does not erase three earlier successful defenses');
+  assert.ok(s.threats.length > 0, 'tactical threats continue after complete staffed expansion');
 });

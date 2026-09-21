@@ -10,7 +10,6 @@ import { HexMapCanvas } from './components/HexMapCanvas';
 import { BottomActionDeck } from './components/BottomActionDeck';
 import { SoulSparksOverlay } from './components/SoulSparksOverlay';
 import { October7DefeatModal } from './components/October7DefeatModal';
-import { RationalVictoryModal } from './components/RationalVictoryModal';
 import { FloatingEmergencyAlert } from './components/FloatingEmergencyAlert';
 import { EntranceInstructionModal } from './components/EntranceInstructionModal';
 import { StrategyToolkitModal } from './components/StrategyToolkitModal';
@@ -153,7 +152,6 @@ export default function App() {
 
       {/* Modals */}
       <October7DefeatModal state={state} dispatch={dispatch} />
-      <RationalVictoryModal state={state} dispatch={dispatch} />
       <NewsFeedModal state={state} dispatch={dispatch} />
       <EntranceInstructionModal state={state} dispatch={dispatch} />
       <StrategyToolkitModal state={state} dispatch={dispatch} />

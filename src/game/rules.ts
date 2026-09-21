@@ -1,5 +1,6 @@
 import { translate } from '../locales/translate';
 import type { GameState } from '../types';
+import { SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 
 export const AVAILABLE_TROOP_SOURCE = 'available';
 
@@ -12,9 +13,17 @@ export const RULES = {
   threatGrace: 20, threatInterval: 26, expandedThreatInterval: 18,
   threatWarning: 24, reinforcementTravel: 4, threatDeathsPerMissing: 6_000,
   outpostDeathsPerMissing: 150,
-  victoryOutposts: 3, victoryDefenses: 3,
-  miracleDefenseThreshold: 25, miracleTaps: 5, miracleGraceSeconds: 8,
+  settlementMilestoneOne: 3, settlementMilestoneTwo: 8,
+  miracleTaps: 5, miracleGraceSeconds: 8,
 } as const;
+
+export const totalSettlementSites = SETTLEMENT_CANDIDATE_IDS.length;
+export const builtSettlementSites = (state: GameState) => SETTLEMENT_CANDIDATE_IDS.filter(id => state.tiles[id]?.hasSettlement);
+export const staffedSettlementSites = (state: GameState) => builtSettlementSites(state).filter(id => state.tiles[id].garrisonCount > 0);
+export const isLordOfHostsOperational = (state: GameState) => {
+  const built = builtSettlementSites(state);
+  return built.length === totalSettlementSites && built.every(id => state.tiles[id].garrisonCount > 0);
+};
 
 export const simulationNow = (state: GameState) => state.elapsedSeconds * 1000;
 export const incomeFor = (state: GameState) => Math.max(1, RULES.civilianIncome - (3 - state.reservesBatchesLeft))
@@ -48,26 +57,6 @@ export function randomStream(seed: number, second: number, channel = 0) {
 
 export function objective(state: GameState): string {
   if (state.tutorialStep !== 'done') return translate(state.locale, 'game.rules.38', []);
-  return translate(state.locale, 'game.rules.41', [state.defenseStreak, RULES.victoryDefenses]);
-}
-
-export function holdsExpandedLine(state: GameState): boolean {
-  const outposts = Object.values(state.tiles).filter(tile => tile.hasSettlement);
-  return state.tutorialStep === 'done' && outposts.length >= RULES.victoryOutposts
-    && outposts.every(tile => tile.garrisonCount > 0) && state.citizens > 0
-    && Object.values(state.tiles).filter(tile => tile.isBorderCheckpoint && tile.garrisonCount > 0).length === RULES.checkpoints
-    && state.greenSideAttacks.length === 0;
-}
-
-export function hasWon(state: GameState): boolean {
-  return holdsExpandedLine(state) && state.defenseStreak >= RULES.victoryDefenses
-    && state.threats.length === 0 && Object.keys(state.constructions).length === 0;
-}
-
-export function medals(state: GameState) {
-  const won = state.gameStatus === 'rational_victory';
-  return [
-    { label: translate(state.locale, 'game.rules.62', []), earned: won && state.citizens >= 90_000 },
-    { label: translate(state.locale, 'game.rules.63', []), earned: won && state.metrics.reserveCalls <= 2 },
-  ];
+  return translate(state.locale, 'game.rules.41', [builtSettlementSites(state).length, totalSettlementSites,
+    staffedSettlementSites(state).length]);
 }

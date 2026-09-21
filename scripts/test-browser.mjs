@@ -4,6 +4,7 @@ import { createServer } from 'vite';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const server = await createServer({ server: { host: '127.0.0.1', port: 4178, strictPort: true, hmr: false } });
 await server.listen();
+const { totalSettlementSites } = await server.ssrLoadModule('/src/game/rules.ts');
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined });
 const failures = [];
 const viewports = [[320, 568], [360, 640], [390, 844], [430, 932], [568, 320], [844, 390], [1280, 720]];
@@ -109,7 +110,7 @@ try {
     assert.equal(await page.getByRole('dialog').count(), 0);
     await page.getByRole('button', { name: locale === 'en' ? /Seal gap/ : /סגור פרצה/ }).click();
     await page.getByRole('button', { name: locale === 'en' ? /Call reserves/ : /גיוס מילואים/ }).click();
-    assert.match(await page.getByTestId('victory-progress').innerText(), /1\/3.*8\/8.*0\/3/);
+    assert.match(await page.getByTestId('conquest-progress').innerText(), new RegExp(`1/${totalSettlementSites}.*1/1.*8/8`));
     await page.clock.runFor(21000);
     const before = await page.getByTestId('available-troops').innerText();
     await page.getByTestId('threat-status').click();
@@ -128,35 +129,6 @@ try {
     await page.close();
     console.log(`Direct build, deploy, breach and reinforcement loop passed without contextual menus: ${locale}`);
   }
-
-  // Three directly built and staffed outposts plus three defended attacks win.
-  const victoryPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  victoryPage.on('pageerror', error => failures.push(error.message));
-  await victoryPage.clock.install({ time: new Date('2026-09-21T12:00:00Z') });
-  await victoryPage.clock.pauseAt(new Date('2026-09-21T12:00:01Z'));
-  await victoryPage.goto('http://127.0.0.1:4178');
-  await dismissIntro(victoryPage);
-  await victoryPage.getByTitle('החלף שפה').click();
-  await buildOutpost(victoryPage);
-  await victoryPage.getByRole('button', { name: /Call reserves/ }).click();
-  await victoryPage.clock.runFor(65000);
-  await buildOutpost(victoryPage);
-  await buildOutpost(victoryPage);
-  for (let i = 0; i < 2; i++) await victoryPage.getByRole('button', { name: /Call reserves/ }).click();
-  while (await victoryPage.getByRole('button', { name: /^Staff / }).count()) {
-    await victoryPage.getByRole('button', { name: /^Staff / }).first().click();
-  }
-  assert.equal(await victoryPage.getByRole('dialog').count(), 0);
-  const victory = victoryPage.getByRole('dialog').filter({ hasText: 'You earned three successful defenses' });
-  for (let second = 0; second < 180 && !(await victory.count()); second++) {
-    const reinforce = victoryPage.locator('.action-deck').getByRole('button', { name: /Reinforce/ });
-    for (let tap = 0; tap < 6 && await reinforce.count() && !(await reinforce.isDisabled()); tap++) await reinforce.click();
-    await victoryPage.clock.runFor(1000);
-  }
-  await victory.waitFor();
-  assert.match(await victory.innerText(), /Attacks repelled 3\/3/);
-  await victoryPage.screenshot({ path: '/tmp/octgame-victory.png' });
-  await victoryPage.close();
 
   // Ignoring one directly-created gap still exercises both danger tiers and defeat.
   const defeat = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -185,7 +157,7 @@ try {
   await defeat.getByRole('dialog').filter({ hasText: 'citizen count reached zero' }).waitFor();
   await defeat.close();
 
-  // Reach the satirical ending entirely through direct build and map-deploy actions.
+  // Full conquest never wins: it only unlocks the satirical five-tap ending.
   for (const locale of ['en', 'he']) {
     const page = await browser.newPage({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
     page.on('pageerror', error => failures.push(error.message));
@@ -193,15 +165,39 @@ try {
     await page.clock.pauseAt(new Date('2026-09-21T12:00:01Z'));
     await page.goto('http://127.0.0.1:4178');
     await dismissIntro(page);
-    await page.getByTitle('החלף שפה').click();
+    if (locale === 'en') await page.getByTitle('החלף שפה').click();
     const miracle = page.getByTestId('lord-of-hosts');
     const initialFill = await page.getByTestId('miracle-fill').evaluate(el => el.style.width);
-    for (let i = 0; i < 6; i++) await buildOutpost(page, 'en', 35000);
-    assert.equal(await page.getByRole('button', { name: /^Staff / }).count(), 6);
-    for (let i = 0; i < 6; i++) await page.getByRole('button', { name: /^Staff / }).first().click();
-    if (locale === 'he') await page.getByTitle('Toggle Language').click();
+    const milestoneMessages = locale === 'en'
+      ? {
+          three: 'We have promised that this will be enough, but God needs more support',
+          eight: 'The land takeover is progressing, but not enough',
+          all: 'We conquered all of the land, but the settlements are not guarded enough',
+        }
+      : {
+          three: 'הבטחנו שזה יספיק, אבל אלוהים זקוק לתמיכה נוספת',
+          eight: 'ההשתלטות על הארץ מתקדמת, אבל זה לא מספיק',
+          all: 'כבשנו את כל הארץ, אבל המאחזים אינם מאובטחים מספיק',
+        };
+    for (let i = 1; i <= totalSettlementSites; i++) {
+      await buildOutpost(page, locale, 20000);
+      if (i === 3 || i === 8 || i === totalSettlementSites) {
+        await miracle.click();
+        const expected = i === 3 ? milestoneMessages.three : i === 8 ? milestoneMessages.eight : milestoneMessages.all;
+        await page.getByText(expected, { exact: true }).waitFor();
+        await page.clock.runFor(3100);
+      }
+    }
+    assert.equal(await page.getByRole('button', { name: locale === 'en' ? /^Staff / : /^אייש / }).count(), totalSettlementSites);
+    for (let i = 0; i < 3; i++) {
+      await page.getByRole('button', { name: locale === 'en' ? /Call reserves/ : /גיוס מילואים/ }).click();
+    }
+    while (await page.getByRole('button', { name: locale === 'en' ? /^Staff / : /^אייש / }).count()) {
+      await page.getByRole('button', { name: locale === 'en' ? /^Staff / : /^אייש / }).first().click();
+    }
     assert.ok(parseFloat(await page.getByTestId('miracle-fill').evaluate(el => el.style.width)) > parseFloat(initialFill));
     assert.equal(await miracle.getAttribute('data-ready'), 'true');
+    assert.equal(await page.getByRole('dialog').count(), 0, 'full conquest must not open a victory dialog');
     for (let tap = 1; tap <= 4; tap++) {
       if (tap === 2) { await miracle.focus(); await page.keyboard.press('Enter'); } else await miracle.click();
       assert.equal(await miracle.locator('.miracle-tap-steps .is-lit').count(), tap);
@@ -213,7 +209,7 @@ try {
   }
 
   assert.deepEqual(failures, []);
-  console.log('Simplified direct-action campaign, defeat and miracle paths passed.');
+  console.log('Simplified direct-action campaign, defeat and endless-conquest paths passed.');
 } finally {
   await browser.close();
   await server.close();

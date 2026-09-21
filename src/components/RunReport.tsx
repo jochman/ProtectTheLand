@@ -1,6 +1,6 @@
 import { translate } from '../locales/translate';
 import type { GameState } from '../types';
-import { medals, objective } from '../game/rules';
+import { objective } from '../game/rules';
 
 export function RunReport({ state }: { state: GameState }) {
   const m = state.metrics;
@@ -18,7 +18,6 @@ export function RunReport({ state }: { state: GameState }) {
     <div data-testid="run-lesson" className="rounded-xl border border-amber-300 bg-amber-50 p-3 leading-relaxed">
       {largest[1] > 0 ? <><p className="font-bold">{translate(state.locale, 'report.largest', [largest[0], format(largest[1])])}</p><p>{translate(state.locale, `report.tip.${tips[largestIndex]}`)}</p></> : translate(state.locale, 'report.none')}
     </div>
-    <div className="grid gap-1">{medals(state).map(medal => <p key={medal.label} className={medal.earned ? 'font-bold text-emerald-800' : 'text-slate-600'}>{medal.earned ? '🏅' : '○'} {medal.label}</p>)}</div>
     <table className="w-full overflow-hidden rounded-xl bg-white text-start">
       <caption className="mb-1 text-start font-bold">{translate(state.locale, 'components.RunReport.22', [])}</caption>
       <tbody>{damage.map(([label, amount]) => <tr key={label} className="border-b border-slate-100"><th className="p-2 text-start font-medium">{label}</th><td className="p-2 text-end tabular-nums">{format(amount)} {citizenUnit}</td></tr>)}</tbody>

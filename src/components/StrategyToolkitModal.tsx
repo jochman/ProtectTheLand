@@ -2,7 +2,7 @@ import { translate } from '../locales/translate';
 import React from 'react';
 import { BookOpen, Check, Eye, X } from 'lucide-react';
 import { GameAction, GameState } from '../types';
-import { objective, medals } from '../game/rules';
+import { objective } from '../game/rules';
 
 interface Props { state: GameState; dispatch: React.Dispatch<GameAction>; }
 
@@ -10,8 +10,8 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
   if (!state.isToolkitOpen) return null;
   const he = state.locale === 'he';
   const rows = he
-    ? [['בניית מאחז', '40₪ + התקדמות לניצחון', 'דורש אבטחה קבועה'], ['הסטת חייל', 'הגנת מאחז', 'גזרת גבול נפתחת'], ['מילואים', '+4 לוחמים', 'פוגע בקצב המשק'], ['פינוי', 'קיצור קווים', 'ויתור על המאחז']]
-    : [['Build outpost', '₪40 + victory progress', 'Needs a standing guard'], ['Deploy troop', 'Protects outpost', 'Opens a border sector'], ['Call reserves', '+4 troops', 'Slows civilian economy'], ['Evacuate', 'Shorter lines', 'Gives up the outpost']];
+    ? [['בניית מאחז', 'מענק 40₪ + הרחבת האחיזה', 'דורש אבטחה קבועה'], ['הסטת חייל', 'הגנת מאחז', 'גזרת גבול נפתחת'], ['מילואים', '+4 לוחמים', 'פוגע בקצב המשק'], ['פינוי', 'קיצור קווים', 'ויתור על המאחז']]
+    : [['Build outpost', '₪40 grant + control', 'Needs a standing guard'], ['Deploy troop', 'Protects outpost', 'Opens a border sector'], ['Call reserves', '+4 troops', 'Slows civilian economy'], ['Evacuate', 'Shorter lines', 'Gives up the outpost']];
   return <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3" onClick={() => dispatch({ type: 'CLOSE_TOOLKIT' })}>
     <section role="dialog" aria-modal="true" aria-label={translate(state.locale, 'components.StrategyToolkitModal.15', [])} className="modal-panel w-full max-w-md rounded-3xl border-2 border-amber-400 bg-[#fffaf2] p-4 text-slate-800 shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between border-b border-amber-200 pb-2">
@@ -32,7 +32,6 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
       <p className="mt-3 text-xs leading-relaxed">{translate(state.locale, 'components.StrategyToolkitModal.31', [])}</p>
       <p className="mt-2 text-xs font-bold">{objective(state)}</p>
       <p className="mt-2 text-xs leading-relaxed">{translate(state.locale, 'components.StrategyToolkitModal.35', [])}</p>
-      <ul className="mt-2 space-y-1 text-xs">{medals(state).map(m => <li key={m.label}>🏅 {m.label}</li>)}</ul>
     </section>
   </div>;
 };

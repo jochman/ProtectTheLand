@@ -139,8 +139,6 @@ export interface GameState {
   elapsedSeconds: number;
   /** Maximum concurrent outposts reached after completing the guided opening. */
   peakSettlementsCount: number;
-  /** Cumulative successful tactical defenses; the legacy field name is retained for state compatibility. */
-  defenseStreak: number;
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;
@@ -148,7 +146,7 @@ export interface GameState {
   timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'reinforce' | 'threat'; borderId?: string; gaps: number; citizens: number; deaths?: number; intercepted?: number }[];
   locale: 'he' | 'en';
   soundEnabled: boolean;
-  gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
+  gameStatus: 'playing' | 'catastrophe';
   
   // Numerical stats & Resources
   budget: number; // Coalition funds / Resources (₪)
@@ -177,11 +175,11 @@ export interface GameState {
 
   // The Satirical "יהוה צבאות" Deception Engine
   lordOfHosts: {
-    chargePercent: number; // Internal horizontal fill, 12–96 while charging, 100 when ready
+    chargePercent: number; // Expansion fill, 0–96 until every settlement is staffed, then 100
     stage: 1 | 2 | 3 | 4;
     stageGoalText: string;
-    countdownSeconds: number | null; // e.g. 30 -> 0
-    isPanicMashMode: boolean; // Ready at <=25 defense; stays ready once tapping starts
+    countdownSeconds: number | null; // Legacy field retained as null for state compatibility
+    isPanicMashMode: boolean; // Fully operational when every settlement site is built and staffed
     mashCount: number; // How many times mashed
     graceSecondsRemaining: number; // One brief simulation pause beginning on the first tap
     isCracked: boolean; // Fractures on 5th mash

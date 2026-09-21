@@ -16,8 +16,8 @@ const STAT_INFO = {
     en: { title: '🎖️ Military force', text: 'Total troops in service and the available pool. Troops staff border posts, outposts, and temporary reinforcements.' },
   },
   settlements: {
-    he: { title: '🏡 מאחזים', text: 'כל מאחז שהושלם מעניק 40₪ ומגדיל את תקרת התקציב ב־25₪. לניצחון נדרשים שלושה מאחזים מאוישים.' },
-    en: { title: '🏡 Outposts', text: 'Each completed outpost grants ₪40 and raises the budget cap by ₪25. Victory requires three staffed outposts.' },
+    he: { title: '🏡 מאחזים', text: 'כל מאחז שהושלם מעניק 40₪ ומגדיל את תקרת התקציב ב־25₪. היעד המוצהר הוא להקים מאחז בכל אתר במפה ולאייש את כולם.' },
+    en: { title: '🏡 Outposts', text: 'Each completed outpost grants ₪40 and raises the budget cap by ₪25. The declared target is to build and staff every site on the map.' },
   },
   budget: {
     he: { title: '💰 תקציב', text: 'בניית מאחז עולה 100₪ ופריסת חייל עולה 15₪. ההכנסה מגיעה מהמשק האזרחי; מאחזים אינם מייצרים כסף.' },

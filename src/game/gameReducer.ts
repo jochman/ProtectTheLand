@@ -3,7 +3,7 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, hasWon } from './rules';
+import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, isLordOfHostsOperational, totalSettlementSites } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 import { pruneThreats, reinforceThreat, tickThreats } from './threats';
@@ -11,7 +11,7 @@ import { pruneThreats, reinforceThreat, tickThreats } from './threats';
 export const INITIAL_STATE: GameState = {
   threats: [], reinforcements: [], nextThreatAt: null, threatSequence: 0,
   selectedThreatId: null, threatFeedback: null,
-  elapsedSeconds: 0, peakSettlementsCount: 0, defenseStreak: 0, seed: 7102023,
+  elapsedSeconds: 0, peakSettlementsCount: 0, seed: 7102023,
   tutorialStep: 'build', isDeployMode: false,
   metrics: { exposureDamage: 0, raidDamage: 0, clashDamage: 0, threatDamage: 0, intercepted: 0, miracleClicks: 0, reserveCalls: 0 },
   timeline: [],
@@ -40,7 +40,7 @@ export const INITIAL_STATE: GameState = {
   collectibleCoins: [],
   lastCoinTick: 0,
   lordOfHosts: {
-    chargePercent: 12,
+    chargePercent: 0,
     stage: 1,
     stageGoalText: he.lordOfHosts.stage1Goal,
     countdownSeconds: null,
@@ -216,14 +216,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     metrics: { ...next.metrics },
   };
   next.incomeRate = incomeFor(next);
-  // Derive readiness from actual checkpoint coverage after every gameplay action.
-  // This includes transfers, reinforcements and recalls, not just deployments.
+  // Expansion—not border collapse—drives the satirical promise meter.
+  const nextStrings = next.locale === 'he' ? he : en;
+  const stage = next.settlementsCount >= totalSettlementSites ? 4
+    : next.settlementsCount >= RULES.settlementMilestoneTwo ? 3
+    : next.settlementsCount >= RULES.settlementMilestoneOne ? 2 : 1;
+  const stageGoalText = stage === 4 ? nextStrings.lordOfHosts.stage4Goal
+    : stage === 3 ? nextStrings.lordOfHosts.stage3Goal
+    : stage === 2 ? nextStrings.lordOfHosts.stage2Goal : nextStrings.lordOfHosts.stage1Goal;
   const miracleReady = !next.lordOfHosts.isCracked && next.gameStatus === 'playing'
-    && (next.defenseScore <= RULES.miracleDefenseThreshold || next.lordOfHosts.mashCount > 0);
-  const pressureCharge = 12 + (100 - next.defenseScore) / (100 - RULES.miracleDefenseThreshold) * 88;
-  next.lordOfHosts = { ...next.lordOfHosts, isPanicMashMode: miracleReady,
-    chargePercent: miracleReady || next.lordOfHosts.isCracked ? 100
-      : Math.min(96, Math.round(Math.max(state.lordOfHosts.chargePercent, next.lordOfHosts.chargePercent, pressureCharge))) };
+    && (isLordOfHostsOperational(next) || next.lordOfHosts.mashCount > 0);
+  const settlementCharge = next.settlementsCount >= totalSettlementSites ? 96
+    : next.settlementsCount >= RULES.settlementMilestoneTwo
+      ? 65 + (next.settlementsCount - RULES.settlementMilestoneTwo) / (totalSettlementSites - RULES.settlementMilestoneTwo) * 25
+      : next.settlementsCount >= RULES.settlementMilestoneOne
+        ? 35 + (next.settlementsCount - RULES.settlementMilestoneOne) / (RULES.settlementMilestoneTwo - RULES.settlementMilestoneOne) * 25
+        : next.settlementsCount / RULES.settlementMilestoneOne * 30;
+  next.lordOfHosts = { ...next.lordOfHosts, stage, stageGoalText, countdownSeconds: null,
+    isPanicMashMode: miracleReady,
+    chargePercent: miracleReady || next.lordOfHosts.isCracked ? 100 : Math.round(settlementCharge) };
   next.maxBudget = RULES.budgetBase + next.settlementsCount * RULES.budgetPerOutpost;
   next.budget = Math.min(next.budget, next.maxBudget);
   if (action.type !== 'TICK_TIMER') next.greenSideAttacks = next.greenSideAttacks.filter(a => next.tiles[a.breachId]?.garrisonCount === 0);
@@ -235,7 +246,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     next.tutorialStep = 'done';
     next.nextThreatAt = next.elapsedSeconds + RULES.threatGrace;
   }
-  // Only expansion in the main game qualifies for victory, never the guided opening.
+  // Keep expansion history for the catastrophe report; expansion never ends the run.
   if (state.tutorialStep === 'done') next.peakSettlementsCount = Math.max(state.peakSettlementsCount, next.settlementsCount);
   if (state.tutorialStep !== 'done' && !completedTutorial) {
     next.tutorialStep = !secure ? 'observe' : next.settlementsCount === 0 ? 'build' : 'deploy';
@@ -265,10 +276,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       gaps: activeBreaches.length, citizens: next.citizens, intercepted }];
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
-  if (next.gameStatus === 'playing' && !completedTutorial && hasWon(next)) {
-    next = { ...next, gameStatus: 'rational_victory', selectedSettlementId: null, selectedInfiltrationId: null };
-    sounds.playVictory();
-  }
   return next;
 }
 
@@ -292,6 +299,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       let stageGoal = nextStrings.lordOfHosts.stage1Goal;
       if (state.lordOfHosts.stage === 2) stageGoal = nextStrings.lordOfHosts.stage2Goal;
       if (state.lordOfHosts.stage === 3) stageGoal = nextStrings.lordOfHosts.stage3Goal;
+      if (state.lordOfHosts.stage === 4) stageGoal = nextStrings.lordOfHosts.stage4Goal;
       return {
         ...state,
         locale: nextLocale,
@@ -637,15 +645,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         };
       }
 
-      let countdown = state.lordOfHosts.countdownSeconds;
-      let newStage = state.lordOfHosts.stage;
-      if (newDefenseScore <= 35 && countdown === null) {
-        countdown = 30;
-        newStage = 4;
-      }
-
-      const isPanic = newDefenseScore === 0;
-
       return {
         ...state,
         budget: newBudget,
@@ -660,11 +659,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         movingTroops: newMovingTroops,
         lordOfHosts: {
           ...state.lordOfHosts,
-          stage: newStage,
-          countdownSeconds: countdown,
-          isPanicMashMode: isPanic,
-          chargePercent: isPanic ? 99.9 : Math.min(99.0, Math.max(state.lordOfHosts.chargePercent + 4, 30)),
-          piousToast: isPanic ? strings.lordOfHosts.panicMashPrompt : null,
+          piousToast: null,
         },
         ...withNews(state, deployNewsItem),
         selectedSettlementId: null,
@@ -809,14 +804,17 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       }
 
       sounds.playLordOfHostsClick();
-      const excuses = strings.lordOfHosts.excuses;
-      const randomExcuse = excuses[Math.floor(random() * excuses.length)];
+      const established = SETTLEMENT_CANDIDATE_IDS.filter(id => state.tiles[id]?.hasSettlement).length;
+      const message = established >= totalSettlementSites ? strings.lordOfHosts.allBuiltNeedsGuards
+        : established >= RULES.settlementMilestoneTwo ? strings.lordOfHosts.milestoneEight
+        : established >= RULES.settlementMilestoneOne ? strings.lordOfHosts.milestoneThree
+        : strings.lordOfHosts.needThree;
 
       return {
         ...state,
         lordOfHosts: {
           ...state.lordOfHosts,
-          piousToast: randomExcuse,
+          piousToast: message,
         },
       };
     }
@@ -857,23 +855,11 @@ function reduceGame(state: GameState, action: GameAction): GameState {
     }
 
     case 'TICK_TIMER': {
-      let countdown = state.lordOfHosts.countdownSeconds;
-      let toast = state.lordOfHosts.piousToast;
-
-      // 1. Ticking countdown
-      if (countdown !== null && countdown > 0) {
-        countdown -= 1;
-      } else if (countdown === 0) {
-        countdown = 20;
-        toast = strings.lordOfHosts.excuses[5];
-        sounds.playSparkChime();
-      }
-
-      // 2. State clones for tick calculations
+      // State clones for tick calculations
       const updatedConstructions = { ...state.constructions };
       const updatedTiles = { ...state.tiles };
 
-      // 3. Passive budget income comes only from civilian production.
+      // Passive budget income comes only from civilian production.
       // Reserve call-ups reduce that income; settlements provide no financial return.
       const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
       const baseCivilianIncome = Math.max(1, RULES.civilianIncome - callsMade);
@@ -896,9 +882,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
       // 4. Update constructions
       let newSettlementsCount = state.settlementsCount;
-      let newCharge = state.lordOfHosts.chargePercent;
-      let newStage = state.lordOfHosts.stage;
-      let stageGoalText = state.lordOfHosts.stageGoalText;
       const newSparks = [...state.sparks];
       let completedThisTick = 0;
 
@@ -915,22 +898,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           newSettlementsCount += 1;
           completedThisTick += 1;
           sounds.playBuild();
-
-          // Update deceptive Lord of Hosts charge percent
-          newCharge = Math.min(99.0, 12 + newSettlementsCount * 6.5);
-          if (newSettlementsCount >= 6 && newStage === 1) {
-            newStage = 2;
-            stageGoalText = strings.lordOfHosts.stage2Goal;
-            newCharge = Math.max(newCharge, 55);
-            sounds.playDeploy();
-          } else if (newSettlementsCount >= 11 && newStage === 2) {
-            newStage = 3;
-            stageGoalText = strings.lordOfHosts.stage3Goal;
-            newCharge = Math.max(newCharge, 85);
-            sounds.playDeploy();
-          } else if (newSettlementsCount >= 15) {
-            newCharge = 99.0;
-          }
 
           // Add soul spark animation
           const targetTile = updatedTiles[tileId];
@@ -1123,8 +1090,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         targetY: atk.targetY,
         progress: atk.progress,
       }));
-
-      const isPanic = newDefenseScore === 0 && state.activeBreaches.length >= 2;
 
       // 6. Ambient Spicy News & Multi-part Story Arc Progress (paced naturally every 28 seconds)
       if (nextNewsTick >= 28 && newDefenseScore > 20) {
@@ -1463,15 +1428,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         interceptedToast: (state.interceptedToast && now - state.interceptedToast.timestamp > 3800)
           ? null
           : state.interceptedToast,
-        lordOfHosts: {
-          ...state.lordOfHosts,
-          chargePercent: Math.round(newCharge),
-          stage: newStage,
-          stageGoalText,
-          countdownSeconds: countdown,
-          piousToast: toast,
-          isPanicMashMode: isPanic,
-        },
       };
     }
 

@@ -236,25 +236,6 @@ class SoundEngine {
     osc.stop(ctx.currentTime + 0.2);
   }
 
-  public playVictory() {
-    const ctx = this.getContext();
-    if (!ctx) return;
-    const chords = [523.25, 659.25, 783.99, 1046.5]; // C E G C
-    chords.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const st = ctx.currentTime + idx * 0.08;
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, st);
-      gain.gain.setValueAtTime(0.2, st);
-      gain.gain.exponentialRampToValueAtTime(0.01, st + 0.4);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(st);
-      osc.stop(st + 0.45);
-    });
-  }
-
   public playClash() {
     const ctx = this.getContext();
     if (!ctx) return;

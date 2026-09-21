@@ -1,6 +1,6 @@
 import { translate } from '../locales/translate';
 import type { GameState, TacticalThreat } from '../types';
-import { availableTroops, holdsExpandedLine, randomStream, RULES, troopSource } from './rules';
+import { availableTroops, randomStream, RULES, troopSource } from './rules';
 import { tileName } from './hexGridData';
 
 export const threatDefense = (state: GameState, threat: TacticalThreat) =>
@@ -72,8 +72,6 @@ export function tickThreats(input: GameState): GameState {
     const textEn = missing ? `${tileName(tile, 'en')}: ${missing} troops short. ${deaths.toLocaleString('en-US')} citizens killed. Support returned to the available pool.`
       : `${tileName(tile, 'en')}: attack repelled! Support returned to the available pool.`;
     state = { ...state,
-      defenseStreak: missing === 0
-        ? Math.min(RULES.victoryDefenses, state.defenseStreak + 1) : state.defenseStreak,
       citizens: state.citizens - deaths,
       budget: Math.max(0, state.budget - missing * 4),
       tiles: { ...state.tiles, [tile.id]: tile.hasSettlement ? { ...tile, citizens,
@@ -101,8 +99,6 @@ export function tickThreats(input: GameState): GameState {
     state = { ...state, currentNews: news, newsHistory: [news, ...state.newsHistory].slice(0, 30) };
   }
   if (state.citizens <= 0) return { ...state, gameStatus: 'catastrophe', selectedThreatId: null, isScreenShaking: false };
-  // Once the objective is met, let overlapping battles finish before ending the run.
-  if (state.defenseStreak >= RULES.victoryDefenses && holdsExpandedLine(state)) return state;
   const count = Object.values(state.tiles).filter(t => t.hasSettlement).length;
   const nextThreatAt = state.nextThreatAt ?? state.elapsedSeconds + RULES.threatGrace;
   state = { ...state, nextThreatAt };

@@ -9,9 +9,9 @@ The game is a client-side React application; it has no backend or external game 
 1. Build an outpost (₪100) and let its construction finish.
 2. Deploy a troop to garrison it. This opens a border gap if that troop came from a checkpoint.
 3. Restore checkpoint coverage with reserves, available troops, or a recall.
-4. After the tutorial, staff three outposts, keep all eight checkpoints staffed, and repel three consecutive tactical threats to reach rational victory.
+4. After the tutorial, keep expanding toward every settlement site while responding to an endless sequence of tactical threats.
 
-Israel begins with 100,000 citizens alive, and every successful hit kills citizens permanently. If no citizens remain, or the ready "יהוה צבאות" satire button is tapped five times while border defense is at 25% or below, the campaign ends in catastrophe. The header provides pause, sound, fullscreen, restart, guide, strategy desk, and Hebrew/English controls.
+There is no victory state: even establishing and staffing all 17 settlement sites does not end the war. The "יהוה צבאות" satire button advances at 3 settlements, 8 settlements and full-map conquest, and becomes fully operational only when every settlement is guarded. Five operational taps end the campaign in catastrophe. Israel begins with 100,000 citizens alive, every successful hit kills citizens permanently, and reaching zero also ends in catastrophe. The compact header provides pause, language and a game menu containing the remaining settings and guidance.
 
 ## Requirements
 

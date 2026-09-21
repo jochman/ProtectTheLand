@@ -5,7 +5,7 @@ import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { haptics } from '../utils/haptics';
-import { RULES } from '../game/rules';
+import { RULES, staffedSettlementSites, totalSettlementSites } from '../game/rules';
 
 interface LordOfHostsButtonProps {
   state: GameState;
@@ -19,6 +19,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
   const isPanic = lordOfHosts.isPanicMashMode;
   const isCracked = lordOfHosts.isCracked;
   const tapCount = lordOfHosts.mashCount;
+  const staffed = staffedSettlementSites(state).length;
   const feedback = tapCount > 0
     ? strings.lordOfHosts.tapFeedback[Math.min(tapCount - 1, RULES.miracleTaps - 2)]
     : strings.lordOfHosts.panicMashPrompt;
@@ -91,7 +92,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
           </span>
         </div>
 
-        {/* Readiness and escalating feedback reveal no numerical unlock condition. */}
+        {/* Compact progress gives way to escalating feedback once the button is operational. */}
         {!isCracked && (
           <div className="relative mt-0.5 flex flex-col items-center" aria-live="polite" aria-atomic="true">
             {isPanic ? (
@@ -103,7 +104,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
                 </span>
               </>
             ) : (
-              <span className="text-[10px] font-bold leading-tight">{strings.lordOfHosts.charging}</span>
+              <span className="text-[10px] font-bold leading-tight">{translate(state.locale, 'lord.progress', [state.settlementsCount, totalSettlementSites, staffed])}</span>
             )}
           </div>
         )}
