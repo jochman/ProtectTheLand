@@ -3,7 +3,7 @@ import { HexTile } from '../types';
 
 const ENGLISH_NAMES: Record<string, string> = {
   'isr-2': 'Haifa / North', 'isr-4': 'Netanya / Sharon', 'isr-6': 'Tel Aviv',
-  'isr-8': "Shfela / Modi'in", 'isr-10': 'Ashdod / Ashkelon', 'isr-11': 'Gaza envelope',
+  'isr-8': 'Jerusalem', 'isr-10': 'Ashdod / Ashkelon', 'isr-11': 'Gaza envelope',
   'isr-12': 'Beer Sheva / Negev', 'wb-deadsea': 'Dead Sea',
   'wb-ariel': 'Ariel', 'wb-beitel': 'Beit El', 'wb-gush': 'Gush Etzion',
   'wb-dotan': 'Mevo Dotan', 'wb-yitzhar': 'Yitzhar', 'wb-kiryatarba': 'Kiryat Arba',
@@ -29,7 +29,7 @@ export const INITIAL_TILES: Record<string, HexTile> = {
   'isr-5': { id: 'isr-5', coord: { q: 0, r: 2 }, x: 40, y: 215, terrain: 'sea', hasSettlement: false, garrisonCount: 0 },
   'isr-6': { id: 'isr-6', coord: { q: 1, r: 2 }, x: 105, y: 210, terrain: 'israel', label: 'תל אביב', hasSettlement: false, garrisonCount: 0 },
   'isr-7': { id: 'isr-7', coord: { q: 0, r: 3 }, x: 40, y: 290, terrain: 'sea', hasSettlement: false, garrisonCount: 0 },
-  'isr-8': { id: 'isr-8', coord: { q: 1, r: 3 }, x: 100, y: 285, terrain: 'israel', label: 'השפלה / מודיעין', hasSettlement: false, garrisonCount: 0 },
+  'isr-8': { id: 'isr-8', coord: { q: 1, r: 3 }, x: 100, y: 285, terrain: 'israel', label: 'ירושלים', hasSettlement: false, garrisonCount: 0 },
   'isr-9': { id: 'isr-9', coord: { q: 0, r: 4 }, x: 35, y: 365, terrain: 'sea', hasSettlement: false, garrisonCount: 0 },
   'isr-10': { id: 'isr-10', coord: { q: 1, r: 4 }, x: 95, y: 360, terrain: 'israel', label: 'אשדוד / אשקלון', hasSettlement: false, garrisonCount: 0 },
   'isr-11': { id: 'isr-11', coord: { q: 0, r: 5 }, x: 35, y: 440, terrain: 'israel', label: 'עוטף עזה', hasSettlement: false, garrisonCount: 0 },

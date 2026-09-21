@@ -5,7 +5,7 @@ export const AVAILABLE_TROOP_SOURCE = 'available';
 
 export const RULES = {
   buildCost: 100, deployCost: 15, civilianIncome: 4, guardedIncome: 0,
-  budgetBase: 300, budgetPerOutpost: 25,
+  budgetBase: 300, budgetPerOutpost: 25, settlementGrant: 40,
   nationalCitizens: 100_000, outpostCitizens: 1_000,
   gapDeaths: 400, raidDeaths: 12_000, raidCost: 10, outpostClashDeaths: 250,
   checkpoints: 8,
@@ -32,7 +32,7 @@ export function troopSource(state: GameState, targetId: string, reinforcement = 
   candidates.sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
   return candidates[0]?.id ?? null;
 }
-export const isGamePaused = (state: GameState) => state.isPaused || state.isIntroModalOpen || state.isToolkitOpen
+export const isGamePaused = (state: GameState) => state.isPaused || state.isSystemMenuOpen || state.isIntroModalOpen || state.isToolkitOpen
   || state.isNewsModalOpen || !!state.selectedSettlementId || !!state.selectedInfiltrationId || !!state.selectedThreatId || !!state.infoPopover;
 
 // A separate stream for each event family keeps cosmetic actions out of threat generation.

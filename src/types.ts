@@ -224,6 +224,7 @@ export interface GameState {
   lastCityTaxTimestamps?: Record<string, number>;
   isIntroModalOpen: boolean;
   isPaused: boolean;
+  isSystemMenuOpen: boolean;
   infoPopover: { title: string; text: string } | null;
   isToolkitOpen: boolean;
   reduceMotion: boolean;
@@ -234,6 +235,9 @@ export type GameAction =
   | { type: 'SELECT_THREAT'; id: string | null }
   | { type: 'REINFORCE_THREAT'; threatId: string; sourceId?: string }
   | { type: 'TOGGLE_PAUSE' }
+  | { type: 'PAUSE_GAME' }
+  | { type: 'TOGGLE_SYSTEM_MENU' }
+  | { type: 'CLOSE_SYSTEM_MENU' }
   | { type: 'SHOW_INFO_POPOVER'; title: string; text: string }
   | { type: 'CLEAR_INFO_POPOVER' }
   | { type: 'OPEN_INTRO_MODAL' }

@@ -26,11 +26,11 @@ const STAT_INFO = {
   settlements: {
     he: {
       title: '🏡 מאחזים ויישובים ביו״ש',
-      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את גאולת ״יהוה צבאות״, אך אינו מייצר הכנסה ודורש אבטחה צבאית קבועה למניעת פשיטות והרג אזרחים.',
+      text: 'כל מאחז שהושלם מעניק 40₪ תמיכה קואליציונית ומגדיל את תקרת התקציב ב־25₪. שלושה מאחזים מאוישים נדרשים לפתיחת מסלול הניצחון, אך כל אחד דורש אבטחה קבועה.',
     },
     en: {
       title: '🏡 Hilltop Outposts & Settlements',
-      text: 'Settlements established across the West Bank. They advance total conquest and redemption, but generate no income and require standing guards to prevent raids and civilian deaths.',
+      text: 'Each completed outpost brings a ₪40 coalition grant and raises the budget cap by ₪25. Three staffed outposts unlock the victory path, but every one needs a standing guard.',
     },
   },
   budget: {
@@ -167,7 +167,9 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
                   : 'text-red-600 animate-pulse'
               }`}
             >
-              {(state.incomeRate ?? 4) <= 0
+              {state.latestGrant && (simulationNow(state) - state.latestGrant.timestamp < 3600)
+                ? translate(state.locale, 'components.TopStatusPill.grant', [state.latestGrant.amount])
+                : (state.incomeRate ?? 4) <= 0
                 ? (translate(state.locale, 'components.TopStatusPill.180', []))
                 : `+${state.incomeRate ?? 4}₪/${translate(state.locale, 'components.TopStatusPill.181', [])}`}
             </span>

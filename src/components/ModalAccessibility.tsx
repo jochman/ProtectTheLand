@@ -3,7 +3,7 @@ import type { GameAction, GameState } from '../types';
 
 /** One focus boundary for every modal, including native disclosure controls. */
 export function ModalAccessibility({ state, dispatch }: { state: GameState; dispatch: Dispatch<GameAction> }) {
-  const key = state.isIntroModalOpen ? 'intro' : state.isToolkitOpen ? 'toolkit'
+  const key = state.isIntroModalOpen ? 'intro' : state.isToolkitOpen ? 'toolkit' : state.isSystemMenuOpen ? 'systemMenu'
     : state.isNewsModalOpen ? 'news' : state.gameStatus !== 'playing' ? 'result'
     : state.selectedThreatId ? 'threat' : state.selectedSettlementId ? 'outpost'
     : state.selectedInfiltrationId ? 'infiltration' : state.infoPopover ? 'info' : '';
@@ -28,7 +28,7 @@ export function ModalAccessibility({ state, dispatch }: { state: GameState; disp
       .filter(el => el.getClientRects().length > 0 && !el.closest('[inert]')
         && ![...panel.querySelectorAll('details:not([open])')].some(details => details.contains(el) && el !== details.querySelector('summary')));
     const close: Partial<Record<string, GameAction>> = {
-      intro: { type: 'CLOSE_INTRO_MODAL' }, toolkit: { type: 'CLOSE_TOOLKIT' }, news: { type: 'CLOSE_NEWS_MODAL' },
+      intro: { type: 'CLOSE_INTRO_MODAL' }, toolkit: { type: 'CLOSE_TOOLKIT' }, systemMenu: { type: 'CLOSE_SYSTEM_MENU' }, news: { type: 'CLOSE_NEWS_MODAL' },
       threat: { type: 'SELECT_THREAT', id: null }, outpost: { type: 'SELECT_TILE', tileId: null },
       infiltration: { type: 'SELECT_INFILTRATION', id: null }, info: { type: 'CLEAR_INFO_POPOVER' },
     };

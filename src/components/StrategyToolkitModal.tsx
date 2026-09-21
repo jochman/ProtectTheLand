@@ -10,8 +10,8 @@ export const StrategyToolkitModal: React.FC<Props> = ({ state, dispatch }) => {
   if (!state.isToolkitOpen) return null;
   const he = state.locale === 'he';
   const rows = he
-    ? [['בניית מאחז', 'מימון פוליטי', 'דורש אבטחה קבועה'], ['הסטת חייל', 'הגנת מאחז', 'גזרת גבול נפתחת'], ['מילואים', '+4 לוחמים', 'פוגע בקצב המשק'], ['פינוי', 'קיצור קווים', 'ויתור על המאחז']]
-    : [['Build outpost', 'Political funding', 'Needs a standing guard'], ['Deploy troop', 'Protects outpost', 'Opens a border sector'], ['Call reserves', '+4 troops', 'Slows civilian economy'], ['Evacuate', 'Shorter lines', 'Gives up the outpost']];
+    ? [['בניית מאחז', '40₪ + התקדמות לניצחון', 'דורש אבטחה קבועה'], ['הסטת חייל', 'הגנת מאחז', 'גזרת גבול נפתחת'], ['מילואים', '+4 לוחמים', 'פוגע בקצב המשק'], ['פינוי', 'קיצור קווים', 'ויתור על המאחז']]
+    : [['Build outpost', '₪40 + victory progress', 'Needs a standing guard'], ['Deploy troop', 'Protects outpost', 'Opens a border sector'], ['Call reserves', '+4 troops', 'Slows civilian economy'], ['Evacuate', 'Shorter lines', 'Gives up the outpost']];
   return <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3" onClick={() => dispatch({ type: 'CLOSE_TOOLKIT' })}>
     <section role="dialog" aria-modal="true" aria-label={translate(state.locale, 'components.StrategyToolkitModal.15', [])} className="modal-panel w-full max-w-md rounded-3xl border-2 border-amber-400 bg-[#fffaf2] p-4 text-slate-800 shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between border-b border-amber-200 pb-2">

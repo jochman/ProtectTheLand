@@ -17,10 +17,12 @@ try {
         const rect = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height }; };
         return { viewport: innerHeight, width: innerWidth, scroll: document.documentElement.scrollHeight,
           map: rect('[data-testid="game-map"]'), deck: rect('.action-deck'), header: rect('header'), goal: rect('.game-goal'), ticker: rect('header + div + div'),
+          headerButtons: document.querySelectorAll('header > div:last-of-type > button').length,
           buttons: [...document.querySelectorAll('.action-deck > .grid button, .action-deck .messianic-btn')].map(b => b.getBoundingClientRect().bottom),
           dir: document.documentElement.dir };
       });
       assert.equal(geometry.dir, locale === 'he' ? 'rtl' : 'ltr');
+      assert.equal(geometry.headerButtons, 3, 'header exposes only pause, language and one game menu');
       assert.equal(geometry.scroll, height, JSON.stringify(geometry));
       assert.ok(geometry.map.height >= 220, JSON.stringify(geometry));
       assert.ok(geometry.deck.bottom <= height + 1, JSON.stringify(geometry));
@@ -34,6 +36,25 @@ try {
       await page.close();
     }
   }
+  const autoPause = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await autoPause.clock.install({ time: new Date('2026-09-21T12:00:00Z') });
+  await autoPause.clock.pauseAt(new Date('2026-09-21T12:00:01Z'));
+  await autoPause.goto('http://127.0.0.1:4178');
+  await autoPause.getByRole('button', { name: 'למפה — נלמד תוך כדי משחק' }).click();
+  await autoPause.clock.runFor(2000);
+  const budgetBeforeHide = await autoPause.locator('.status-pill button').nth(2).innerText();
+  await autoPause.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await autoPause.clock.runFor(5000);
+  assert.equal(await autoPause.locator('.status-pill button').nth(2).innerText(), budgetBeforeHide);
+  await autoPause.getByRole('button', { name: /המשחק מושהה/ }).click();
+  await autoPause.clock.runFor(1000);
+  assert.notEqual(await autoPause.locator('.status-pill button').nth(2).innerText(), budgetBeforeHide);
+  assert.equal(await autoPause.getByText('ירושלים', { exact: true }).count(), 1);
+  await autoPause.close();
+  console.log('Visibility auto-pause, explicit resume, compact header and Jerusalem map label passed.');
   // New controls must remain usable with keyboard, touch and either locale.
   for (const locale of ['en', 'he']) {
     const check = await browser.newPage({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
@@ -94,7 +115,8 @@ try {
   await page.getByRole('button', { name: /Staff 3\+ outposts/ }).waitFor();
   await page.clock.runFor(65000);
   assert.equal(await page.getByRole('dialog').count(), 0);
-  await page.getByTitle('Strategy desk & accessibility').click();
+  await page.getByTitle('Game menu').click();
+  await page.getByRole('button', { name: 'Objective & game guide' }).click();
   assert.equal(await page.getByRole('button', { name: /scenario|Defend first|Overextension|Emergency recovery/i }).count(), 0);
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   // Expansion and evacuation alone must not end the campaign.
@@ -171,10 +193,10 @@ try {
       sawWarning ||= !critical;
       sawCritical ||= critical;
     }
-    if (await page.getByRole('dialog').filter({ hasText: 'Resilience reached zero' }).count()) break;
+    if (await page.getByRole('dialog').filter({ hasText: 'citizen count reached zero' }).count()) break;
   }
   assert.ok(sawWarning && sawCritical, 'both danger tiers appear before defeat');
-  await page.getByRole('dialog').filter({ hasText: 'Resilience reached zero' }).waitFor();
+  await page.getByRole('dialog').filter({ hasText: 'citizen count reached zero' }).waitFor();
   await page.getByRole('button', { name: 'Play again', exact: true }).click();
   assert.equal(await page.getByRole('dialog').count(), 0);
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /Call reserves/ }).click();

@@ -40,8 +40,8 @@ export function BottomActionDeck({ state, dispatch }: { state: GameState; dispat
       <button className={`clay-btn min-h-14 px-1 py-1 text-xs ${state.isDeployMode || reinforce ? 'ring-2 ring-amber-700' : ''}`} disabled={!playing || (!reinforce && !state.isDeployMode && (!exposed || !hasTroops || state.budget < RULES.deployCost))} onClick={() => dispatch(reinforce ? { type: 'SELECT_THREAT', id: threat.id } : { type: 'DEPLOY_TROOPS' })}>
         <span>{translate(state.locale, reinforce ? 'actions.reinforce' : 'actions.deploy')}</span><span className="text-[11px]">{reinforce ? translate(state.locale, 'actions.travel', [RULES.reinforcementTravel]) : `₪${RULES.deployCost} / ${translate(state.locale, 'components.BottomActionDeck.35', [])}`}</span>
       </button>
-      <button className={`clay-btn min-h-14 px-1 py-1 text-xs ${state.isBuildMode ? 'ring-2 ring-amber-700' : ''}`} disabled={!playing || (!state.isBuildMode && state.budget < RULES.buildCost)} onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}>
-        <span>{translate(state.locale, 'components.BottomActionDeck.38', [])}</span><span className="text-[11px]">₪{RULES.buildCost}</span>
+      <button aria-label={translate(state.locale, 'actions.buildAria', [Math.min(state.settlementsCount, RULES.victoryOutposts), RULES.victoryOutposts, RULES.buildCost, RULES.settlementGrant])} className={`clay-btn min-h-14 px-1 py-1 text-xs ${state.isBuildMode ? 'ring-2 ring-amber-700' : ''}`} disabled={!playing || (!state.isBuildMode && state.budget < RULES.buildCost)} onClick={() => dispatch({ type: 'TOGGLE_BUILD_MODE' })}>
+        <span className="whitespace-nowrap">{translate(state.locale, 'actions.buildShort', [Math.min(state.settlementsCount, RULES.victoryOutposts), RULES.victoryOutposts])}</span><span className="whitespace-nowrap text-[10px]">{translate(state.locale, 'actions.buildReward', [RULES.buildCost, RULES.settlementGrant])}</span>
       </button>
     </div>
     <LordOfHostsButton state={state} dispatch={dispatch} />

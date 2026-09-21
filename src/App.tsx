@@ -30,6 +30,21 @@ export default function App() {
     document.documentElement.dir = translate(state.locale, 'App.27', []);
   }, [state.locale]);
 
+  // Backgrounded tabs and minimized windows must never advance the simulation.
+  // Returning keeps the game paused until the player explicitly resumes.
+  useEffect(() => {
+    const pauseWhenHidden = () => {
+      if (document.hidden) dispatch({ type: 'PAUSE_GAME' });
+    };
+    const pauseOnPageHide = () => dispatch({ type: 'PAUSE_GAME' });
+    document.addEventListener('visibilitychange', pauseWhenHidden);
+    window.addEventListener('pagehide', pauseOnPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', pauseWhenHidden);
+      window.removeEventListener('pagehide', pauseOnPageHide);
+    };
+  }, []);
+
   // Game loop tick every 1 second: auto-pauses when modals are open or when user tapped pause
   useEffect(() => {
     if (state.gameStatus !== 'playing' || isGamePaused(state)) return;
@@ -42,6 +57,7 @@ export default function App() {
   }, [
     state.gameStatus,
     state.isPaused,
+    state.isSystemMenuOpen,
     state.isIntroModalOpen,
     state.isNewsModalOpen,
     state.selectedSettlementId,

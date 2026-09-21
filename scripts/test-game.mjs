@@ -5,13 +5,35 @@ import { createServer } from 'vite';
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false, watch: null }, appType: 'custom' });
 after(() => server.close());
 const { gameReducer: reduce, INITIAL_STATE } = await server.ssrLoadModule('/src/game/gameReducer.ts');
-const { SETTLEMENT_CANDIDATE_IDS: outposts } = await server.ssrLoadModule('/src/game/hexGridData.ts');
+const { SETTLEMENT_CANDIDATE_IDS: outposts, tileName } = await server.ssrLoadModule('/src/game/hexGridData.ts');
 const { incomeFor, availableTroops, medals, RULES, troopSource } = await server.ssrLoadModule('/src/game/rules.ts');
 const { threatDefense, incomingSupport, dangerStatus } = await server.ssrLoadModule('/src/game/threats.ts');
 const start = () => reduce(structuredClone(INITIAL_STATE), { type: 'RESTART_GAME' });
 const tick = (state, count = 1) => { for (let i = 0; i < count; i++) state = reduce(state, { type: 'TICK_TIMER' }); return state; };
 const built = () => tick(reduce(start(), { type: 'BUILD_SETTLEMENT' }), 7);
 const deployed = () => reduce(built(), { type: 'DEPLOY_TROOP', settlementId: outposts[0], borderId: 'bdr-1' });
+
+test('completed outposts reward expansion and Jerusalem is present in both locales', () => {
+  const before = reduce(start(), { type: 'BUILD_SETTLEMENT' });
+  const after = tick(before, 4);
+  assert.equal(after.settlementsCount, 1);
+  assert.equal(after.latestGrant.amount, RULES.settlementGrant);
+  assert.equal(after.budget, 4 * RULES.civilianIncome + RULES.settlementGrant);
+  assert.equal(tileName(after.tiles['isr-8'], 'he'), 'ירושלים');
+  assert.equal(tileName(after.tiles['isr-8'], 'en'), 'Jerusalem');
+});
+
+test('automatic pause is idempotent and blocks simulation ticks until resumed', () => {
+  let s = tick(start(), 2);
+  const elapsed = s.elapsedSeconds;
+  s = reduce(s, { type: 'PAUSE_GAME' });
+  s = reduce(s, { type: 'PAUSE_GAME' });
+  s = tick(s, 5);
+  assert.equal(s.elapsedSeconds, elapsed);
+  assert.equal(s.isPaused, true);
+  s = reduce(s, { type: 'TOGGLE_PAUSE' });
+  assert.equal(tick(s).elapsedSeconds, elapsed + 1);
+});
 
 test('automatic deployment uses free troops, then spare guards, and records the chosen source', () => {
   let s = built();

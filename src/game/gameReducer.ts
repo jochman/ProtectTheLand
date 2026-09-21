@@ -30,6 +30,7 @@ export const INITIAL_STATE: GameState = {
   citizens: RULES.nationalCitizens,
   isIntroModalOpen: true, // Entrance tutorial modal opens on game start
   isPaused: false,
+  isSystemMenuOpen: false,
   infoPopover: null,
   isToolkitOpen: false,
   reduceMotion: false,
@@ -99,7 +100,7 @@ export const BORDER_TO_GREEN_CITY: Record<string, { cityId: string; nameHe: stri
   'bdr-1': { cityId: 'isr-2', nameHe: 'חיפה והצפון', nameEn: 'Haifa & North' },
   'bdr-2': { cityId: 'isr-4', nameHe: 'נתניה / השרון', nameEn: 'Netanya / Sharon' },
   'bdr-3': { cityId: 'isr-6', nameHe: 'תל אביב', nameEn: 'Tel Aviv' },
-  'bdr-4': { cityId: 'isr-8', nameHe: 'השפלה / מודיעין', nameEn: 'Shfela / Modi\'in' },
+  'bdr-4': { cityId: 'isr-8', nameHe: 'ירושלים', nameEn: 'Jerusalem' },
   'bdr-5': { cityId: 'isr-10', nameHe: 'אשדוד / אשקלון', nameEn: 'Ashdod / Ashkelon' },
   'bdr-6': { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' },
   'bdr-7': { cityId: 'isr-11', nameHe: 'עוטף עזה', nameEn: 'Gaza Envelope' },
@@ -330,15 +331,21 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       return { ...state, reduceMotion: !state.reduceMotion };
 
     case 'OPEN_TOOLKIT':
-      return { ...state, isToolkitOpen: true };
+      return { ...state, isToolkitOpen: true, isSystemMenuOpen: false };
     case 'CLOSE_TOOLKIT':
       return { ...state, isToolkitOpen: false };
+
+    case 'TOGGLE_SYSTEM_MENU':
+      return { ...state, isSystemMenuOpen: !state.isSystemMenuOpen };
+    case 'CLOSE_SYSTEM_MENU':
+      return { ...state, isSystemMenuOpen: false };
 
     case 'OPEN_INTRO_MODAL': {
       sounds.playClick();
       return {
         ...state,
         isIntroModalOpen: true,
+        isSystemMenuOpen: false,
       };
     }
 
@@ -362,6 +369,9 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         isPaused: !state.isPaused,
       };
     }
+
+    case 'PAUSE_GAME':
+      return state.gameStatus === 'playing' ? { ...state, isPaused: true } : state;
 
     case 'SHOW_INFO_POPOVER': {
       sounds.playClick();
@@ -884,7 +894,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
       const guardedIncomeBonus = guardedSettlementCount * RULES.guardedIncome;
       const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
-      const currentMaxBudget = RULES.budgetBase + Object.values(updatedTiles).filter(t => t.hasSettlement).length * RULES.budgetPerOutpost;
+      let currentMaxBudget = RULES.budgetBase + Object.values(updatedTiles).filter(t => t.hasSettlement).length * RULES.budgetPerOutpost;
       let newBudget = Math.min(currentMaxBudget, state.budget + effectiveIncome);
       let citizens = state.citizens ?? RULES.nationalCitizens;
       const metrics = { ...state.metrics };
@@ -904,6 +914,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       let newStage = state.lordOfHosts.stage;
       let stageGoalText = state.lordOfHosts.stageGoalText;
       const newSparks = [...state.sparks];
+      let completedThisTick = 0;
 
       for (const [tileId, c] of Object.entries(updatedConstructions)) {
         if (c.progress >= 100) {
@@ -916,6 +927,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
             maxCitizens: RULES.outpostCitizens,
           };
           newSettlementsCount += 1;
+          completedThisTick += 1;
           sounds.playBuild();
 
           // Update deceptive Lord of Hosts charge percent
@@ -954,6 +966,19 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       }
 
       const now = simulationNow(state);
+      let latestGrant = state.latestGrant;
+      if (latestGrant && now - latestGrant.timestamp > 3800) latestGrant = null;
+      if (completedThisTick > 0) {
+        const grantAmount = completedThisTick * RULES.settlementGrant;
+        currentMaxBudget = RULES.budgetBase + newSettlementsCount * RULES.budgetPerOutpost;
+        newBudget = Math.min(currentMaxBudget, newBudget + grantAmount);
+        latestGrant = {
+          id: `settlement-grant-${now}`,
+          amount: grantAmount,
+          reason: translate(state.locale, 'game.gameReducer.settlementGrant', [grantAmount]),
+          timestamp: now,
+        };
+      }
 
       // Citizen deaths are permanent; this pass only clears expired impact visuals.
       for (const tId of Object.keys(updatedTiles)) {
@@ -978,7 +1003,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           { x: 105, y: 210 }, // תל אביב
           { x: 115, y: 60 },  // חיפה והצפון
           { x: 110, y: 135 }, // נתניה / השרון
-          { x: 100, y: 285 }, // השפלה / מודיעין
+          { x: 100, y: 285 }, // ירושלים
           { x: 95, y: 360 },  // אשדוד / אשקלון
           { x: 95, y: 435 },  // באר שבע והנגב
         ];
@@ -1321,10 +1346,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       let latestPenalty = state.latestPenalty;
       if (latestPenalty && now - latestPenalty.timestamp > 4000) {
         latestPenalty = null;
-      }
-      let latestGrant = state.latestGrant;
-      if (latestGrant && now - latestGrant.timestamp > 3800) {
-        latestGrant = null;
       }
       let nextPenaltyTick = (state.lastPenaltyTick || 0) + 1;
 

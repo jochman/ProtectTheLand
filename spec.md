@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-21 09:57:32 UTC (Branch: `main`, Iteration #61)
+> **Last Synchronized:** 2026-09-21 11:42:32 UTC (Branch: `main`, Iteration #62)
 
 ---
 
@@ -141,7 +141,7 @@ The complete, compile-checked contract lives in `src/types.ts`; shared formulas 
 - Deployment UI: `isDeployMode` and `selectedSettlementId`. Tap a map outpost, then Send troop; `DEPLOY_TROOP` chooses its source automatically at dispatch time. The inspector shows cost, coverage consequences and a disabled reason without source selection. Optional explicit source IDs remain in reducer actions for replay/backward compatibility, but no player-facing source picker exists.
 - `metrics`: cumulative actual citizen deaths from exposure, raids, outpost clashes and tactical threats (clamped to citizens remaining at each hit), successful interceptions, miracle-button clicks, and reserve calls made during this run.
 - `timeline`: simulation second, action/event kind, optional source/breach sector, gaps remaining, citizens alive after the action, and optional deaths/interception count. It covers construction starts, deployments, reserves, recalls, evacuations, sealing, raid impacts, outpost losses, reinforcement dispatches and tactical battle outcomes.
-- UI pause sources: manual pause, introduction, strategy desk, news feed, settlement inspector, infiltration inspector, reinforcement planning and information popovers.
+- UI pause sources: manual pause, the compact game menu, introduction, strategy desk, news feed, settlement inspector, infiltration inspector, reinforcement planning and information popovers. Page Visibility (`visibilitychange`) and `pagehide` also set the persistent manual pause flag when a tab/window is backgrounded or minimized; returning never silently resumes the simulation.
 - Restarts reconstruct the standard starting board and seed, clear time/metrics/history and tutorial/expansion progress, and preserve locale, sound and reduced-motion settings.
 - Gameplay mutations are rejected after a terminal result. UI controls and game restart remain available.
 
@@ -167,9 +167,10 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 
 ### 5.3 Treasury, Labor-Burnout & Paced Economic Model
 - **Settlement Construction Cost:** 100₪.
+- **Settlement Completion Grant:** Every completed outpost immediately awards a one-time **40₪ coalition grant**. This is capped by the expanded treasury ceiling and is surfaced as temporary green budget feedback; it is not passive income.
 - **Initial Treasury:** 100₪ (Balanced to cover either 1st settlement or troop deployment savings).
 - **Dynamic Treasury Cap:** Starts at 300₪ and expands as the settlement empire grows:
-  $$\text{MaxBudget} = 300\text{₪} + (\text{BuiltSettlements} \times 15\text{₪})$$
+  $$\text{MaxBudget} = 300\text{₪} + (\text{BuiltSettlements} \times 25\text{₪})$$
 - **Paced Income Formula:**
   - **Base Civilian Production:** Calling military reserves pulls workers from the civilian economy:
     $$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
@@ -199,7 +200,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 - **Messianic Charge Acceleration:** Stationing soldiers at outposts contributes **+4 internal charge units per soldier**, with border exposure also advancing the horizontal button fill. See §7 for the authoritative fill formula and readiness rules. No percentage or numerical unlock condition appears on the button.
 
 ### 5.5 Active City Tax Clicker
-- Players can tap on sovereign Israeli cities (Tel Aviv, Haifa, Sharon, Modi'in, Ashdod, Be'er Sheva):
+- Players can tap on sovereign Israeli cities (Tel Aviv, Haifa, Sharon, Jerusalem, Ashdod, Be'er Sheva):
   - Each tap collects **+2₪** in municipal taxes / donations.
   - Audio chime and ascending spark particle.
   - Controlled by a **3.5s cooldown per city**, providing a modest supplemental top-up without creating runaway hyper-inflation.
@@ -352,10 +353,12 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 - The root document is fixed at `100dvh` with overflow hidden. `MobileFrame` accounts for safe areas; the desktop bezel is capped to available viewport height.
 - The map uses `flex-1 min-h-[220px] max-h-full overflow-hidden` and `preserveAspectRatio="xMidYMid meet"`. Header, status, ticker, objective and all four action buttons share the remaining height.
 - The action deck has a short, wrapping instruction with tap-to-read detail. Build mode highlights candidate hills; deployment mode highlights unguarded outposts; gaps have a visible ring and a generous hit area.
-- A compact initial explanation introduces the three playable steps: build (100₪), select an outpost and send a troop (15₪, automatic source), then observe any highlighted gap and restore security. The miracle mechanic is explicitly satirical and never presented as a mechanical defense action.
+- The build action is deliberately self-explanatory rather than another menu: its compact label shows current outpost progress toward the three-outpost victory gate, the 100₪ cost and the +40₪ completion grant. A full bilingual accessible name preserves the complete purpose and amounts.
+- A compact initial explanation introduces the three playable steps: build (100₪ with a 40₪ completion grant), select an outpost and send a troop (15₪, automatic source), then observe any highlighted gap and restore security. It explicitly names the later three-staffed-outpost victory requirement. The miracle mechanic is explicitly satirical and never presented as a mechanical defense action.
 - Guided state follows the actual board through construction, staffing and restoring security. Staffing from available troops or reserves can complete guidance without opening a gap. The same map, budget, forces and history remain in play. The visible objective switches to staffing three outposts, covering the border and repelling three consecutive attacks.
 - New/updated overlays use `.modal-panel` with scrolling confined to the panel; the underlying game never scrolls. Source selection and confirmation have separate controls and stable checkpoint numbers.
-- Manual pause is independent of modal visibility. Both the interval and reducer reject ticks while any reading overlay or information popover is open. Closing the strategy desk preserves the prior manual pause.
+- Manual pause is independent of modal visibility. Both the interval and reducer reject ticks while any reading overlay, compact game menu or information popover is open. Closing the strategy desk preserves the prior manual pause.
+- Browser minimization/backgrounding listens to `visibilitychange` and `pagehide` and dispatches idempotent `PAUSE_GAME`. The paused banner remains visible on return and the player must explicitly resume, preventing income, construction, damage, raids, threat deadlines and simulation time from advancing unseen.
 - Simulation time drives construction, cooldowns, damage, attacks, tactical reinforcement travel and clash expiry. Legacy cosmetic troop/spark/toast clearing remains wall-clock based and does not advance gameplay.
 - Information popovers remain open until dismissed by tapping, the labeled close button, or Escape. They pause gameplay for the entire reading period. Haptics remain available for map interactions and the miracle button.
 - Reduced-motion styling disables CSS motion, and victory confetti respects the same setting. Buttons and interactive map checkpoints/outposts have visible keyboard focus.
@@ -414,8 +417,8 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 ## 13. Verification & Quality Assurance
 
 - `npm run build`: strict TypeScript checking and Vite production bundle, required before completion.
-- `npm test`: 43 reducer regressions covering tutorial/deployment recovery, automatic source selection, citizen danger thresholds, replay, death reporting, permanent outpost deaths, available troops, miracle behavior and tactical threats. Victory checks reject instant wins after expansion/reduction, count three actual defenses with three staffed outposts, exclude pre-expansion victories and cancellations, report reset causes on evacuation below three, lost coverage or failed battles, wait for construction and overlapping threats, resume pressure after an overlapping failure, and clear progress on restart. A bounded balance regression compares an idle four-outpost board (defeat) with active reinforcement (victory with 100,000 citizens alive).
-- Chromium checks in `scripts/test-browser.mjs` cover both languages at 320×568, 360×640, 390×844, 430×932, 568×320, 844×390 and 1280×720. They assert no document scrolling, a map of at least 220px, no objective/ticker/action overlap, and visibility of all four actions. They also exercise build → select outpost → send troop → seal → continued play, absence of scenario controls, expansion/evacuation without winning, rebuilding and staffing three outposts then reinforcing through a three-defense victory, defeat and restart, collecting runtime errors. Safari and Firefox have not been verified in this iteration.
+- `npm test`: 45 reducer regressions covering tutorial/deployment recovery, automatic source selection, citizen danger thresholds, replay, death reporting, permanent outpost deaths, available troops, miracle behavior and tactical threats. Dedicated coverage verifies the 40₪ completion grant, bilingual Jerusalem name, idempotent automatic pause and blocked ticks until explicit resume. Victory checks reject instant wins after expansion/reduction, count three actual defenses with three staffed outposts, exclude pre-expansion victories and cancellations, report reset causes on evacuation below three, lost coverage or failed battles, wait for construction and overlapping threats, resume pressure after an overlapping failure, and clear progress on restart. A bounded balance regression compares an idle four-outpost board (defeat) with active reinforcement (victory with 100,000 citizens alive).
+- Chromium checks in `scripts/test-browser.mjs` cover both languages at 320×568, 360×640, 390×844, 430×932, 568×320, 844×390 and 1280×720. They assert no document scrolling, a map of at least 220px, no objective/ticker/action overlap, visibility of all four actions, and exactly three persistent header controls. They also verify the Jerusalem map label, visibility-triggered persistent pause, explicit resume, build → select outpost → send troop → seal → continued play, absence of scenario controls, expansion/evacuation without winning, rebuilding and staffing three outposts then reinforcing through a three-defense victory, defeat and restart, collecting runtime errors. Safari and Firefox have not been verified in this iteration.
 - The browser runner also checks active-threat layouts at all listed viewport sizes in both locales, reinforcement planning pause, map-marker access, Hebrew dispatch, English arrival feedback, Escape dismissal, guard transfer/breach sealing and automatic support return. Screenshots include both planning dialogs and threat layouts.
 - The browser runner is optional development tooling: install Playwright separately and run `node scripts/test-browser.mjs`, or point `PLAYWRIGHT_MODULE` to its module. `PLAYWRIGHT_EXECUTABLE_PATH` can select an existing Chromium binary. It is not a runtime dependency.
 
@@ -434,13 +437,14 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 - Once the tutorial is complete, the existing action-deck instruction card continuously shows staffed outposts/3, covered checkpoints/8 and consecutive defenses/3, including while threats are active. Its help retains the full objective and latest reset explanation. No extra persistent vertical HUD row is added.
 - `defenseResetReason` starts at null. When a positive streak becomes zero, record the cause and publish bilingual news: failed battle, fewer than three outposts, border gap, unguarded outpost, active raid, or zero citizens (in that priority order). The action card retains the explanation until a new successful streak begins; restart clears it.
 - The all-sectors hamburger/location list has been removed, including its dialog, actions and pause state. Construction sites, outposts, breaches and threats remain directly clickable and keyboard accessible on the map. Unguarded outposts have a permanent amber dashed target ring; deployment mode strengthens it. Focus/click selection draws a blue ring. Tiny 5.5/6.5-unit decorative labels are suppressed on narrow phones; readable outpost details live in the inspector.
-- `ModalAccessibility` provides initial dialog focus, Tab/Shift+Tab containment, Escape dismissal for nonterminal dialogs, focus restoration, and inert background branches. It covers introduction, strategy, news, settlement/infiltration inspectors, reinforcement planning and information popovers. Terminal results retain their explicit restart controls. Status counters and the manual resume banner are native buttons; reduced-motion control exposes its name and pressed state.
+- `ModalAccessibility` provides initial dialog focus, Tab/Shift+Tab containment, Escape dismissal for nonterminal dialogs, focus restoration, and inert background branches. It covers the compact game menu, introduction, strategy, news, settlement/infiltration inspectors, reinforcement planning and information popovers. Terminal results retain their explicit restart controls. Status counters and the manual resume banner are native buttons; reduced-motion control exposes its name and pressed state.
 - Run reports distinguish elapsed time, citizens alive, interceptions, raid deaths, outpost deaths, open-gap deaths and available-pool sources. The largest accumulated death category determines a bilingual next-attempt tip linked to the corresponding events in the existing decision timeline; zero-death runs receive an explicit no-death statement. Equal totals choose the first category in report order. Advice is based on recorded totals, without inventing individual decisions.
 - Verification adds tutorial evacuation/reserve/available-pool recovery, automatic source selection, danger thresholds, reset-cause assertions, and bilingual browser checks for construction feedback, direct map actions, persistent help, focus restoration and reinforcement keyboard input.
 
-## 14. Strategy Desk, Replay & Accessibility
+## 14. Compact Game Menu, Strategy Desk, Replay & Accessibility
 
-- Header book control opens the bilingual strategy desk without altering manual pause. The desk includes the policy ledger, reduced-motion toggle, the main objective and medal thresholds, and the original inspiration link.
+- The persistent header is reduced from seven controls to three: Pause/Resume, Language and one Game Menu. The menu consolidates the strategy guide, sound, reduced motion, fullscreen and restart; opening it pauses simulation and Escape closes it with focus restoration. The first-run introduction remains the only automatic teaching dialog.
+- The Game Menu's single guide action opens the bilingual strategy desk without altering a pre-existing manual pause. The desk includes the policy ledger, reduced-motion toggle, the main objective and medal thresholds, and the original inspiration link.
 - Every game begins with 100₪, eight soldiers staffing eight checkpoints, zero outposts, 100,000 citizens alive and three reserve batches. Every completed outpost begins with 1,000 citizens.
 - The strategy desk is informational only; it has no scenario list or game-start controls. Header restart and the two result-screen restart buttons return to the standard guided opening.
 - `randomStream(seed, elapsedSeconds, channel)` gives separate coin, raid and clash opportunity streams. No UI action or reading delay advances these streams. Narrative randomness is cosmetic; equal gameplay decisions at equal simulation seconds reproduce the threat outcomes.
@@ -450,7 +454,7 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 - The top status pill shows total manpower and a separate available count. Example: 20 total, 8 border guards and no outpost guards leaves 12 available; staffing one outpost leaves 11 available and all eight border posts staffed.
 - Gap sealing prefers the available pool. Both infiltration defense and guarded-outpost controls expose this option so the player need not recall a guard when spare soldiers exist. Feedback and deployment news distinguish available-pool deployments from border transfers in both languages.
 - Modal content, the main objective, reports, medals and controls support Hebrew and English. Long instructions wrap or move into tap-to-read detail without changing the map height.
-- Named map locations and inspector titles use shared bilingual names; active raid targets and restart news refresh when language changes.
+- Named map locations and inspector titles use shared bilingual names; active raid targets and restart news refresh when language changes. The former Shfela/Modi'in sovereign-city tile is now Jerusalem (`isr-8`, `ירושלים` / `Jerusalem`) and border sector 4 targets it for raid narration.
 - Short landscape screens use two columns: map and objective on one side, status/ticker/actions on the other. Portrait retains the single-column layout and 220px map minimum.
 
 ## 15. Authorial & Educational Inscription
