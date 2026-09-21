@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-21 09:46:14 UTC (Branch: `main`, Iteration #60)
+> **Last Synchronized:** 2026-09-21 09:57:32 UTC (Branch: `main`, Iteration #61)
 
 ---
 
@@ -174,18 +174,18 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - **Base Civilian Production:** Calling military reserves pulls workers from the civilian economy:
     $$\text{CallsMade} = 3 - \text{reservesBatchesLeft}$$
     $$\text{BaseCivilianIncome} = \max\left(1\text{₪/s}, 4 - \text{CallsMade}\right)$$
-  - **Guarded Outpost Coalition Multiplier:** Each garrisoned outpost yields government funding:
-    $$\text{GuardedBonus} = \text{GuardedSettlements} \times 2\text{₪/s}$$
+  - **Settlement Financial Return:** Settlements generate no income, whether guarded or unguarded:
+    $$\text{SettlementIncome} = 0\text{₪/s}$$
   - **Effective Passive Income Rate:**
-    $$\text{IncomeRate} = \text{BaseCivilianIncome} + \text{GuardedBonus}$$
+    $$\text{IncomeRate} = \text{BaseCivilianIncome}$$
 
-| Guarded outposts | Civilian income, no calls | Outpost funding | Total |
+| Guarded outposts | Civilian income, no calls | Settlement income | Total |
 |---|---|---|---|
 | 0 | 4 ₪/s | 0 ₪/s | 4 ₪/s |
-| 1 | 4 ₪/s | 2 ₪/s | 6 ₪/s |
-| 2 | 4 ₪/s | 4 ₪/s | 8 ₪/s |
-| 4 | 4 ₪/s | 8 ₪/s | 12 ₪/s |
-| 8 | 4 ₪/s | 16 ₪/s | 20 ₪/s |
+| 1 | 4 ₪/s | 0 ₪/s | 4 ₪/s |
+| 2 | 4 ₪/s | 0 ₪/s | 4 ₪/s |
+| 4 | 4 ₪/s | 0 ₪/s | 4 ₪/s |
+| 8 | 4 ₪/s | 0 ₪/s | 4 ₪/s |
 
 ### 5.4 Troop Deployment Cost ("עלות פריסת כוחות")
 - **Operational Expenditure:** Deploying soldiers from the sovereign border to West Bank outposts costs **15₪ per transferred soldier** to finance mobile trailers, armored transport, and security infrastructure:
@@ -218,7 +218,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   If `citizens <= 0`, sovereign defenses collapse and the **October 7 Catastrophe** defeat modal triggers immediately.
 
 ### 5.7 Israeli Cities Shekel Collection & Economy
-- **Guarded Outpost Yield:** Each secured settlement generates **+2₪/s** (increased from +1₪/s to reward player expansion).
+- **Settlement Yield:** Settlements generate **0₪/s**. Guarding or evacuating one does not change passive income.
 - **Civilian Baseline:** Starts at **+4₪/s**, tapering by -1₪/s per reserve call-up.
 - **Placement:** Spawns on sovereign Israeli cities.
 - **Controlled Quantity:** Strictly at most **1 coin** present at a time (cooldown: 16s between spawns).

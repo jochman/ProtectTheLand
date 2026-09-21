@@ -15,7 +15,7 @@ export function EntranceInstructionModal({ state, dispatch }: { state: GameState
         <li>{translate(state.locale, 'components.EntranceInstructionModal.15', [])}</li>
       </ol>
       <p className="mt-4 rounded-xl bg-amber-100 p-3 text-xs leading-relaxed">{translate(state.locale, 'components.EntranceInstructionModal.17', [])}</p>
-      <p className="mt-3 text-xs">{translate(state.locale, 'components.EntranceInstructionModal.18', [RULES.raidDeaths.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US'), RULES.raidCost, RULES.guardedIncome])}</p>
+      <p className="mt-3 text-xs">{translate(state.locale, 'components.EntranceInstructionModal.18', [RULES.raidDeaths.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US'), RULES.raidCost])}</p>
       <p className="mt-3 text-sm font-bold">{translate(state.locale, 'components.EntranceInstructionModal.19', [])}</p>
       <button className="mt-4 min-h-11 w-full rounded-xl bg-amber-700 p-3 font-bold text-white" onClick={() => dispatch({ type: 'CLOSE_INTRO_MODAL' })}>{translate(state.locale, 'components.EntranceInstructionModal.20', [])}</button>
     </section>

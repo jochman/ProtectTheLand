@@ -15,12 +15,12 @@ export function SettlementInspectorModal({ state, dispatch }: { state: GameState
   return <div className="absolute inset-0 z-50 grid place-items-center bg-black/70 p-3" onClick={close}>
     <section role="dialog" aria-modal="true" aria-labelledby="outpost-title" className="modal-panel w-full max-w-sm rounded-3xl bg-amber-50 p-4 text-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between gap-2"><h2 id="outpost-title" className="text-lg font-black">{tileName(tile, state.locale)}</h2><button className="min-h-11 min-w-11" aria-label={translate(state.locale, 'components.SettlementInspectorModal.20', [])} onClick={close}>✕</button></div>
-      <p className="rounded-xl bg-white p-3 text-sm">{translate(state.locale, guarded ? 'deploy.guarded' : 'components.SettlementInspectorModal.21', [guarded ? RULES.guardedIncome : (tile.citizens ?? RULES.outpostCitizens).toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')])}</p>
+      <p className="rounded-xl bg-white p-3 text-sm">{translate(state.locale, guarded ? 'deploy.guarded' : 'components.SettlementInspectorModal.21', guarded ? [] : [(tile.citizens ?? RULES.outpostCitizens).toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')])}</p>
       {state.threats.filter(t => t.tileId === tile.id).map(threat => <button key={threat.id}
         className="mt-3 min-h-11 w-full rounded-xl bg-red-800 p-3 text-sm font-bold text-white"
         onClick={() => dispatch({ type: 'SELECT_THREAT', id: threat.id })}>{translate(state.locale, 'components.SettlementInspectorModal.24', [])}</button>)}
       {!guarded && <div className="mt-3 rounded-xl border border-amber-300 bg-white p-3 text-sm">
-        <p>{translate(state.locale, 'components.SettlementInspectorModal.32', [RULES.deployCost, RULES.guardedIncome])}</p>
+        <p>{translate(state.locale, 'components.SettlementInspectorModal.32', [RULES.deployCost])}</p>
         <p className={opensGap ? 'mt-2 font-bold text-red-800' : 'mt-2 text-emerald-800'}>{translate(state.locale,
           !source ? 'deploy.noTroops' : opensGap ? 'deploy.gap' : 'deploy.autoSafe', [RULES.gapDeaths.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')])}</p>
         <button disabled={!source || state.budget < RULES.deployCost} className="mt-3 min-h-11 w-full rounded-xl bg-amber-800 p-3 font-bold text-white disabled:opacity-50"

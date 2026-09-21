@@ -4,7 +4,7 @@ import type { GameState } from '../types';
 export const AVAILABLE_TROOP_SOURCE = 'available';
 
 export const RULES = {
-  buildCost: 100, deployCost: 15, civilianIncome: 4, guardedIncome: 2,
+  buildCost: 100, deployCost: 15, civilianIncome: 4, guardedIncome: 0,
   budgetBase: 300, budgetPerOutpost: 25,
   nationalCitizens: 100_000, outpostCitizens: 1_000,
   gapDeaths: 400, raidDeaths: 12_000, raidCost: 10, outpostClashDeaths: 250,

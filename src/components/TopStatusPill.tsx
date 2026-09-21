@@ -26,21 +26,21 @@ const STAT_INFO = {
   settlements: {
     he: {
       title: '🏡 מאחזים ויישובים ביו״ש',
-      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את גאולת ״יהוה צבאות״, אך דורש אבטחה צבאית קבועה למניעת פשיטות, הרג אזרחים ואובדן הכנסה.',
+      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את גאולת ״יהוה צבאות״, אך אינו מייצר הכנסה ודורש אבטחה צבאית קבועה למניעת פשיטות והרג אזרחים.',
     },
     en: {
       title: '🏡 Hilltop Outposts & Settlements',
-      text: 'Settlements established across the West Bank. They advance total conquest and redemption, but require standing guards to prevent raids, civilian deaths, and lost revenue.',
+      text: 'Settlements established across the West Bank. They advance total conquest and redemption, but generate no income and require standing guards to prevent raids and civilian deaths.',
     },
   },
   budget: {
     he: {
       title: '💰 תקציב קואליציוני (₪)',
-      text: 'המשאבים הכספיים שלך. משמשים לבניית מאחזים (100₪) ולפריסת כוחות (15₪). מופק מקצב הכנסה שוטף ומתגבר בעזרת מאחזים מאוישים (+2₪/ש׳).',
+      text: 'המשאבים הכספיים שלך. משמשים לבניית מאחזים (100₪) ולפריסת כוחות (15₪). ההכנסה מגיעה מהמשק האזרחי בלבד; מאחזים אינם מייצרים כסף.',
     },
     en: {
       title: '💰 Coalition Budget (₪)',
-      text: 'Your political funding. Used to construct outposts (₪100) and deploy troops (₪15). Generated from baseline civilian revenue and boosted by guarded outposts (+₪2/s).',
+      text: 'Your political funding. Used to construct outposts (₪100) and deploy troops (₪15). Income comes only from civilian revenue; outposts generate no money.',
     },
   },
   citizens: {

@@ -172,7 +172,7 @@ test('guided construction, deployment and recall complete the tutorial without e
   assert.equal(s.budget, budget - RULES.deployCost);
   assert.equal(s.tutorialStep, 'observe');
   assert.deepEqual(s.activeBreaches, ['bdr-1']);
-  assert.equal(s.incomeRate, 6);
+  assert.equal(s.incomeRate, 4, 'guarding an outpost provides no financial gain');
   assert.equal(s.isDeployMode, false);
   s = reduce(s, { type: 'RECALL_TROOP', tileId: outposts[0] });
   assert.equal(s.gameStatus, 'playing');
@@ -427,7 +427,7 @@ test('a guard can transfer directly from an outpost or checkpoint with actual co
       assert.deepEqual(s.activeBreaches, ['bdr-1']);
       assert.equal(s.defenseScore, 88);
       assert.equal(tick(s).metrics.exposureDamage, 400);
-    } else assert.equal(s.incomeRate, income - 2);
+    } else assert.equal(s.incomeRate, income, 'removing an outpost guard does not affect income');
     s = tick(s, 24);
     assert.equal(s.tiles[source].garrisonCount, 0, 'support returns to pool, not its former post');
     assert.equal(accountTroops(s), 20);

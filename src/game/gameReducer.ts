@@ -754,8 +754,8 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         newsHeadlineHe = `גל גיוס שני! מחסור בידיים עובדות — קצב בסיס 2₪, הגבול והמאחזים מוגנים!`;
         newsHeadlineEn = `Second Mobilization Wave! Labor shortage — base rate ₪2/s, border & outposts secured!`;
       } else if (callsMade === 3) {
-        newsHeadlineHe = `קריסה במערך המילואים! סבב גיוס אחרון מוצה — הכנסה אזרחית של 1₪ לשנייה, לצד מימון המאחזים.`;
-        newsHeadlineEn = `Reserve Exhaustion! Final reserve wave deployed — civilian income is ₪1/s, plus guarded outpost funding.`;
+        newsHeadlineHe = `קריסה במערך המילואים! סבב גיוס אחרון מוצה — ההכנסה האזרחית ירדה ל־1₪ לשנייה, והמאחזים אינם מייצרים הכנסה.`;
+        newsHeadlineEn = `Reserve Exhaustion! Final reserve wave deployed — civilian income fell to ₪1/s, and outposts generate no income.`;
       }
 
       // Intercept any green side attacks whose breach checkpoint was just re-manned!
@@ -877,8 +877,8 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const updatedConstructions = { ...state.constructions };
       const updatedTiles = { ...state.tiles };
 
-      // 3. Passive budget income: Guarded settlements generate coalition funding (+2₪/s per outpost)
-      // Baseline civilian production decreases when reserve call-ups remove workers from the economy.
+      // 3. Passive budget income comes only from civilian production.
+      // Reserve call-ups reduce that income; settlements provide no financial return.
       const callsMade = 3 - (state.reservesBatchesLeft ?? 3);
       const baseCivilianIncome = Math.max(1, RULES.civilianIncome - callsMade);
       const guardedSettlementCount = Object.values(updatedTiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length;
