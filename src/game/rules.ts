@@ -5,12 +5,13 @@ export const AVAILABLE_TROOP_SOURCE = 'available';
 
 export const RULES = {
   buildCost: 100, deployCost: 15, civilianIncome: 4, guardedIncome: 2,
-  budgetBase: 300, budgetPerOutpost: 25, gapDamage: 0.4,
-  raidDamage: 12, raidCost: 10, clashDamage: 10,
-  recoveryRate: 0.5, checkpoints: 8,
+  budgetBase: 300, budgetPerOutpost: 25,
+  nationalCitizens: 100_000, outpostCitizens: 1_000,
+  gapDeaths: 400, raidDeaths: 12_000, raidCost: 10, outpostClashDeaths: 250,
+  checkpoints: 8,
   threatGrace: 20, threatInterval: 26, expandedThreatInterval: 18,
-  threatWarning: 24, reinforcementTravel: 4, threatDamagePerMissing: 6,
-  outpostDamagePerMissing: 15, outpostRepair: 1,
+  threatWarning: 24, reinforcementTravel: 4, threatDeathsPerMissing: 6_000,
+  outpostDeathsPerMissing: 150,
   victoryOutposts: 3, victoryDefenses: 3,
   miracleDefenseThreshold: 25, miracleTaps: 5, miracleGraceSeconds: 8,
 } as const;
@@ -53,7 +54,7 @@ export function objective(state: GameState): string {
 export function holdsExpandedLine(state: GameState): boolean {
   const outposts = Object.values(state.tiles).filter(tile => tile.hasSettlement);
   return state.tutorialStep === 'done' && outposts.length >= RULES.victoryOutposts
-    && outposts.every(tile => tile.garrisonCount > 0) && state.landHp > 0
+    && outposts.every(tile => tile.garrisonCount > 0) && state.citizens > 0
     && Object.values(state.tiles).filter(tile => tile.isBorderCheckpoint && tile.garrisonCount > 0).length === RULES.checkpoints
     && state.greenSideAttacks.length === 0;
 }
@@ -66,7 +67,7 @@ export function hasWon(state: GameState): boolean {
 export function medals(state: GameState) {
   const won = state.gameStatus === 'rational_victory';
   return [
-    { label: translate(state.locale, 'game.rules.62', []), earned: won && state.landHp >= 90 },
+    { label: translate(state.locale, 'game.rules.62', []), earned: won && state.citizens >= 90_000 },
     { label: translate(state.locale, 'game.rules.63', []), earned: won && state.metrics.reserveCalls <= 2 },
   ];
 }

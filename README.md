@@ -11,7 +11,7 @@ The game is a client-side React application; it has no backend or external game 
 3. Restore checkpoint coverage with reserves, available troops, or a recall.
 4. After the tutorial, staff three outposts, keep all eight checkpoints staffed, and repel three consecutive tactical threats to reach rational victory.
 
-If Homeland HP reaches zero, or the ready "יהוה צבאות" satire button is tapped five times while border defense is at 25% or below, the campaign ends in catastrophe. The header provides pause, sound, fullscreen, restart, guide, strategy desk, and Hebrew/English controls.
+Israel begins with 100,000 citizens alive, and every successful hit kills citizens permanently. If no citizens remain, or the ready "יהוה צבאות" satire button is tapped five times while border defense is at 25% or below, the campaign ends in catastrophe. The header provides pause, sound, fullscreen, restart, guide, strategy desk, and Hebrew/English controls.
 
 ## Requirements
 

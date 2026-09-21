@@ -20,8 +20,8 @@ export interface HexTile {
   subLabel?: string;
   isBreached?: boolean;
   hasAlert?: boolean;
-  hp?: number; // Settlement health 0..100
-  maxHp?: number;
+  citizens?: number; // Civilians still alive in the outpost
+  maxCitizens?: number;
   damagedUntil?: number; // Timestamp until when post-impact smoke/aftermath is shown
 }
 
@@ -141,12 +141,12 @@ export interface GameState {
   peakSettlementsCount: number;
   /** Consecutive tactical attacks repelled while maintaining the expanded defensive line. */
   defenseStreak: number;
-  defenseResetReason: 'battle' | 'outposts' | 'border' | 'guard' | 'raid' | 'resilience' | null;
+  defenseResetReason: 'battle' | 'outposts' | 'border' | 'guard' | 'raid' | 'citizens' | null;
   seed: number;
   tutorialStep: 'build' | 'deploy' | 'observe' | 'done';
   isDeployMode: boolean;
   metrics: { exposureDamage: number; raidDamage: number; clashDamage: number; threatDamage: number; intercepted: number; miracleClicks: number; reserveCalls: number };
-  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'reinforce' | 'threat'; borderId?: string; gaps: number; hp: number; damage?: number; intercepted?: number }[];
+  timeline: { second: number; kind: 'build' | 'deploy' | 'reserve' | 'recall' | 'evacuate' | 'seal' | 'raid' | 'clash' | 'reinforce' | 'threat'; borderId?: string; gaps: number; citizens: number; deaths?: number; intercepted?: number }[];
   locale: 'he' | 'en';
   soundEnabled: boolean;
   gameStatus: 'playing' | 'catastrophe' | 'rational_victory';
@@ -161,7 +161,7 @@ export interface GameState {
   soldiersAtSettlements: number;
   reservesBatchesLeft: number; // Max 3
   defenseScore: number; // 0% to 100% (Border readiness)
-  landHp: number; // 0 to 100% (Homeland Integrity / חוסן לאומי)
+  citizens: number; // Israeli citizens still alive; defeat at zero
   isBuildMode: boolean; // True when player tapped "Build" and is selecting a hex
   
   // Active constructions in progress (tileId -> progress 0..100)

@@ -6,7 +6,7 @@ export const en = {
     soldiers: "Troops",
     settlements: "Outposts",
     defense: "Defense",
-    landHp: "Land HP",
+    citizens: "Citizens alive",
     borderReadiness: "Border Defense",
     budget: "Settlement Budget",
     reservesLeft: "Reserve Calls Left",

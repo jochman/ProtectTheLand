@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/var/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-21 09:26:14 UTC (Branch: `main`, Iteration #59)
+> **Last Synchronized:** 2026-09-21 09:46:14 UTC (Branch: `main`, Iteration #60)
 
 ---
 
@@ -16,11 +16,11 @@ The game places the player in the role of a policymaker/commander balancing sove
 
 The game concludes in one of two fundamental narrative endings:
 1. **The October 7 Catastrophe (`gameStatus: 'catastrophe'`):**
-   - **Primary Tactical Trigger (Homeland HP Collapse):** Defense gaps left unsealed along the sovereign border continuously drain Homeland HP (`landHp`) by -0.4 HP/s per hole. Hostile infiltrations that penetrate gaps and reach Israeli cities inflict -12 HP and -10₪ damage. When Homeland HP drops to 0%, the nation's defenses collapse completely, sirens wail, and the October 7 defeat screen appears with a comprehensive policy post-mortem.
+   - **Primary Tactical Trigger (Citizen Loss):** Israel begins with 100,000 citizens alive. Every unsealed sovereign-border gap kills 400 citizens per second. Hostile infiltrations that reach Israeli cities kill 12,000 citizens and inflict -10₪ damage. When the citizen count reaches zero, the nation's defenses collapse completely, sirens wail, and the October 7 defeat screen appears with a comprehensive policy post-mortem.
    - **Satirical Trigger (Messianic Idol Collapse):** At 25% border defense or below, the false miracle button **"יהוה צבאות"** fills completely and enters its ready state. Five taps shatter the idol (`sounds.playCrackCollapse()`), exposing the tragedy of relying on miracles instead of sovereign strategy. The first tap pauses the simulation for eight ticks (normally eight seconds).
 2. **Rational Victory ("ביטחון בר-קיימא", `gameStatus: 'rational_victory'`):**
    - **Sustained Defense:** The player must experience expansion and actively allocate finite troops to hold both outposts and the sovereign border.
-   - **Victory Evaluation:** A shared `hasWon` check runs after every gameplay action. Victory requires at least three completed outposts, every completed outpost and all eight checkpoints permanently staffed, three consecutive successful tactical defenses, positive HP, no active raids or tactical threats, and no unfinished construction.
+   - **Victory Evaluation:** A shared `hasWon` check runs after every gameplay action. Victory requires at least three completed outposts, every completed outpost and all eight checkpoints permanently staffed, three consecutive successful tactical defenses, at least one surviving citizen, no active raids or tactical threats, and no unfinished construction.
    - **One Continuous Game:** There are no selectable scenarios. After the tutorial, timed reinforcement threats keep the same campaign active even when every location has a guard.
    - **Tutorial Completion:** Build and staff an outpost while keeping the border secure, or restore all border coverage and stop active raids after a deployment opened a gap. Available-pool deployment and reserve auto-garrisoning count as valid staffing. This sets `tutorialStep` to `done` and continues the same run; it never triggers victory or resets resources, troops, time or history. Removing the last outpost before staffing returns the instruction to building.
    - **Main Victory:** After the tutorial, build and staff at least three outposts and repel three consecutive tactical attacks while retaining full permanent coverage. `defenseStreak` counts these successful defenses up to three. Any border gap, unguarded completed outpost, reduction below three outposts, active raid, or failed tactical battle resets the streak. Evacuation and destruction never earn defense credit; building then dismantling cannot win. `peakSettlementsCount` remains a historical statistic, not a victory shortcut.
@@ -79,7 +79,7 @@ The game operates seamlessly in **Hebrew (`he`, RTL)** and **English (`en`, LTR)
 
 ### 3.2 Shared UI Translation Catalog
 - Static and interpolated player-facing UI copy is centralized in `src/locales/inlineTranslations.ts` as Hebrew/English pairs. Components call `translate(state.locale, key, values)` from `src/locales/translate.ts`; `{{0}}`-style placeholders preserve dynamic game values without duplicating locale conditionals in JSX or game rules.
-- Hebrew copy maintains high linguistic fidelity: terminology distinguishes sovereign green line cities from hilltop outposts (`מאחז`), active actions avoid confusing telegram-style dismissals (e.g. `לאטימת הפרצה` instead of ambiguous `לסגירה`), and numeric unit suffixes (`ש׳`, `שנ׳`, `חוסן`) are strictly localized to prevent BiDi inversion and Latin character leakage.
+- Hebrew copy maintains high linguistic fidelity: terminology distinguishes sovereign green line cities from hilltop outposts (`מאחז`), active actions avoid confusing telegram-style dismissals (e.g. `לאטימת הפרצה` instead of ambiguous `לסגירה`), and numeric unit suffixes (`ש׳`, `שנ׳`, `אזרחים`) are strictly localized to prevent BiDi inversion and Latin character leakage.
 - `selectLocale()` is reserved for already-bilingual runtime records such as live news and tactical feedback. Language state remains owned by `GameState`, preserving immediate RTL/LTR changes and the existing reducer-based language switch.
 
 ---
@@ -131,16 +131,16 @@ Demands Dedicated Troop   (-1₪/s per mobilization)    Golden Spark Burst
 
 The complete, compile-checked contract lives in `src/types.ts`; shared formulas and objective selectors live in `src/game/rules.ts`. The reducer wraps individual actions with resource normalization, event accounting, and main-game victory evaluation.
 
-- Resources: budget, income, total soldiers, soldiers assigned to outposts, border/available soldiers, three reserve batches, resilience, and the eight checkpoint garrisons.
+- Resources: budget, income, total soldiers, soldiers assigned to outposts, border/available soldiers, three reserve batches, surviving citizens, and the eight checkpoint garrisons.
 - `availableTroops = soldiersTotal - sum(tile.garrisonCount) - reinforcements.length`. Temporary support is reserved during both travel and combat and cannot be spent twice. The legacy `soldiersAtBorder` count includes all personnel outside outpost garrisons, including available and temporary forces; actual readiness derives only from permanent checkpoint guards.
 - `elapsedSeconds` advances only on an unpaused simulation tick. Tactical deadlines, travel and the next-threat schedule use this same clock.
 - Tactical state: `threats` stores target tile, required strength and deadline; `reinforcements` stores one soldier per entry, incident id, source coordinates, departure and arrival times. `nextThreatAt`, `threatSequence`, `selectedThreatId` and bilingual `threatFeedback` provide pacing, deterministic selection, planning and outcome feedback. `src/game/threats.ts` owns dispatch, resolution and cancellation; the reducer normalizes resources afterward.
 - `peakSettlementsCount` starts at zero and records the maximum number of concurrent completed outposts on actions that begin after tutorial completion. `seed` defaults to `7102023`.
-- `defenseStreak` starts at zero, increments only for a fully repelled tactical battle while `holdsExpandedLine` is true, and is capped at `RULES.victoryDefenses = 3`. `holdsExpandedLine` requires tutorial completion, at least `RULES.victoryOutposts = 3` completed outposts, a permanent guard at every completed outpost and all eight checkpoints, positive homeland HP, and no active raid. Failed battles and loss of these conditions reset progress. Restart clears the streak.
+- `defenseStreak` starts at zero, increments only for a fully repelled tactical battle while `holdsExpandedLine` is true, and is capped at `RULES.victoryDefenses = 3`. `holdsExpandedLine` requires tutorial completion, at least `RULES.victoryOutposts = 3` completed outposts, a permanent guard at every completed outpost and all eight checkpoints, at least one surviving citizen, and no active raid. Failed battles and loss of these conditions reset progress. Restart clears the streak.
 - `tutorialStep`: `build | deploy | observe | done`. Every new game starts at `build`. Before completion, derive the next step after each gameplay action: exposed border/active raid → `observe`; no completed outposts → `build`; otherwise → `deploy`. A secure board with a staffed outpost, or restoration of security from `observe`, completes the tutorial and schedules the first threat 20 seconds later. Construction progress appears in the instruction strip while the first site is building.
 - Deployment UI: `isDeployMode` and `selectedSettlementId`. Tap a map outpost, then Send troop; `DEPLOY_TROOP` chooses its source automatically at dispatch time. The inspector shows cost, coverage consequences and a disabled reason without source selection. Optional explicit source IDs remain in reducer actions for replay/backward compatibility, but no player-facing source picker exists.
-- `metrics`: cumulative actual exposure, raid, outpost-loss and tactical-threat HP damage (clamped to HP remaining at each hit), successful interceptions, miracle-button clicks, and reserve calls made during this run.
-- `timeline`: simulation second, action/event kind, optional source/breach sector, gaps remaining, HP after action, and optional damage/interception count. It covers construction starts, deployments, reserves, recalls, evacuations, sealing, raid impacts, outpost losses, reinforcement dispatches and tactical battle outcomes.
+- `metrics`: cumulative actual citizen deaths from exposure, raids, outpost clashes and tactical threats (clamped to citizens remaining at each hit), successful interceptions, miracle-button clicks, and reserve calls made during this run.
+- `timeline`: simulation second, action/event kind, optional source/breach sector, gaps remaining, citizens alive after the action, and optional deaths/interception count. It covers construction starts, deployments, reserves, recalls, evacuations, sealing, raid impacts, outpost losses, reinforcement dispatches and tactical battle outcomes.
 - UI pause sources: manual pause, introduction, strategy desk, news feed, settlement inspector, infiltration inspector, reinforcement planning and information popovers.
 - Restarts reconstruct the standard starting board and seed, clear time/metrics/history and tutorial/expansion progress, and preserve locale, sound and reduced-motion settings.
 - Gameplay mutations are rejected after a terminal result. UI controls and game restart remain available.
@@ -150,7 +150,7 @@ The complete, compile-checked contract lives in `src/types.ts`; shared formulas 
 ## 5. Mathematical Balancing & Economic Equations
 
 ### 5.1 Game Session Target Duration
-- The guided opening is a short build/deploy/restore exercise within the main run. Play continues after it with no timer-based victory. Session length depends on expansion, recovery and player decisions. Paused reading time is excluded.
+- The guided opening is a short build/deploy/restore exercise within the main run. Play continues after it with no timer-based victory. Session length depends on expansion, permanent citizen losses and player decisions. Paused reading time is excluded.
 
 ### 5.2 Defense Score Equation
 The sovereign border consists of **8 critical checkpoints** (`bdr-1` through `bdr-8`):
@@ -204,20 +204,18 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   - Audio chime and ascending spark particle.
   - Controlled by a **3.5s cooldown per city**, providing a modest supplemental top-up without creating runaway hyper-inflation.
 
-### 5.6 Homeland HP System ("חוסן המדינה") & Defense Holes Bleed
-- **State Metric:** `landHp: number` (0% to 100%, starts at 100%).
-- **Continuous Bleed from Defense Gaps:**
-  Every unsealed checkpoint gap along the border fence erodes national security every second:
-  $$\text{HoleBleed} = \text{ActiveBreaches} \times 0.4\text{ HP/s}$$
-  Leaving 4 gaps unsealed drains 1.6 HP/s (16% HP lost every 10 seconds).
+### 5.6 Citizen Survival System & Defense-Gap Deaths
+- **State Metric:** `citizens: number` starts at `RULES.nationalCitizens = 100,000`. This is the national number of citizens still alive; it is never displayed as HP or a percentage.
+- **Continuous Deaths from Defense Gaps:**
+  Every unsealed checkpoint gap causes deaths every simulation second:
+  $$\text{GapDeaths} = \text{ActiveBreaches} \times 400\text{ citizens/s}$$
+  Leaving four gaps unsealed kills 1,600 citizens per second.
 - **Direct Attack Impact:**
-  - Infiltration raid striking an Israeli city: **-12 HP** directly to Land HP, **-10₪** damage, and screen shake (reduced from -20 HP / -20₪ for balanced expansion pacing).
-  - West Bank settlement destroyed in a tutorial clash: **-10 HP** to Land HP. Main-game tactical incidents use the proportional damage formula in §6.1.1, with no additional destruction penalty.
-- **Resilience Recovery:**
-  - When border is 100% fortified with 0 holes, 0 active raids and 0 tactical threats: recovers **+0.5 HP/s** (up to 100%).
-  - Successfully sealing a breach / thwarting an attack: awards **+2 HP** for recall-based sealing, **+3 HP** for reserve-based sealing, or **+5 HP** when those actions intercept a raid. Redeploying an already-available soldier grants no bonus HP.
+  - An infiltration raid striking an Israeli city kills **12,000 citizens**, inflicts **-10₪** damage and triggers screen shake.
+  - Every attack against an unguarded outpost kills up to **250 outpost citizens** and removes the same number from the national citizen count.
+- **Irreversible Losses:** Citizen deaths never regenerate. Fortifying the border, garrisoning an outpost or intercepting a raid prevents future deaths but cannot restore citizens. Sealing and reserve actions no longer award population.
 - **Defeat Threshold:**
-  If `landHp <= 0`, sovereign defenses collapse and the **October 7 Catastrophe** defeat modal triggers immediately.
+  If `citizens <= 0`, sovereign defenses collapse and the **October 7 Catastrophe** defeat modal triggers immediately.
 
 ### 5.7 Israeli Cities Shekel Collection & Economy
 - **Guarded Outpost Yield:** Each secured settlement generates **+2₪/s** (increased from +1₪/s to reward player expansion).
@@ -231,18 +229,18 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 
 ## 6. Combat, Clashes & Infiltration Mechanics
 
-### 6.1 Tutorial Clashes & Settlement HP Degradation
+### 6.1 Tutorial Clashes & Settlement Citizen Losses
 - During the tutorial, legacy clashes occur between built outposts and adjacent Palestinian cities (e.g. Nablus, Ramallah, Jenin, Hebron). After tutorial completion, the warned tactical incidents below replace these random clashes.
 - **Progressive Cooldown Curve:**
   - Settlements ≤ 1: Cooldown is at least **45 seconds** (grace period to allow first garrisoning).
   - Settlements = 2: Cooldown is at least **38 seconds**.
   - Settlements ≥ 3: Cooldown is **32 seconds** (unsecured) / **50-60 seconds** (secured).
-- **Garrisoned Settlements:** Soldier defends the perimeter. Sound: tactical clash sfx. HP remains protected.
-- **Ungarrisoned Outposts (HP Bar Mechanic):**
+- **Garrisoned Settlements:** A soldier defends the perimeter. Sound: tactical clash sfx. No outpost citizens are killed.
+- **Ungarrisoned Outposts (Citizen Bar):**
   - Exposed outposts lack IDF protection.
-  - When attacked, the outpost suffers **-25 HP** damage (previously -35 HP) and **-6₪** minor clash cost (halved from -15₪).
+  - Each outpost begins with **1,000 citizens**. Every attack kills up to **250 citizens** and inflicts a **-6₪** minor clash cost.
   - Sound: emergency siren and alert ring.
-  - At **0 HP**, the outpost is burned/destroyed, settlement count drops by 1, and the disaster is reported on the news wire.
+  - At **0 citizens**, the outpost is burned/destroyed, settlement count drops by 1, and the disaster is reported on the news wire.
 
 ### 6.1.1 Main-Game Tactical Threats & Mobile Reinforcements
 
@@ -250,9 +248,9 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
 - **Targets and strength:** Two incidents target outposts, then one targets a checkpoint; with no outposts, all target checkpoints. Staffed locations remain eligible. A seeded stream (`randomStream(seed, threatSequence, 8)`) chooses among eligible tiles. Required troops are 2 for 0–1 outposts, 3 for 2–3, 4 for 4–7, and 5 for 8+. Strength is fixed when the incident starts; current expansion determines later incidents.
 - **Dispatch:** `REINFORCE_THREAT` automatically chooses one soldier from the available pool or another staffed outpost/checkpoint using the priorities in §15. It is free and takes exactly 4 simulation seconds. The source loses its guard immediately, including its funding or border coverage. A target cannot supply its own reinforcement. Dispatches are rejected for empty/invalid sources, already sufficient assigned strength, or less than four seconds remaining.
 - **Defense:** `defenders = target.garrisonCount + arrivedSupport`. Troops in transit are displayed separately and do not count until arrival. Arrival exactly at the deadline counts. Support is temporary: it does not become a permanent garrison, grant funding, repair an outpost, or seal a border gap.
-- **Resolution:** At the deadline, `missing = max(0, required - defenders)`. Each missing soldier causes 6 national HP, 4₪ loss, and (for outposts) 15 durability damage. All values clamp at zero; actual national HP lost is recorded in `metrics.threatDamage` and the timeline. Zero missing soldiers means an interception with no damage. Zero national HP causes defeat. Zero outpost durability removes the outpost and releases its guard to the available pool without an extra national-HP penalty.
+- **Resolution:** At the deadline, `missing = max(0, required - defenders)`. Each missing soldier kills **6,000 national citizens**, causes a **4₪** loss and, for an outpost target, kills **150 outpost citizens**. All values clamp at zero; actual national deaths are recorded in `metrics.threatDamage` and the timeline. Zero missing soldiers means an interception with no deaths. Zero national citizens causes defeat. Zero outpost citizens removes the outpost and releases its guard to the available pool without an extra destruction penalty.
 - **Return and cancellation:** All incident support returns immediately to the available pool after resolution; soldiers do not automatically return to their former posts. Evacuating/removing a threatened outpost cancels its incident and releases all assigned support, including travelling soldiers. Soldiers are conserved across dispatch, resolution, loss and evacuation.
-- **Repairs:** Guarded outposts repair 1 durability/second only when not targeted by a tactical threat. National passive recovery also pauses while any tactical threat is active. An unattended guarded board therefore remains vulnerable; well-timed reinforcement can prevent tactical damage entirely.
+- **Permanent Losses:** Outpost and national citizen deaths do not regenerate. A guarded board remains vulnerable to tactical incidents; well-timed reinforcement can prevent deaths entirely.
 - **UI:** The existing objective strip becomes a compact threat status/countdown after the tutorial. It shows target, troops present/required, seconds remaining and an indicator when two incidents are active. During recovery it shows brief bilingual results or time until the next threat; the main objective remains in the action-deck help and strategy desk. Tap the strip, a map marker, a threatened outpost's inspector button, or the contextual **Reinforce** action to open planning. The deployment action changes to **Reinforce / 4s · free** while threats exist and normal deployment mode is not active; outpost inspectors retain permanent deployment controls.
 - **Planning:** A paused, internally scrolling modal exposes incident tabs, arrived/in-transit strength, a single automatic Send reinforcement button, any loss-of-coverage warning, reserve call-ups, a return-to-map action and outpost options/evacuation for settlement targets. Threat rings have filled transparent hit areas, so tapping their interior opens planning; the options link preserves access to the outpost inspector. Closing planning resumes simulation unless manually paused. Escape closes the dialog; keyboard focus is contained and restored. Both Hebrew/RTL and English/LTR have complete labels and explanations. The short-screen threat strip uses one line to retain the 220px map and all four actions without document scrolling.
 - **Map/audio/reporting:** Red target rings and countdown badges turn green when enough troops arrive. Blue travel paths/dots advance with simulation seconds, so they freeze while reading. The warning uses the existing siren, dispatch uses deployment audio, and successful defense uses the shield chime, respecting mute. Bilingual outcomes enter news history and tactical damage/interceptions appear in the run report. Victory requires the expanded-line defense streak and waits until all active threats are resolved or cancelled; cancellation itself awards no defense credit.
@@ -272,7 +270,7 @@ $$\text{DefenseScore} = \min\left(100\%, \text{round}\left(\frac{\text{ActiveChe
   1. **Floating Emergency Alert with Direct Button:** The urgent operational alert auto-dismisses after six seconds and embeds a direct action button: `[🛡️ לחץ כאן לבלימת החדירה!]` opening the defense modal instantly.
   2. **The Reserves Button:** Remains a stable, labeled action with the number of calls remaining. The short advisor highlights the gap to seal.
   3. **Map Truck & City Clicking:** Clicking the raider truck or the target city opens `InfiltrationDefenseModal` showing the animated approach bar with exact seconds remaining.
-- **Failure to Intercept:** If the truck reaches the city: **-10₪** and **-12 HP**. Readiness remains the fraction of staffed checkpoints; raid impacts do not introduce an unrelated readiness penalty.
+- **Failure to Intercept:** If the truck reaches the city: **-10₪** and **12,000 citizens killed**. Readiness remains the fraction of staffed checkpoints; raid impacts do not introduce an unrelated readiness penalty.
 
 ---
 
@@ -293,10 +291,10 @@ The game’s psychological core relies on subverting messianic rhetoric using mo
 - Every ready-state tap adds one of five persistent lit marks beneath the action text, flashes the button, triggers warning haptics where supported, and plays a thud with increasing starting pitch (`140 + tap * 35` Hz).
 - The first four taps show distinct bilingual encouragement, ending with “עוד לחיצה אחת!” / “One final tap!”. A polite live region announces feedback and the remaining-tap count; keyboard Enter/Space use the same button action.
 - Motion stays within the established button/screen effects, with reduced-motion support from both the accessibility setting and the system preference. Persistent text and lit marks remain usable without animation.
-- The first tap starts **eight simulation ticks of grace**, normally eight seconds. During grace, `TICK_TIMER` decrements only `graceSecondsRemaining` and clears screen shake: HP, damage, attacks, threat deadlines, income, construction, and simulation time do not advance. Reading/manual pauses also pause grace. Subsequent taps never renew it. After expiry, ordinary simulation and damage resume.
-- The **fifth tap** plays the shatter sound, fractures the button, removes its gold fill/glow, locks it to **“אין סומכין על הנס” / “Miracles don't defend borders”**, clears grace and screen shake, and opens the catastrophe modal. It does not restore HP or troops.
+- The first tap starts **eight simulation ticks of grace**, normally eight seconds. During grace, `TICK_TIMER` decrements only `graceSecondsRemaining` and clears screen shake: citizen deaths, attacks, threat deadlines, income, construction, and simulation time do not advance. Reading/manual pauses also pause grace. Subsequent taps never renew it. After expiry, ordinary simulation and deaths resume.
+- The **fifth tap** plays the shatter sound, fractures the button, removes its gold fill/glow, locks it to **“אין סומכין על הנס” / “Miracles don't defend borders”**, clears grace and screen shake, and opens the catastrophe modal. It restores neither troops nor citizens.
 - Restart clears taps, grace, readiness and cracks. Readiness normalization is centralized in the reducer so deployments, support transfers, reserves and recalls behave consistently. Both click action variants count each tap once in the run report.
-- Verification: reducer coverage includes the 25% boundary, growth, coverage recovery, low-HP completion, finite grace, threat freeze/resumption, invalid early taps, latching and restart. Browser checks reach the effect through real construction/deployment controls in both languages, exercise keyboard input and all five taps, and verify the 320×568 layout; the broader viewport suite retains zero-scroll coverage.
+- Verification: reducer coverage includes the 25% boundary, growth, coverage restoration, low-citizen completion, finite grace, threat freeze/resumption, invalid early taps, latching and restart. Browser checks reach the effect through real construction/deployment controls in both languages, exercise keyboard input and all five taps, and verify the 320×568 layout; the broader viewport suite retains zero-scroll coverage.
 
 ---
 
@@ -379,15 +377,15 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
    - When non-secured outposts (`garrisonCount === 0`) are present in the West Bank:
      - Clash pacing accelerates dramatically: cooldown is 45/38/32 seconds for 1/2/3+ outposts with a 28% trigger chance; guarded-only boards use 60/50 seconds and 10%.
      - **85% Probability Weight:** Clashes are heavily weighted to strike non-secured, exposed outposts rather than garrisoned settlements.
-     - **Vulnerability & Attrition:** Non-secured outposts endure direct damage (-25 outpost HP per incident, sirens, -6₪ damages) and are wiped off the map if HP reaches 0%.
+     - **Vulnerability & Attrition:** Non-secured outposts lose 250 citizens per incident, trigger sirens and incur -6₪ damage; they are wiped off the map when no citizens remain.
      - **Narrative Framing:** Breaking headlines highlight the security vacuum (*"מאחז חשוף תחת מתקפה: בהיעדר כוחות צה״ל לשמירה..."*), creating a sharp dilemma between protecting sovereign borders and preventing outpost destruction.
 
 3. **Settlement Inspector Tactical Feedback:**
    - The inspector previews budget and income changes and whether removing the selected troop actually opens a gap. Recall is disabled when no gap needs filling.
 
-4. **Garrison Benefits & Outpost Repair:**
+4. **Garrison Benefits & Permanent Citizen Loss:**
    - Outposts with stationed troops display a miniature IDF shield badge (`✡`).
-   - Garrisoned outposts regenerate durability at +1 HP/second outside tactical incidents. Tutorial clashes damage ungarrisoned outposts; main-game incidents can damage any outpost with insufficient defenders.
+   - Garrisoned outposts prevent tutorial-clash deaths. Citizen losses never regenerate; main-game incidents can still kill citizens at any outpost with insufficient defenders.
 
 5. **Perimeter Collapse Visuals:**
    - Sovereign border line turns dashed amber below 50% defense.
@@ -397,12 +395,12 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 
 ## 12. Run Reports, Medals & Social Sharing
 
-- Both terminal screens embed `RunReport`: objective, elapsed simulation seconds, final HP, intercepted raids, medals, a damage-source table and an expandable chronological event list.
-- Damage reporting sums actual HP removed by exposure, raid impacts and destroyed outposts before later healing. Final state totals are not substituted for historical decisions.
-- Miracle reliance is mentioned only when this run actually recorded a button press. The defeat text distinguishes HP exhaustion from the panic-button shatter.
-- Two medals remain available only on main-game victory: finish with 90+ HP; use at most two reserve calls during the run. The former one-call threshold is infeasible for sustained defense: eight checkpoint guards, three outpost guards and two temporary reinforcements require at least 13 soldiers, while one reserve call provides only 12. Two calls provide 16 soldiers, and a successful three-defense regression verifies that this medal is attainable. Scenario speed medals have been removed.
+- Both terminal screens embed `RunReport`: objective, elapsed simulation seconds, final citizens alive, intercepted raids, medals, a death-source table and an expandable chronological event list.
+- Reporting sums actual citizen deaths from exposure, raid impacts, outpost clashes and understaffed tactical incidents. Losses are irreversible, so the final citizen count and historical source totals remain consistent.
+- Miracle reliance is mentioned only when this run actually recorded a button press. The defeat text distinguishes the citizen count reaching zero from the panic-button shatter.
+- Two medals remain available only on main-game victory: finish with at least 90,000 citizens alive; use at most two reserve calls during the run. The former one-call threshold is infeasible for sustained defense: eight checkpoint guards, three outpost guards and two temporary reinforcements require at least 13 soldiers, while one reserve call provides only 12. Two calls provide 16 soldiers, and a successful three-defense regression verifies that this medal is attainable. Scenario speed medals have been removed.
 - Both endings offer a new standard game; there is no scenario selector. The shared seed keeps threat opportunities comparable, while different policies affect which threats are eligible.
-- Defeat retains native sharing, WhatsApp sharing and a standalone SVG result card. Shared text reports final outposts, gaps and HP without inventing decisions.
+- Defeat retains native sharing, WhatsApp sharing and a standalone SVG result card. Shared text reports final outposts, gaps and citizens alive without inventing decisions.
 - Terminal screens are bounded, internally scrollable panels; the map and deck retain their layout behind them.
 
 ## 12.1. Low-Interruption Notification Behavior
@@ -416,7 +414,7 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 ## 13. Verification & Quality Assurance
 
 - `npm run build`: strict TypeScript checking and Vite production bundle, required before completion.
-- `npm test`: 42 reducer regressions covering tutorial/deployment recovery, automatic source selection, danger thresholds, replay, reporting, available troops, miracle behavior and tactical threats. Victory checks reject instant wins after expansion/reduction, count three actual defenses with three staffed outposts, exclude pre-expansion victories and cancellations, report reset causes on evacuation below three, lost coverage or failed battles, wait for construction and overlapping threats, resume pressure after an overlapping failure, and clear progress on restart. A bounded balance regression compares an idle four-outpost board (defeat) with active reinforcement (victory at 100 HP).
+- `npm test`: 43 reducer regressions covering tutorial/deployment recovery, automatic source selection, citizen danger thresholds, replay, death reporting, permanent outpost deaths, available troops, miracle behavior and tactical threats. Victory checks reject instant wins after expansion/reduction, count three actual defenses with three staffed outposts, exclude pre-expansion victories and cancellations, report reset causes on evacuation below three, lost coverage or failed battles, wait for construction and overlapping threats, resume pressure after an overlapping failure, and clear progress on restart. A bounded balance regression compares an idle four-outpost board (defeat) with active reinforcement (victory with 100,000 citizens alive).
 - Chromium checks in `scripts/test-browser.mjs` cover both languages at 320×568, 360×640, 390×844, 430×932, 568×320, 844×390 and 1280×720. They assert no document scrolling, a map of at least 220px, no objective/ticker/action overlap, and visibility of all four actions. They also exercise build → select outpost → send troop → seal → continued play, absence of scenario controls, expansion/evacuation without winning, rebuilding and staffing three outposts then reinforcing through a three-defense victory, defeat and restart, collecting runtime errors. Safari and Firefox have not been verified in this iteration.
 - The browser runner also checks active-threat layouts at all listed viewport sizes in both locales, reinforcement planning pause, map-marker access, Hebrew dispatch, English arrival feedback, Escape dismissal, guard transfer/breach sealing and automatic support return. Screenshots include both planning dialogs and threat layouts.
 - The browser runner is optional development tooling: install Playwright separately and run `node scripts/test-browser.mjs`, or point `PLAYWRIGHT_MODULE` to its module. `PLAYWRIGHT_EXECUTABLE_PATH` can select an existing Chromium binary. It is not a runtime dependency.
@@ -426,7 +424,7 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 - Detailed reproductions, evidence, proposed fixes and verification limits are recorded in [the playtest audit](docs/playtest-audit-2026-09-20.md). The original audit made no runtime changes; the subsequent sustained-defense iteration resolves its destruction-to-victory finding and confirms three-outpost expansion as a user requirement.
 - Resolved tutorial deviations: reserve auto-garrisoning now advances the tutorial, available-pool deployment completes it without requiring an artificial gap, and removing the last unstaffed outpost restores the build instruction.
 - Resolved accessibility deviation: shared modal focus handling includes native disclosure summaries and excludes controls hidden inside closed disclosures. Some older bilingual news strings still embed a name from only one locale.
-- Remaining rule ambiguity: immediate resilience rewards differ between equivalent recall/seal actions and troop sources. Destruction no longer qualifies as victory; it resets progress if it breaks the expanded-line requirement and any failed battle resets the defense streak.
+- The former immediate resilience rewards for recall/seal actions were removed with the citizen model because completed defensive actions cannot restore dead citizens. Destruction does not qualify as victory; it resets progress if it breaks the expanded-line requirement and any failed battle resets the defense streak.
 - Small-phone layout retains zero scrolling and the 220px minimum map. Outpost and gap hit circles are 36 SVG units in radius; the compact map still scales below 44 CSS pixels on small phones. The location picker was removed at the user's request; direct map targets retain keyboard operation, focus rings and highlighted unguarded outposts, while inspector actions are at least 44px high.
 - At original audit time, all 30 reducer tests, production build and existing bilingual Chromium suite passed; targeted probes still reproduced those gaps. Current expanded coverage is described above.
 
@@ -434,16 +432,16 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 
 - Main actions use distinct semantic translation keys: Call reserves / +4 · batches left; Deploy troop / ₪15 per troop; Reinforce / 4s · free. Construction progress, actual active-threat count, guarded status, available-pool deployment, gap-opening costs and available-pool sealing have distinct Hebrew and English messages.
 - Once the tutorial is complete, the existing action-deck instruction card continuously shows staffed outposts/3, covered checkpoints/8 and consecutive defenses/3, including while threats are active. Its help retains the full objective and latest reset explanation. No extra persistent vertical HUD row is added.
-- `defenseResetReason` starts at null. When a positive streak becomes zero, record the cause and publish bilingual news: failed battle, fewer than three outposts, border gap, unguarded outpost, active raid, or zero resilience (in that priority order). The action card retains the explanation until a new successful streak begins; restart clears it. No combat/economy formulas change.
+- `defenseResetReason` starts at null. When a positive streak becomes zero, record the cause and publish bilingual news: failed battle, fewer than three outposts, border gap, unguarded outpost, active raid, or zero citizens (in that priority order). The action card retains the explanation until a new successful streak begins; restart clears it.
 - The all-sectors hamburger/location list has been removed, including its dialog, actions and pause state. Construction sites, outposts, breaches and threats remain directly clickable and keyboard accessible on the map. Unguarded outposts have a permanent amber dashed target ring; deployment mode strengthens it. Focus/click selection draws a blue ring. Tiny 5.5/6.5-unit decorative labels are suppressed on narrow phones; readable outpost details live in the inspector.
 - `ModalAccessibility` provides initial dialog focus, Tab/Shift+Tab containment, Escape dismissal for nonterminal dialogs, focus restoration, and inert background branches. It covers introduction, strategy, news, settlement/infiltration inspectors, reinforcement planning and information popovers. Terminal results retain their explicit restart controls. Status counters and the manual resume banner are native buttons; reduced-motion control exposes its name and pressed state.
-- Run reports distinguish elapsed time, resilience, interceptions, raid impacts, outpost losses, open gaps and available-pool sources. The largest accumulated damage category determines a bilingual next-attempt tip linked to the corresponding events in the existing decision timeline; zero-damage runs receive an explicit no-damage statement. Equal damage totals choose the first category in report order. Advice is based on recorded totals, without inventing individual decisions.
+- Run reports distinguish elapsed time, citizens alive, interceptions, raid deaths, outpost deaths, open-gap deaths and available-pool sources. The largest accumulated death category determines a bilingual next-attempt tip linked to the corresponding events in the existing decision timeline; zero-death runs receive an explicit no-death statement. Equal totals choose the first category in report order. Advice is based on recorded totals, without inventing individual decisions.
 - Verification adds tutorial evacuation/reserve/available-pool recovery, automatic source selection, danger thresholds, reset-cause assertions, and bilingual browser checks for construction feedback, direct map actions, persistent help, focus restoration and reinforcement keyboard input.
 
 ## 14. Strategy Desk, Replay & Accessibility
 
 - Header book control opens the bilingual strategy desk without altering manual pause. The desk includes the policy ledger, reduced-motion toggle, the main objective and medal thresholds, and the original inspiration link.
-- Every game begins with 100₪, eight soldiers staffing eight checkpoints, zero outposts, 100 HP and three reserve batches.
+- Every game begins with 100₪, eight soldiers staffing eight checkpoints, zero outposts, 100,000 citizens alive and three reserve batches. Every completed outpost begins with 1,000 citizens.
 - The strategy desk is informational only; it has no scenario list or game-start controls. Header restart and the two result-screen restart buttons return to the standard guided opening.
 - `randomStream(seed, elapsedSeconds, channel)` gives separate coin, raid and clash opportunity streams. No UI action or reading delay advances these streams. Narrative randomness is cosmetic; equal gameplay decisions at equal simulation seconds reproduce the threat outcomes.
 - Checkpoint readiness, current income, budget capacity and troop totals are normalized centrally after gameplay changes. Costs/rewards are defined in `RULES` and used by gameplay and previews.
@@ -462,11 +460,11 @@ Synthesized procedurally with zero external asset dependencies (`src/audio/sound
 
 ## 15. Persistent Danger Warning & Easier Troop Movement
 
-- **Danger strip:** During active play, the existing objective/threat status row becomes a persistent, nonmodal warning below 35 HP (amber), below 20 HP (red), or whenever a currently underdefended tactical attack or active city raid can individually exhaust remaining HP (red). At exactly 35 HP there is no health-only warning; at exactly 20 HP it remains amber unless an attack is lethal. Terminal screens clear it.
-- **Threat calculation:** Missing defenders = max(0, required strength − permanent garrison − support arriving at or before that incident's deadline). Potential tactical damage = missing defenders × 6 HP. Each city raid can inflict 12 HP. This is a current-risk indicator, not a forecast of all future attacks or cumulative damage.
+- **Danger strip:** During active play, the existing objective/threat status row becomes a persistent, nonmodal warning below 35,000 citizens (amber), below 20,000 citizens (red), or whenever a currently underdefended tactical attack or active city raid can individually kill every remaining citizen (red). At exactly 35,000 there is no count-only warning; at exactly 20,000 it remains amber unless an attack is lethal. Terminal screens clear it.
+- **Threat calculation:** Missing defenders = max(0, required strength − permanent garrison − support arriving at or before that incident's deadline). Potential tactical deaths = missing defenders × 6,000 citizens. Each city raid can kill 12,000 citizens. This is a current-risk indicator, not a forecast of all future attacks or cumulative deaths.
 - **Advice priority:** Lethal raid → seal border gaps; lethal tactical threat → send reinforcements; otherwise open gaps → seal; understaffed tactical threat → reinforce; unguarded outpost → guard; otherwise hold defenses. The text supports Hebrew/RTL and English/LTR and uses a polite, atomic live region. No dismissal, pause, timer or modal is added. Threat planning remains accessible via the map and Reinforce action when the warning occupies the status row.
-- **Presentation:** Amber and red CSS theme variables, an alert icon, explicit warning text, and a restrained two-second critical border pulse. Critical health/attack risk also enables the existing screen-edge glow. OS reduced-motion and the in-game preference suppress warning motion. The strip reuses existing HUD space; the map remains at least 220px and all four bottom actions remain visible without document scrolling in phone portrait/landscape and desktop layouts.
+- **Presentation:** Amber and red CSS theme variables, an alert icon, explicit warning text, and a restrained two-second critical border pulse. Critical citizen/attack risk also enables the existing screen-edge glow. OS reduced-motion and the in-game preference suppress warning motion. The strip reuses existing HUD space; the map remains at least 220px and all four bottom actions remain visible without document scrolling in phone portrait/landscape and desktop layouts.
 - **Deployment:** Cost drops from 25₪ to 15₪ per permanent outpost guard. All existing troop totals, reserve batches, build costs, travel times, damage and miracle readiness rules remain unchanged. Selecting a settlement and pressing Send troop completes deployment; there is no source-selection step. Already guarded outposts cannot accept or charge for another permanent guard. Unavailable funds/troops are explained; reserves can be called from the inspector if no source exists.
 - **Automatic source order:** Use unassigned troops first. For permanent deployment, candidates are staffed checkpoints. For temporary reinforcement, candidates also include other staffed outposts, excluding the target. Rank candidates by (garrison > 1 ? 0 : 4) + (active tactical threat on source ? 2 : 0) + (checkpoint ? 1 : 0), then by stable tile ID. This favors surplus guards, avoids threatened sources within the same coverage class, and preserves border coverage before an outpost's last guard when reinforcement must expose a post. If coverage loss is unavoidable, display the consequence before sending.
 - **Integrity:** Source choice is recalculated in the reducer, actual source IDs are written to the run timeline, and existing cost, soldier conservation, travel/deadline and sufficient-strength checks still apply. The old preview state/action and all-sectors menu state/actions/component are removed.
-- **Verification:** Reducer regressions cover automatic free/spare/last-guard selection, target exclusion, duplicate sends, no-source rejection, timeline source recording, health thresholds, lethal attacks, on-time support and terminal warning removal. Browser checks cover both locales, seven viewport sizes, both danger tiers during a real losing run, single-button deployment/reinforcement, missing source/list menus, keyboard input, victory/restart, and reaching the five-tap miracle through automatic transfers.
+- **Verification:** Reducer regressions cover automatic free/spare/last-guard selection, target exclusion, duplicate sends, no-source rejection, timeline source recording, citizen thresholds, lethal attacks, on-time support and terminal warning removal. Browser checks cover both locales, seven viewport sizes, both danger tiers during a real losing run, single-button deployment/reinforcement, missing source/list menus, keyboard input, victory/restart, and reaching the five-tap miracle through automatic transfers.

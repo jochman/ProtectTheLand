@@ -27,7 +27,7 @@ export const INITIAL_STATE: GameState = {
   soldiersAtSettlements: 0,
   reservesBatchesLeft: 3,
   defenseScore: 100,
-  landHp: 100, // National Resilience starts at 100%
+  citizens: RULES.nationalCitizens,
   isIntroModalOpen: true, // Entrance tutorial modal opens on game start
   isPaused: false,
   infoPopover: null,
@@ -261,7 +261,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       borderId: action.type === 'DEPLOY_TROOP' ? action.borderId ?? troopSource(state, action.settlementId) ?? undefined
         : action.type === 'REINFORCE_THREAT' ? action.sourceId ?? troopSource(state, state.threats.find(t => t.id === action.threatId)?.tileId ?? '', true) ?? undefined
         : 'checkpointId' in action ? action.checkpointId : undefined,
-      gaps: activeBreaches.length, hp: next.landHp, intercepted }];
+      gaps: activeBreaches.length, citizens: next.citizens, intercepted }];
   }
   if (action.type === 'CLICK_LORD_OF_HOSTS' || action.type === 'MASH_LORD_OF_HOSTS') next.metrics.miracleClicks++;
   if (!holdsExpandedLine(next)) next.defenseStreak = 0;
@@ -270,7 +270,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       : next.settlementsCount < RULES.victoryOutposts ? 'outposts'
       : activeBreaches.length ? 'border'
       : Object.values(next.tiles).some(t => t.hasSettlement && t.garrisonCount === 0) ? 'guard'
-      : next.greenSideAttacks.length ? 'raid' : 'resilience';
+      : next.greenSideAttacks.length ? 'raid' : 'citizens';
     next.defenseResetReason = reason;
     next = { ...next, ...withNews(next, { id: `streak-reset-${next.elapsedSeconds}-${next.timeline.length}`,
       headline: translate(next.locale, `progress.reset.${reason}`),
@@ -886,19 +886,16 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       const effectiveIncome = baseCivilianIncome + guardedIncomeBonus;
       const currentMaxBudget = RULES.budgetBase + Object.values(updatedTiles).filter(t => t.hasSettlement).length * RULES.budgetPerOutpost;
       let newBudget = Math.min(currentMaxBudget, state.budget + effectiveIncome);
-      let newLandHp = state.landHp !== undefined ? state.landHp : 100;
+      let citizens = state.citizens ?? RULES.nationalCitizens;
       const metrics = { ...state.metrics };
       const timeline = [...state.timeline];
 
-      // Defense holes bleed Homeland HP (0.4 HP/s per unsealed breach)
+      // Every open border sector causes irreversible civilian deaths each second.
       const holeCount = state.activeBreaches.length;
       if (holeCount > 0) {
-        const holeDrain = Math.round(holeCount * RULES.gapDamage * 10) / 10;
-        metrics.exposureDamage += Math.min(newLandHp, holeDrain);
-        newLandHp = Math.max(0, Number((newLandHp - holeDrain).toFixed(1)));
-      } else if ((state.greenSideAttacks || []).length === 0 && state.threats.length === 0 && newLandHp < 100) {
-        // Safe, fortified borders naturally stabilize homeland security
-        newLandHp = Math.min(100, Number((newLandHp + RULES.recoveryRate).toFixed(1)));
+        const deaths = holeCount * RULES.gapDeaths;
+        metrics.exposureDamage += Math.min(citizens, deaths);
+        citizens = Math.max(0, citizens - deaths);
       }
 
       // 4. Update constructions
@@ -915,8 +912,8 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           updatedTiles[tileId] = {
             ...updatedTiles[tileId],
             hasSettlement: true,
-            hp: 100,
-            maxHp: 100,
+            citizens: RULES.outpostCitizens,
+            maxCitizens: RULES.outpostCitizens,
           };
           newSettlementsCount += 1;
           sounds.playBuild();
@@ -958,16 +955,9 @@ function reduceGame(state: GameState, action: GameAction): GameState {
 
       const now = simulationNow(state);
 
-      // Heal / repair garrisoned settlements gradually and clear expired damaged city states
+      // Citizen deaths are permanent; this pass only clears expired impact visuals.
       for (const tId of Object.keys(updatedTiles)) {
         const t = updatedTiles[tId];
-        if (t.hasSettlement && t.garrisonCount > 0 && t.hp !== undefined && t.hp < 100
-          && !state.threats.some(threat => threat.tileId === tId)) {
-          updatedTiles[tId] = {
-            ...t,
-            hp: Math.min(100, t.hp + RULES.outpostRepair),
-          };
-        }
         if (t.damagedUntil && now >= t.damagedUntil) {
           updatedTiles[tId] = {
             ...t,
@@ -1076,18 +1066,18 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           sounds.playSiren();
           newDefenseScore = Math.max(0, newDefenseScore - 4);
           newBudget = Math.max(0, newBudget - RULES.raidCost);
-          const damage = Math.min(newLandHp, RULES.raidDamage);
-          metrics.raidDamage += damage;
-          timeline.push({ second: state.elapsedSeconds, kind: 'raid', borderId: atk.breachId, gaps: state.activeBreaches.length, hp: Math.max(0, newLandHp - damage), damage });
-          newLandHp = Math.max(0, Number((newLandHp - RULES.raidDamage).toFixed(1)));
+          const deaths = Math.min(citizens, RULES.raidDeaths);
+          metrics.raidDamage += deaths;
+          timeline.push({ second: state.elapsedSeconds, kind: 'raid', borderId: atk.breachId, gaps: state.activeBreaches.length, citizens: Math.max(0, citizens - deaths), deaths });
+          citizens = Math.max(0, citizens - RULES.raidDeaths);
           updatedTiles[atk.targetCityId] = {
             ...updatedTiles[atk.targetCityId],
             hasAlert: false, // Infiltration message is removed; city is now in post-impact aftermath
             damagedUntil: now + 6500,
           };
 
-          const impactHeadlineHe = `פגיעה ישירה בעורף: חוליה פגעה בפאתי ${atk.targetCityName}! (חוסן לאומי 12%- | 10₪- נזק)`;
-          const impactHeadlineEn = `Direct home front strike: Squad attacked outskirts of ${atk.targetCityName}! (-12% HP | -₪10 damage)`;
+          const impactHeadlineHe = `פגיעה ישירה בעורף: חוליה פגעה בפאתי ${atk.targetCityName}! (${RULES.raidDeaths.toLocaleString('he-IL')} אזרחים נהרגו | 10₪- נזק)`;
+          const impactHeadlineEn = `Direct home front strike: Squad attacked outskirts of ${atk.targetCityName}! (${RULES.raidDeaths.toLocaleString('en-US')} citizens killed | -₪10 damage)`;
           const impactNewsItem: NewsItem = {
             id: `green-impact-${now}-${atk.id}`,
             headline: state.locale === 'he' ? impactHeadlineHe : impactHeadlineEn,
@@ -1240,26 +1230,29 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           if (isGarrisoned) {
             sounds.playClash();
           } else {
-            // UNGARRISONED OUTPOST: Severe tension, no military buffer! Unprotected outpost takes HP damage!
+            // An unguarded outpost loses citizens on every attack.
             isUrgentClash = true;
             sounds.playSiren();
             if (newBudget >= 6) {
               newBudget = Math.max(0, newBudget - 6);
             }
 
-            const currentHp = settlement.hp !== undefined ? settlement.hp : 100;
-            const newHp = Math.max(0, currentHp - 25);
+            const currentCitizens = settlement.citizens ?? RULES.outpostCitizens;
+            const outpostDeaths = Math.min(currentCitizens, RULES.outpostClashDeaths);
+            const deaths = Math.min(citizens, outpostDeaths);
+            const remainingCitizens = currentCitizens - outpostDeaths;
+            metrics.clashDamage += deaths;
+            timeline.push({ second: state.elapsedSeconds, kind: 'clash', gaps: state.activeBreaches.length,
+              citizens: Math.max(0, citizens - deaths), deaths });
+            citizens = Math.max(0, citizens - deaths);
 
-            if (newHp <= 0) {
+            if (remainingCitizens <= 0) {
               // Settlement destroyed!
-              metrics.clashDamage += Math.min(newLandHp, RULES.clashDamage);
-              timeline.push({ second: state.elapsedSeconds, kind: 'clash', gaps: state.activeBreaches.length, hp: Math.max(0, newLandHp - RULES.clashDamage), damage: Math.min(newLandHp, RULES.clashDamage) });
-              newLandHp = Math.max(0, Number((newLandHp - RULES.clashDamage).toFixed(1)));
               updatedTiles[settlement.id] = {
                 ...settlement,
                 hasSettlement: false,
-                hp: undefined,
-                maxHp: undefined,
+                citizens: undefined,
+                maxCitizens: undefined,
                 settlementName: undefined,
                 garrisonCount: 0,
                 hasAlert: false,
@@ -1267,16 +1260,16 @@ function reduceGame(state: GameState, action: GameAction): GameState {
               newSettlementsCount = Math.max(0, newSettlementsCount - 1);
               sounds.playPanicMashThud();
 
-              clashHeadlineHe = `אסון במאחז: ${settlementNameHe} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה! (חוסן לאומי 10%-)`;
-              clashHeadlineEn = `Outpost destroyed: ${settlementNameEn} abandoned and burned with no troops! (-10% HP)`;
+              clashHeadlineHe = `אסון במאחז: ${settlementNameHe} ננטש ונשרף כליל עקב היעדר כוחות צה״ל לשמירה! (${outpostDeaths.toLocaleString('he-IL')} אזרחים נהרגו בפגיעה)`;
+              clashHeadlineEn = `Outpost destroyed: ${settlementNameEn} abandoned and burned with no troops! (${outpostDeaths.toLocaleString('en-US')} citizens killed in the strike)`;
             } else {
               updatedTiles[settlement.id] = {
                 ...settlement,
-                hp: newHp,
+                citizens: remainingCitizens,
                 hasAlert: true,
               };
-              clashHeadlineHe += ` (עמידות המאחז ירדה ל-${newHp}%)`;
-              clashHeadlineEn += ` (Outpost HP dropped to ${newHp}%)`;
+              clashHeadlineHe += ` (${RULES.outpostClashDeaths.toLocaleString('he-IL')} אזרחים נהרגו; ${remainingCitizens.toLocaleString('he-IL')} נותרו)`;
+              clashHeadlineEn += ` (${RULES.outpostClashDeaths.toLocaleString('en-US')} citizens killed; ${remainingCitizens.toLocaleString('en-US')} remain)`;
             }
           }
 
@@ -1403,13 +1396,13 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         }
       }
 
-      if (newLandHp <= 0) {
+      if (citizens <= 0) {
         sounds.playCrackCollapse();
         sounds.playSiren();
         return {
           ...state,
           metrics, timeline,
-          landHp: 0,
+          citizens: 0,
           budget: newBudget,
           defenseScore: 0,
           tiles: updatedTiles,
@@ -1422,8 +1415,8 @@ function reduceGame(state: GameState, action: GameAction): GameState {
             id: `catastrophe-collapse-${now}`,
             headline: translate(state.locale, 'game.gameReducer.1412', []),
             source: translate(state.locale, 'game.gameReducer.1415', []),
-            headlineHe: 'קריסת חוסן המדינה: ההגנה נשברה כליל! פרצות ממושכות ופגיעות ישירות הובילו ל-7 באוקטובר.',
-            headlineEn: 'Homeland Collapse: Defenses broken! Prolonged breaches and direct strikes led to October 7th.',
+            headlineHe: 'אסון לאומי: מספר האזרחים שנותרו בחיים הגיע לאפס. פרצות ממושכות ופגיעות ישירות הובילו ל־7 באוקטובר.',
+            headlineEn: 'National catastrophe: No citizens remain alive. Prolonged breaches and direct strikes led to October 7th.',
             sourceHe: 'פיקוד העורף',
             sourceEn: 'Home Front Command',
             category: 'military',
@@ -1441,7 +1434,7 @@ function reduceGame(state: GameState, action: GameAction): GameState {
         settlementsCount: newSettlementsCount,
         constructions: updatedConstructions,
         defenseScore: newDefenseScore,
-        landHp: newLandHp,
+        citizens,
         metrics, timeline,
         tiles: updatedTiles,
         sparks: newSparks,
@@ -1669,7 +1662,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           soldiersAtBorder: newBorderSoldiers,
           soldiersAtSettlements: newSettlementSoldiers,
           defenseScore: newDefenseScore,
-          landHp: Math.min(100, Number(((state.landHp ?? 100) + (hadIntercepted ? 5 : 2)).toFixed(1))),
           tiles: updatedTiles,
           activeBreaches,
           greenSideAttacks: remainingAttacks,
@@ -1757,7 +1749,6 @@ function reduceGame(state: GameState, action: GameAction): GameState {
           incomeRate: newIncomeRate,
           reservesBatchesLeft: newBatchesLeft,
           defenseScore: newDefenseScore,
-          landHp: Math.min(100, Number(((state.landHp ?? 100) + (hadIntercepted ? 5 : 3)).toFixed(1))),
           tiles: updatedTiles,
           activeBreaches,
           greenSideAttacks: remainingAttacks,

@@ -1,10 +1,10 @@
 import { translate } from '../locales/translate';
 import React from 'react';
-import { Shield, Coins, Heart, Info } from 'lucide-react';
+import { Shield, Coins, Users, Info } from 'lucide-react';
 import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { simulationNow, availableTroops } from '../game/rules';
+import { simulationNow, availableTroops, RULES } from '../game/rules';
 import { haptics } from '../utils/haptics';
 
 interface TopStatusPillProps {
@@ -26,11 +26,11 @@ const STAT_INFO = {
   settlements: {
     he: {
       title: '🏡 מאחזים ויישובים ביו״ש',
-      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את גאולת ״יהוה צבאות״, אך דורש אבטחה צבאית קבועה למניעת פשיטות, שחיקת חוסן ואובדן הכנסה.',
+      text: 'מספר נקודות ההתיישבות שהוקמו בגבעות. כל מאחז מקרב את גאולת ״יהוה צבאות״, אך דורש אבטחה צבאית קבועה למניעת פשיטות, הרג אזרחים ואובדן הכנסה.',
     },
     en: {
       title: '🏡 Hilltop Outposts & Settlements',
-      text: 'Settlements established across the West Bank. They advance total conquest and redemption, but require standing guards to prevent raids, resilience loss, and lost revenue.',
+      text: 'Settlements established across the West Bank. They advance total conquest and redemption, but require standing guards to prevent raids, civilian deaths, and lost revenue.',
     },
   },
   budget: {
@@ -43,14 +43,14 @@ const STAT_INFO = {
       text: 'Your political funding. Used to construct outposts (₪100) and deploy troops (₪15). Generated from baseline civilian revenue and boosted by guarded outposts (+₪2/s).',
     },
   },
-  landHp: {
+  citizens: {
     he: {
-      title: '❤️ חוסן לאומי (שלמות המדינה)',
-      text: 'מדד עמידות העורף. כל פרצה שלא נבלמת וכל חדירה מעבר לקו הירוק שוחקות את החוסן. אם החוסן יורד ל-0% – המדינה קורסת והמשחק נגמר!',
+      title: '👥 אזרחים שנותרו בחיים',
+      text: 'כל פרצה פתוחה, חדירה ופגיעה לא מאובטחת הורגות אזרחים. האבדות קבועות ואינן מתאוששות. אם מספר האזרחים מגיע לאפס – המשחק נגמר.',
     },
     en: {
-      title: '❤️ National Resilience (Homeland Integrity)',
-      text: 'Represents civilian and state endurance. Open border breaches and hostile infiltrations wear it down. If resilience drops to 0%, total catastrophe strikes!',
+      title: '👥 Citizens Still Alive',
+      text: 'Every open breach, infiltration, and undefended strike kills citizens. These losses are permanent. If the citizen count reaches zero, the game ends.',
     },
   },
   border: {
@@ -80,12 +80,12 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
     }
   };
 
-  // Determine Land HP bar color
+  const citizenPercent = state.citizens / RULES.nationalCitizens * 100;
   let landBarColor = 'bg-emerald-500';
-  if (state.landHp < 65) {
+  if (citizenPercent < 65) {
     landBarColor = 'bg-amber-500';
   }
-  if (state.landHp < 35) {
+  if (citizenPercent < 35) {
     landBarColor = 'bg-red-500 animate-pulse';
   }
 
@@ -176,32 +176,32 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch })
 
       </div>
 
-      {/* Lower Pill: Land HP Bar & Border Readiness */}
+      {/* Lower Pill: surviving citizens & border readiness */}
       <div className="status-pill flex items-center justify-between w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60 font-heebo">
-        {/* Land HP Section (Tap for Info) */}
+        {/* Citizen Section (Tap for Info) */}
         <button type="button"
-          onClick={() => triggerInfo('landHp')}
+          onClick={() => triggerInfo('citizens')}
           className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
-          title={`${strings.stats.landHp} (${translate(state.locale, 'components.TopStatusPill.194', [])})`}
+          title={`${strings.stats.citizens} (${translate(state.locale, 'components.TopStatusPill.194', [])})`}
         >
           <div className="flex items-center gap-1 flex-shrink-0">
-            <Heart className={`w-3.5 h-3.5 ${state.landHp < 35 ? 'text-red-600 fill-red-500 animate-ping' : 'text-red-500 fill-red-400'}`} />
+            <Users className={`w-3.5 h-3.5 ${citizenPercent < 35 ? 'text-red-600 animate-ping' : 'text-red-500'}`} />
             <span className="text-xs font-black text-slate-800 font-rubik tracking-tight">
-              {Math.round(state.landHp)}%
+              {state.citizens.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')}
             </span>
           </div>
 
-          {/* Land HP Fill Bar */}
+          {/* Citizen survival bar */}
           <div className="flex-1 bg-amber-100/80 rounded-full h-3.5 p-0.5 border border-amber-300/60 overflow-hidden shadow-inner relative">
             <div
               className={`h-full rounded-full transition-all duration-300 ${landBarColor}`}
-              style={{ width: `${Math.max(4, state.landHp)}%` }}
+              style={{ width: `${Math.max(4, citizenPercent)}%` }}
             />
           </div>
 
           {state.activeBreaches.length > 0 && (
             <span className="text-[9px] font-black text-red-600 flex-shrink-0 animate-pulse" title={translate(state.locale, 'components.TopStatusPill.212', [])}>
-              -{(state.activeBreaches.length * 0.4).toFixed(1)}/{translate(state.locale, 'components.TopStatusPill.213', [])}
+              -{(state.activeBreaches.length * RULES.gapDeaths).toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')}/{translate(state.locale, 'components.TopStatusPill.213', [])}
             </span>
           )}
         </button>

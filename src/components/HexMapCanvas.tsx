@@ -2,7 +2,7 @@ import { translate } from '../locales/translate';
 import React from 'react';
 import { GameState, GameAction, HexTile } from '../types';
 import { haptics } from '../utils/haptics';
-import { simulationNow } from '../game/rules';
+import { RULES, simulationNow } from '../game/rules';
 import { tileName } from '../game/hexGridData';
 import { threatDefense } from '../game/threats';
 
@@ -595,21 +595,21 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                 <polygon points="0,9 11,0 22,9" fill="url(#roofGrad)" stroke="#9a3412" strokeWidth="1" />
               </g>
 
-              {/* Unprotected Settlement HP Bar */}
+              {/* Unprotected settlement citizen bar */}
               {!isGuarded && (
                 <g transform="translate(0, -22)" filter="url(#dropShadow)">
                   <rect x="-17" y="-3" width="34" height="6.5" rx="3.2" fill="rgba(15, 23, 42, 0.92)" stroke="#475569" strokeWidth="0.8" />
                   <rect
                     x="-16"
                     y="-2"
-                    width={Math.max(2, (((s.hp ?? 100) / 100) * 32))}
+                    width={Math.max(2, (((s.citizens ?? RULES.outpostCitizens) / RULES.outpostCitizens) * 32))}
                     height="4.5"
                     rx="2.2"
-                    fill={(s.hp ?? 100) > 60 ? '#22c55e' : (s.hp ?? 100) > 30 ? '#f59e0b' : '#ef4444'}
-                    className={(s.hp ?? 100) <= 30 ? 'animate-pulse' : ''}
+                    fill={(s.citizens ?? RULES.outpostCitizens) > 600 ? '#22c55e' : (s.citizens ?? RULES.outpostCitizens) > 300 ? '#f59e0b' : '#ef4444'}
+                    className={(s.citizens ?? RULES.outpostCitizens) <= 300 ? 'animate-pulse' : ''}
                   />
                   <text x="0" y="1.8" textAnchor="middle" fill="#ffffff" fontSize="5.5" fontWeight="900" className="font-rubik select-none">
-                    {s.hp ?? 100}% HP
+                    👥 {(s.citizens ?? RULES.outpostCitizens).toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')}
                   </text>
                 </g>
               )}
@@ -625,13 +625,6 @@ export const HexMapCanvas: React.FC<HexMapCanvasProps> = ({ state, dispatch }) =
                     <path d="M 0 0 L 4 2 L 4 6 Q 4 9 0 11 Q -4 9 -4 6 L -4 2 Z" fill="#2563eb" stroke="#ffffff" strokeWidth="0.8" />
                     <text x="0" y="6" textAnchor="middle" fill="#ffffff" fontSize="4.5" fontWeight="900">✡</text>
                   </g>
-                  {/* Active outpost repair / healing status */}
-                  {(s.hp ?? 100) < 100 && (
-                    <g transform="translate(-14, -8)">
-                      <rect x="-8" y="-4" width="16" height="8" rx="2.5" fill="#15803d" stroke="#86efac" strokeWidth="0.6" />
-                      <text x="0" y="2" textAnchor="middle" fill="#86efac" fontSize="5" fontWeight="900" className="font-rubik">+5 HP</text>
-                    </g>
-                  )}
                 </g>
               ) : (
                 // Empty garrison badge: subtle dashed outline with guard silhouette (no bouncing, calm)

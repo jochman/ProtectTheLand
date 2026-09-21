@@ -40,10 +40,10 @@ export function dangerStatus(state: GameState): { critical: boolean; advice: 're
   if (state.gameStatus !== 'playing') return null;
   const missing = (t: TacticalThreat) => Math.max(0, t.required - (state.tiles[t.tileId]?.garrisonCount ?? 0)
     - state.reinforcements.filter(r => r.threatId === t.id && r.arrivesAt <= t.deadline).length);
-  const lethalThreat = state.threats.some(t => missing(t) * RULES.threatDamagePerMissing >= state.landHp);
-  const lethalRaid = state.greenSideAttacks.length > 0 && state.landHp <= RULES.raidDamage;
-  if (state.landHp >= 35 && !lethalThreat && !lethalRaid) return null;
-  return { critical: state.landHp < 20 || lethalThreat || lethalRaid,
+  const lethalThreat = state.threats.some(t => missing(t) * RULES.threatDeathsPerMissing >= state.citizens);
+  const lethalRaid = state.greenSideAttacks.length > 0 && state.citizens <= RULES.raidDeaths;
+  if (state.citizens >= 35_000 && !lethalThreat && !lethalRaid) return null;
+  return { critical: state.citizens < 20_000 || lethalThreat || lethalRaid,
     advice: lethalRaid ? 'seal' : lethalThreat ? 'reinforce' : state.activeBreaches.length ? 'seal'
       : state.threats.some(t => missing(t) > 0) ? 'reinforce'
       : Object.values(state.tiles).some(t => t.hasSettlement && !t.garrisonCount) ? 'guard' : 'hold' };
@@ -64,34 +64,34 @@ export function tickThreats(input: GameState): GameState {
   if (!holdsExpandedLine(state)) state = { ...state, defenseStreak: 0 };
   for (const threat of state.threats.filter(t => t.deadline <= state.elapsedSeconds)) {
     const missing = Math.max(0, threat.required - threatDefense(state, threat));
-    const damage = Math.min(state.landHp, missing * RULES.threatDamagePerMissing);
+    const deaths = Math.min(state.citizens, missing * RULES.threatDeathsPerMissing);
     const tile = state.tiles[threat.tileId];
-    const hp = Math.max(0, (tile.hp ?? 100) - missing * RULES.outpostDamagePerMissing);
-    const destroyed = tile.hasSettlement && hp === 0;
-    const textHe = missing ? `${tileName(tile, 'he')}: חסרו ${missing} חיילים. נזק לחוסן: ${damage}. התגבור חזר לכוח הזמין.`
+    const citizens = Math.max(0, (tile.citizens ?? RULES.outpostCitizens) - missing * RULES.outpostDeathsPerMissing);
+    const destroyed = tile.hasSettlement && citizens === 0;
+    const textHe = missing ? `${tileName(tile, 'he')}: חסרו ${missing} חיילים. ${deaths.toLocaleString('he-IL')} אזרחים נהרגו. התגבור חזר לכוח הזמין.`
       : `${tileName(tile, 'he')}: האיום נבלם! התגבור חזר לכוח הזמין.`;
-    const textEn = missing ? `${tileName(tile, 'en')}: ${missing} troops short. −${damage} HP. Support returned to the available pool.`
+    const textEn = missing ? `${tileName(tile, 'en')}: ${missing} troops short. ${deaths.toLocaleString('en-US')} citizens killed. Support returned to the available pool.`
       : `${tileName(tile, 'en')}: attack repelled! Support returned to the available pool.`;
     state = { ...state,
       defenseStreak: missing === 0 && holdsExpandedLine(state)
         ? Math.min(RULES.victoryDefenses, state.defenseStreak + 1) : 0,
-      landHp: Number((state.landHp - damage).toFixed(1)),
+      citizens: state.citizens - deaths,
       budget: Math.max(0, state.budget - missing * 4),
-      tiles: { ...state.tiles, [tile.id]: tile.hasSettlement ? { ...tile, hp,
+      tiles: { ...state.tiles, [tile.id]: tile.hasSettlement ? { ...tile, citizens,
         hasSettlement: !destroyed, garrisonCount: destroyed ? 0 : tile.garrisonCount,
       } : tile },
       threats: state.threats.filter(t => t.id !== threat.id),
       reinforcements: state.reinforcements.filter(t => t.threatId !== threat.id),
-      metrics: { ...state.metrics, threatDamage: state.metrics.threatDamage + damage,
+      metrics: { ...state.metrics, threatDamage: state.metrics.threatDamage + deaths,
         intercepted: state.metrics.intercepted + (missing === 0 ? 1 : 0) },
       timeline: [...state.timeline, { second: state.elapsedSeconds, kind: 'threat',
-        gaps: state.activeBreaches.length, hp: Number((state.landHp - damage).toFixed(1)), damage,
+        gaps: state.activeBreaches.length, citizens: state.citizens - deaths, deaths,
         intercepted: missing === 0 ? 1 : 0 }],
       threatFeedback: { textHe, textEn, until: state.elapsedSeconds + 8 },
     };
     if (destroyed) state.threatFeedback = {
-      textHe: `${tileName(tile, 'he')}: המאחז אבד. הכוחות חזרו לכוח הזמין. נזק לחוסן: ${damage}.`,
-      textEn: `${tileName(tile, 'en')}: outpost lost. Troops returned to the pool. −${damage} HP.`,
+      textHe: `${tileName(tile, 'he')}: המאחז אבד. הכוחות חזרו לכוח הזמין. ${deaths.toLocaleString('he-IL')} אזרחים נהרגו.`,
+      textEn: `${tileName(tile, 'en')}: outpost lost. Troops returned to the pool. ${deaths.toLocaleString('en-US')} citizens killed.`,
       until: state.elapsedSeconds + 8,
     };
     const feedback = state.threatFeedback!;
@@ -101,7 +101,7 @@ export function tickThreats(input: GameState): GameState {
       category: 'military' as const };
     state = { ...state, currentNews: news, newsHistory: [news, ...state.newsHistory].slice(0, 30) };
   }
-  if (state.landHp <= 0) return { ...state, gameStatus: 'catastrophe', selectedThreatId: null, isScreenShaking: false };
+  if (state.citizens <= 0) return { ...state, gameStatus: 'catastrophe', selectedThreatId: null, isScreenShaking: false };
   // Once the objective is met, let overlapping battles finish before ending the run.
   if (state.defenseStreak >= RULES.victoryDefenses && holdsExpandedLine(state)) return state;
   const count = Object.values(state.tiles).filter(t => t.hasSettlement).length;

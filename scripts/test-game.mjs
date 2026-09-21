@@ -60,19 +60,19 @@ test('automatic reinforcement preserves coverage, excludes its target and reject
   assert.equal(next.reinforcements.length, 0);
 });
 
-test('danger reflects health thresholds, lethal attacks, timely support and terminal states', () => {
+test('danger reflects citizen thresholds, lethal attacks, timely support and terminal states', () => {
   const s = start();
   assert.equal(dangerStatus(s), null);
-  s.landHp = 35;
+  s.citizens = 35_000;
   assert.equal(dangerStatus(s), null);
-  s.landHp = 34.9;
+  s.citizens = 34_999;
   assert.deepEqual(dangerStatus(s), { critical: false, advice: 'hold' });
-  s.landHp = 20;
+  s.citizens = 20_000;
   assert.equal(dangerStatus(s).critical, false);
-  s.landHp = 19.9;
+  s.citizens = 19_999;
   s.activeBreaches = ['bdr-2'];
   assert.deepEqual(dangerStatus(s), { critical: true, advice: 'seal' });
-  s.landHp = 36;
+  s.citizens = 36_000;
   s.threats = [{ id: 'lethal', tileId: 'bdr-1', required: 7, deadline: 24 }];
   assert.deepEqual(dangerStatus(s), { critical: true, advice: 'reinforce' });
   s.reinforcements = [{ id: 'support', threatId: 'lethal', fromX: 0, fromY: 0, departedAt: 0, arrivesAt: 24 }];
@@ -80,7 +80,7 @@ test('danger reflects health thresholds, lethal attacks, timely support and term
   s.reinforcements[0].arrivesAt = 25;
   assert.equal(dangerStatus(s).critical, true);
   s.threats = [];
-  s.landHp = 12;
+  s.citizens = 12_000;
   s.greenSideAttacks = [{ id: 'raid' }];
   assert.deepEqual(dangerStatus(s), { critical: true, advice: 'seal' });
   s.gameStatus = 'catastrophe';
@@ -106,13 +106,13 @@ test('miracle fills with expansion and border pressure, but becomes ready only a
   assert.ok(s.lordOfHosts.chargePercent < 100);
 });
 
-test('five miracle taps finish the effect while the first tap protects even critically low HP', () => {
-  let s = { ...miracleState(), landHp: 0.1 };
+test('five miracle taps finish the effect while the first tap protects even critically few citizens', () => {
+  let s = { ...miracleState(), citizens: 100 };
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
   assert.equal(s.lordOfHosts.mashCount, 1);
   const elapsed = s.elapsedSeconds;
   s = tick(s, 2);
-  assert.equal(s.landHp, 0.1);
+  assert.equal(s.citizens, 100);
   assert.equal(s.elapsedSeconds, elapsed);
   for (let i = 2; i <= 4; i++) {
     s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
@@ -137,15 +137,15 @@ test('miracle grace expires once, freezes threats too, and later taps cannot ren
   s.tutorialStep = 'done';
   s.nextThreatAt = s.elapsedSeconds + 1;
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
-  const hp = s.landHp;
+  const citizens = s.citizens;
   s = tick(s, 8);
-  assert.equal(s.landHp, hp);
+  assert.equal(s.citizens, citizens);
   assert.equal(s.threats.length, 0);
   assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
   assert.equal(s.lordOfHosts.graceSecondsRemaining, 0);
   s = tick(s);
-  assert.ok(s.landHp < hp);
+  assert.ok(s.citizens < citizens);
   assert.equal(s.elapsedSeconds, 1);
   assert.ok(s.threats.length > 0);
 });
@@ -288,12 +288,26 @@ test('damage report accounts for exposure and real impacts without invented mira
   s.greenSideAttacks = [{ id: 'test-raid', breachId: 'bdr-1', targetCityId: 'isr-11', targetCityName: 'City',
     startX: 0, startY: 0, targetX: 1, targetY: 1, progress: 0.99, durationMs: 18000, createdAt: 0 }];
   s = tick(s);
-  assert.equal(s.metrics.exposureDamage, 0.4);
-  assert.equal(s.metrics.raidDamage, 12);
-  assert.equal(s.landHp, 87.6);
+  assert.equal(s.metrics.exposureDamage, 400);
+  assert.equal(s.metrics.raidDamage, 12_000);
+  assert.equal(s.citizens, 87_600);
   assert.equal(s.metrics.miracleClicks, 0);
   assert.equal(s.timeline.at(-1).kind, 'raid');
   assert.equal(s.defenseScore, 88);
+});
+
+test('every unguarded outpost strike kills local and national citizens permanently', () => {
+  let s = built();
+  const nationalBefore = s.citizens;
+  const outpostBefore = s.tiles[outposts[0]].citizens;
+  for (let i = 0; i < 300 && s.metrics.clashDamage === 0; i++) s = tick(s);
+  assert.equal(s.metrics.clashDamage, RULES.outpostClashDeaths);
+  assert.equal(s.citizens, nationalBefore - RULES.outpostClashDeaths);
+  assert.equal(s.tiles[outposts[0]].citizens, outpostBefore - RULES.outpostClashDeaths);
+  const afterStrike = s.citizens;
+  s.tiles[outposts[0]].garrisonCount = 1;
+  s = tick(s, 20);
+  assert.equal(s.citizens, afterStrike, 'citizens do not regenerate after a strike');
 });
 
 test('intervention intercepts through the actual remanned checkpoint and records it', () => {
@@ -307,7 +321,7 @@ test('intervention intercepts through the actual remanned checkpoint and records
 });
 
 test('terminal states cannot be changed by gameplay actions', () => {
-  const s = { ...start(), gameStatus: 'catastrophe', landHp: 0 };
+  const s = { ...start(), gameStatus: 'catastrophe', citizens: 0 };
   assert.strictEqual(tick(s), s);
   assert.strictEqual(reduce(s, { type: 'CALL_RESERVES' }), s);
 });
@@ -362,7 +376,7 @@ test('an empty available pool cannot create soldiers or charge for a failed depl
 
 const tactical = (count = 1) => {
   const s = { ...start(), tutorialStep: 'done', soldiersTotal: 20, budget: 300, nextThreatAt: 1 };
-  for (const id of outposts.slice(0, count)) s.tiles[id] = { ...s.tiles[id], hasSettlement: true, garrisonCount: 1, hp: 100 };
+  for (const id of outposts.slice(0, count)) s.tiles[id] = { ...s.tiles[id], hasSettlement: true, garrisonCount: 1, citizens: RULES.outpostCitizens };
   return tick(s);
 };
 const sendSupport = (s, threat = s.threats[0], sourceId = 'available') => reduce(s, { type: 'REINFORCE_THREAT', threatId: threat.id, sourceId });
@@ -412,7 +426,7 @@ test('a guard can transfer directly from an outpost or checkpoint with actual co
     if (border) {
       assert.deepEqual(s.activeBreaches, ['bdr-1']);
       assert.equal(s.defenseScore, 88);
-      assert.equal(tick(s).metrics.exposureDamage, 0.4);
+      assert.equal(tick(s).metrics.exposureDamage, 400);
     } else assert.equal(s.incomeRate, income - 2);
     s = tick(s, 24);
     assert.equal(s.tiles[source].garrisonCount, 0, 'support returns to pool, not its former post');
@@ -420,22 +434,22 @@ test('a guard can transfer directly from an outpost or checkpoint with actual co
   }
 });
 
-test('understaffed battles cause proportional damage, stop repairs, and can end the run', () => {
+test('understaffed battles cause proportional permanent deaths and can end the run', () => {
   let s = tactical();
   const id = s.threats[0].tileId;
-  s.tiles[id] = { ...s.tiles[id], hp: 70 };
+  s.tiles[id] = { ...s.tiles[id], citizens: 700 };
   s = tick(s, 24);
-  assert.equal(s.tiles[id].hp, 55);
-  assert.equal(s.landHp, 94);
-  assert.equal(s.metrics.threatDamage, 6);
-  assert.equal(s.timeline.at(-1).damage, 6);
-  assert.equal(tick(s).tiles[id].hp, 56);
+  assert.equal(s.tiles[id].citizens, 550);
+  assert.equal(s.citizens, 94_000);
+  assert.equal(s.metrics.threatDamage, 6_000);
+  assert.equal(s.timeline.at(-1).deaths, 6_000);
+  assert.equal(tick(s).tiles[id].citizens, 550);
   let doomed = tactical();
-  doomed.landHp = 3;
+  doomed.citizens = 3_000;
   doomed = tick(doomed, 24);
   assert.equal(doomed.gameStatus, 'catastrophe');
-  assert.equal(doomed.metrics.threatDamage, 3);
-  assert.equal(doomed.landHp, 0);
+  assert.equal(doomed.metrics.threatDamage, 3_000);
+  assert.equal(doomed.citizens, 0);
   assert.strictEqual(reduce(doomed, { type: 'REINFORCE_THREAT', threatId: 'expired', sourceId: 'available' }), doomed);
 });
 
@@ -460,7 +474,7 @@ test('planning pauses threats and travel; language changes preserve deterministi
   const he = tick(s, 50);
   assert.deepEqual(en.threats, he.threats);
   assert.deepEqual(en.metrics, he.metrics);
-  assert.equal(en.landHp, he.landHp);
+  assert.equal(en.citizens, he.citizens);
 });
 
 test('cancelled or destroyed outposts release temporary support without duplicating troops', () => {
@@ -473,7 +487,7 @@ test('cancelled or destroyed outposts release temporary support without duplicat
   assert.equal(accountTroops(s), 20);
   s = tactical(2);
   const target = s.threats[0].tileId;
-  s.tiles[target] = { ...s.tiles[target], hp: 10 };
+  s.tiles[target] = { ...s.tiles[target], citizens: 100 };
   s = sendSupport(s);
   s = tick(s, 24);
   assert.equal(s.tiles[target].hasSettlement, false);
@@ -535,7 +549,7 @@ test('an idle fully guarded board loses pressure battles while active reinforcem
     assert.equal(accountTroops(active), 20);
   }
   assert.equal(active.gameStatus, 'rational_victory');
-  assert.equal(active.landHp, 100);
+  assert.equal(active.citizens, RULES.nationalCitizens);
   assert.equal(active.metrics.threatDamage, 0);
   assert.ok(active.metrics.intercepted >= 3);
   assert.equal(active.threats.length, 0);
@@ -561,7 +575,7 @@ test('three outposts require three defended attacks; pre-expansion attacks do no
     assert.equal(s.gameStatus, attack === 3 ? 'rational_victory' : 'playing');
   }
   assert.equal(s.settlementsCount, 3);
-  assert.equal(s.landHp, 100);
+  assert.equal(s.citizens, RULES.nationalCitizens);
   assert.equal(medals(s)[1].earned, true);
   assert.equal(medals({ ...s, metrics: { ...s.metrics, reserveCalls: 3 } })[1].earned, false);
 });
@@ -585,7 +599,7 @@ test('evacuation, missing guards, failed battles and destruction reset the defen
   assert.equal(s.defenseResetReason, 'battle');
   assert.equal(s.gameStatus, 'playing');
   s = ready();
-  s.tiles[s.threats[0].tileId].hp = 15;
+  s.tiles[s.threats[0].tileId].citizens = 150;
   s = tick(s, 24);
   assert.equal(s.settlementsCount, 2);
   assert.equal(s.defenseStreak, 0);

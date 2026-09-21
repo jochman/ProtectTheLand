@@ -11,16 +11,17 @@ export function RunReport({ state }: { state: GameState }) {
   const largest = damage[largestIndex];
   const tips = ['gaps', 'raids', 'outposts', 'threats'];
   const secUnit = translate(state.locale, 'report.unit.seconds');
-  const hpUnit = translate(state.locale, 'report.unit.hp');
+  const citizenUnit = translate(state.locale, 'report.unit.citizens');
+  const format = (value: number) => value.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US');
   return <div className="w-full space-y-3 text-start text-xs text-slate-800">
-    <p className="rounded-xl bg-slate-100 p-3">{objective(state)}<br />{translate(state.locale, 'report.time')}: {state.elapsedSeconds} {secUnit} · {translate(state.locale, 'report.hp')}: {state.landHp.toFixed(1)} · {translate(state.locale, 'components.RunReport.19', [])}: {m.intercepted}</p>
+    <p className="rounded-xl bg-slate-100 p-3">{objective(state)}<br />{translate(state.locale, 'report.time')}: {state.elapsedSeconds} {secUnit} · {translate(state.locale, 'report.citizens')}: {format(state.citizens)} · {translate(state.locale, 'components.RunReport.19', [])}: {m.intercepted}</p>
     <div data-testid="run-lesson" className="rounded-xl border border-amber-300 bg-amber-50 p-3 leading-relaxed">
-      {largest[1] > 0 ? <><p className="font-bold">{translate(state.locale, 'report.largest', [largest[0], largest[1].toFixed(1)])}</p><p>{translate(state.locale, `report.tip.${tips[largestIndex]}`)}</p></> : translate(state.locale, 'report.none')}
+      {largest[1] > 0 ? <><p className="font-bold">{translate(state.locale, 'report.largest', [largest[0], format(largest[1])])}</p><p>{translate(state.locale, `report.tip.${tips[largestIndex]}`)}</p></> : translate(state.locale, 'report.none')}
     </div>
     <div className="grid gap-1">{medals(state).map(medal => <p key={medal.label} className={medal.earned ? 'font-bold text-emerald-800' : 'text-slate-600'}>{medal.earned ? '🏅' : '○'} {medal.label}</p>)}</div>
     <table className="w-full overflow-hidden rounded-xl bg-white text-start">
       <caption className="mb-1 text-start font-bold">{translate(state.locale, 'components.RunReport.22', [])}</caption>
-      <tbody>{damage.map(([label, amount]) => <tr key={label} className="border-b border-slate-100"><th className="p-2 text-start font-medium">{label}</th><td className="p-2 text-end tabular-nums">{amount.toFixed(1)} {hpUnit}</td></tr>)}</tbody>
+      <tbody>{damage.map(([label, amount]) => <tr key={label} className="border-b border-slate-100"><th className="p-2 text-start font-medium">{label}</th><td className="p-2 text-end tabular-nums">{format(amount)} {citizenUnit}</td></tr>)}</tbody>
     </table>
     {m.miracleClicks > 0 && <p>{translate(state.locale, 'components.RunReport.25', [m.miracleClicks])}</p>}
     <details className="rounded-xl border border-slate-200 bg-white p-3" open>
@@ -29,7 +30,7 @@ export function RunReport({ state }: { state: GameState }) {
         {state.timeline.map((event, i) => <li key={i}>
           <span className="font-bold tabular-nums">{event.second} {secUnit} · {translate(state.locale, `report.event.${event.kind}`)}</span>
           {event.borderId && <> · {event.borderId === 'available' ? translate(state.locale, 'report.available') : `${translate(state.locale, 'components.RunReport.31', [])} ${event.borderId.replace('bdr-', '')}`}</>}
-          <span className="block text-slate-600">{event.gaps} {translate(state.locale, 'report.gaps')} · {event.hp.toFixed(1)} {hpUnit}{event.damage ? ` · −${event.damage} ${hpUnit}` : ''}{event.intercepted ? ` · ${event.intercepted} ${translate(state.locale, 'components.RunReport.32', [])}` : ''}</span>
+          <span className="block text-slate-600">{event.gaps} {translate(state.locale, 'report.gaps')} · {format(event.citizens)} {citizenUnit}{event.deaths ? ` · −${format(event.deaths)} ${citizenUnit}` : ''}{event.intercepted ? ` · ${event.intercepted} ${translate(state.locale, 'components.RunReport.32', [])}` : ''}</span>
         </li>)}
       </ol>}
     </details>

@@ -18,13 +18,13 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
 
 
   const handleWhatsAppShare = () => {
-    const text = translate(state.locale, 'components.October7DefeatModal.21', [state.settlementsCount, state.activeBreaches.length, Math.round(state.landHp)]);
+    const text = translate(state.locale, 'components.October7DefeatModal.21', [state.settlementsCount, state.activeBreaches.length, state.citizens.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')]);
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + window.location.href)}`;
     window.open(url, '_blank');
   };
 
   const handleShare = () => {
-    const text = translate(state.locale, 'components.October7DefeatModal.29', [state.settlementsCount, state.activeBreaches.length, Math.round(state.landHp)]);
+    const text = translate(state.locale, 'components.October7DefeatModal.29', [state.settlementsCount, state.activeBreaches.length, state.citizens.toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')]);
 
     if (navigator.share) {
       navigator.share({ title: strings.gameTitle, text, url: window.location.href }).catch(() => {});
@@ -36,7 +36,7 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
 
   const handleDownloadCard = () => {
     const title = translate(state.locale, 'components.October7DefeatModal.42', []);
-    const detail = translate(state.locale, 'components.October7DefeatModal.43', [state.settlementsCount, state.activeBreaches.length, Math.max(0, Math.round(state.landHp))]);
+    const detail = translate(state.locale, 'components.October7DefeatModal.43', [state.settlementsCount, state.activeBreaches.length, Math.max(0, state.citizens).toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')]);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630"><rect width="100%" height="100%" fill="#172033"/><rect x="45" y="45" width="1110" height="540" rx="42" fill="#fff9f0"/><text x="600" y="210" text-anchor="middle" font-family="Arial" font-size="58" font-weight="700" fill="#b91c1c">${title}</text><text x="600" y="315" text-anchor="middle" font-family="Arial" font-size="40" fill="#334155">${detail}</text><text x="600" y="440" text-anchor="middle" font-family="Arial" font-size="34" font-weight="700" fill="#047857">${strings.slogan}</text><text x="600" y="510" text-anchor="middle" font-family="Arial" font-size="25" fill="#64748b">Total Victory · educational simulation</text></svg>`;
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     const link = document.createElement('a');
@@ -60,7 +60,7 @@ export const October7DefeatModal: React.FC<October7DefeatModalProps> = ({ state,
           </p>
         </div>
 
-        <p className="text-sm">{state.landHp <= 0
+        <p className="text-sm">{state.citizens <= 0
           ? (translate(state.locale, 'components.October7DefeatModal.70', []))
           : (translate(state.locale, 'components.October7DefeatModal.71', []))}</p>
         <RunReport state={state} />
