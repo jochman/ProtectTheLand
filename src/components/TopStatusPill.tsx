@@ -1,14 +1,44 @@
 import { translate } from '../locales/translate';
 import React from 'react';
-import { Shield, Coins, Users } from 'lucide-react';
-import { GameState } from '../types';
+import { Shield, Coins, Users, Info } from 'lucide-react';
+import { GameAction, GameState } from '../types';
 import { simulationNow, availableTroops, RULES } from '../game/rules';
+import { haptics } from '../utils/haptics';
 
 interface TopStatusPillProps {
   state: GameState;
+  dispatch: React.Dispatch<GameAction>;
 }
 
-export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
+const STAT_INFO = {
+  soldiers: {
+    he: { title: '🎖️ סד״כ צבאי', text: 'סך כל החיילים בשירות והכוח הזמין. חיילים מאיישים מוצבי גבול, מאחזים ותגבור זמני.' },
+    en: { title: '🎖️ Military force', text: 'Total troops in service and the available pool. Troops staff border posts, outposts, and temporary reinforcements.' },
+  },
+  settlements: {
+    he: { title: '🏡 מאחזים', text: 'כל מאחז שהושלם מעניק 40₪ ומגדיל את תקרת התקציב ב־25₪. לניצחון נדרשים שלושה מאחזים מאוישים.' },
+    en: { title: '🏡 Outposts', text: 'Each completed outpost grants ₪40 and raises the budget cap by ₪25. Victory requires three staffed outposts.' },
+  },
+  budget: {
+    he: { title: '💰 תקציב', text: 'בניית מאחז עולה 100₪ ופריסת חייל עולה 15₪. ההכנסה מגיעה מהמשק האזרחי; מאחזים אינם מייצרים כסף.' },
+    en: { title: '💰 Budget', text: 'An outpost costs ₪100 and a troop deployment costs ₪15. Income comes from the civilian economy; outposts generate no money.' },
+  },
+  citizens: {
+    he: { title: '👥 אזרחים בחיים', text: 'פרצות, חדירות והתקפות לא מאובטחות הורגות אזרחים. האבדות קבועות, ובאפס אזרחים המשחק מסתיים.' },
+    en: { title: '👥 Citizens alive', text: 'Breaches, infiltrations, and undefended attacks kill citizens. Losses are permanent, and the game ends at zero.' },
+  },
+  border: {
+    he: { title: '🛡️ הגנת הגבול', text: 'זהו הכיסוי של שמונת מוצבי הגבול. פרצה פתוחה הורגת אזרחים ועלולה לאפשר חדירה.' },
+    en: { title: '🛡️ Border defense', text: 'This is coverage across all eight border posts. An open gap kills citizens and can allow an infiltration.' },
+  },
+} as const;
+
+export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state, dispatch }) => {
+  const triggerInfo = (key: keyof typeof STAT_INFO) => {
+    haptics.light();
+    const info = STAT_INFO[key][state.locale];
+    dispatch({ type: 'SHOW_INFO_POPOVER', title: info.title, text: info.text });
+  };
   const citizenPercent = state.citizens / RULES.nationalCitizens * 100;
   let landBarColor = 'bg-emerald-500';
   if (citizenPercent < 65) {
@@ -24,7 +54,9 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
       {/* Upper Pill: Soldiers, Settlements, and Budget ₪ */}
       <div className="status-pill relative flex items-center justify-around w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-lg border border-amber-100/60">
         {/* Soldiers Counter */}
-        <div className="flex items-center gap-1.5">
+        <button type="button" onClick={() => triggerInfo('soldiers')}
+          className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title={translate(state.locale, 'status.tapForInfo')}>
           <div className="w-5 h-5 flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-emerald-800 fill-current drop-shadow-sm">
               <circle cx="12" cy="7" r="4" />
@@ -35,12 +67,14 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
             {state.soldiersAtBorder + state.soldiersAtSettlements}
           </span>
           <span className="text-[10px] font-bold text-emerald-800" data-testid="available-troops">{availableTroops(state)} {translate(state.locale, 'components.TopStatusPill.122', [])}</span>
-        </div>
+        </button>
 
         <div className="w-px h-5 bg-slate-200" />
 
         {/* Settlements Counter */}
-        <div className="flex items-center gap-1.5">
+        <button type="button" onClick={() => triggerInfo('settlements')}
+          className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title={translate(state.locale, 'status.tapForInfo')}>
           <div className="w-5 h-5 flex items-center justify-center">
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-amber-700 fill-current drop-shadow-sm">
               <polygon points="12,3 2,11 5,11 5,21 19,21 19,11 22,11" />
@@ -50,12 +84,14 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
           <span className="text-xl font-black text-slate-800 tracking-tight font-rubik">
             {state.settlementsCount}
           </span>
-        </div>
+        </button>
 
         <div className="w-px h-5 bg-slate-200" />
 
         {/* Coalition Budget ₪ Counter & Income Rate */}
-        <div className="flex items-center gap-1.5">
+        <button type="button" onClick={() => triggerInfo('budget')}
+          className="flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title={translate(state.locale, 'status.tapForInfo')}>
           <div className="w-5 h-5 flex items-center justify-center rounded-full bg-amber-100 border border-amber-300">
             <Coins className="w-3.5 h-3.5 text-amber-600" />
           </div>
@@ -91,14 +127,16 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
                 : `+${state.incomeRate ?? 4}₪/${translate(state.locale, 'components.TopStatusPill.181', [])}`}
             </span>
           </div>
-        </div>
+        </button>
 
       </div>
 
       {/* Lower Pill: surviving citizens & border readiness */}
       <div className="status-pill flex items-center justify-between w-full max-w-[340px] px-3 py-1 sm:py-1.5 rounded-full shadow-md gap-2 border border-amber-100/60 font-heebo">
         {/* Citizen Section */}
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <button type="button" onClick={() => triggerInfo('citizens')}
+          className="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
+          title={translate(state.locale, 'status.tapForInfo')}>
           <div className="flex items-center gap-1 flex-shrink-0">
             <Users className={`w-3.5 h-3.5 ${citizenPercent < 35 ? 'text-red-600 animate-ping' : 'text-red-500'}`} />
             <span className="text-xs font-black text-slate-800 font-rubik tracking-tight">
@@ -119,12 +157,14 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
               -{(state.activeBreaches.length * RULES.gapDeaths).toLocaleString(state.locale === 'he' ? 'he-IL' : 'en-US')}/{translate(state.locale, 'components.TopStatusPill.213', [])}
             </span>
           )}
-        </div>
+        </button>
 
         <div className="w-px h-4 bg-slate-200 flex-shrink-0" />
 
         {/* Border Readiness Section */}
-        <div className="flex items-center gap-1 text-slate-700 flex-shrink-0">
+        <button type="button" onClick={() => triggerInfo('border')}
+          className="flex items-center gap-1 text-slate-700 flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title={translate(state.locale, 'status.tapForInfo')}>
           <Shield
             className={`w-3.5 h-3.5 ${
               state.defenseScore >= 60
@@ -142,8 +182,22 @@ export const TopStatusPill: React.FC<TopStatusPillProps> = ({ state }) => {
               ({state.defenseScore}%)
             </span>
           </div>
-        </div>
+        </button>
       </div>
+
+      {state.infoPopover && (
+        <div role="dialog" aria-modal="true" aria-label={state.infoPopover.title}
+          onClick={() => dispatch({ type: 'CLEAR_INFO_POPOVER' })}
+          className="absolute top-full mt-1.5 inset-x-3 sm:inset-x-auto sm:w-[320px] z-50 cursor-pointer rounded-2xl border-2 border-amber-400 bg-slate-900/95 p-2.5 text-white shadow-2xl backdrop-blur-md sm:p-3">
+          <div className="mb-1.5 flex items-start justify-between gap-2 border-b border-amber-400/40 pb-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-black text-amber-300"><Info className="h-3.5 w-3.5" /><span>{state.infoPopover.title}</span></div>
+            <button type="button" onClick={event => { event.stopPropagation(); dispatch({ type: 'CLEAR_INFO_POPOVER' }); }}
+              aria-label={translate(state.locale, 'status.closeTooltip')} className="min-h-11 min-w-11 px-1 text-xs font-bold text-slate-300 hover:text-white">✕</button>
+          </div>
+          <p className="text-[11px] leading-relaxed text-slate-200">{state.infoPopover.text}</p>
+          <div className="mt-1 text-end text-[9px] text-amber-400/80">{translate(state.locale, 'status.tapToClose')}</div>
+        </div>
+      )}
     </div>
   );
 };

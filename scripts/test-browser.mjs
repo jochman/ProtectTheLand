@@ -38,7 +38,7 @@ try {
       });
       assert.equal(geometry.dir, locale === 'he' ? 'rtl' : 'ltr');
       assert.equal(geometry.headerButtons, 3);
-      assert.equal(geometry.statusButtons, 0, 'status counters are read-only and open no menus');
+      assert.equal(geometry.statusButtons, 5, 'each status counter exposes a compact tooltip');
       assert.equal(geometry.scroll, height, JSON.stringify(geometry));
       assert.ok(geometry.map.height >= 220 && geometry.deck.bottom <= height + 1, JSON.stringify(geometry));
       assert.ok(geometry.ticker.bottom <= geometry.deck.top, JSON.stringify(geometry));
@@ -51,6 +51,25 @@ try {
       console.log(`Viewport passed: ${locale} ${width}×${height}`);
     }
   }
+
+  const infoPage = await browser.newPage({ viewport: { width: 320, height: 568 }, reducedMotion: 'reduce' });
+  await infoPage.goto('http://127.0.0.1:4178');
+  await dismissIntro(infoPage);
+  await infoPage.getByTitle('החלף שפה').click();
+  await infoPage.locator('.status-pill button').first().click();
+  await infoPage.getByRole('dialog', { name: '🎖️ Military force' }).waitFor();
+  await infoPage.screenshot({ path: '/tmp/octgame-status-tooltip.png' });
+  await infoPage.keyboard.press('Escape');
+  assert.equal(await infoPage.getByRole('dialog').count(), 0);
+  await infoPage.getByRole('button', { name: 'Open news center' }).click();
+  const newsCenter = infoPage.getByRole('dialog', { name: 'News' });
+  await newsCenter.waitFor();
+  assert.match(await newsCenter.innerText(), /News center/);
+  await infoPage.screenshot({ path: '/tmp/octgame-news-center.png' });
+  await infoPage.keyboard.press('Escape');
+  assert.equal(await infoPage.getByRole('dialog').count(), 0);
+  await infoPage.close();
+  console.log('Status tooltips and the news center passed keyboard and small-screen checks.');
 
   const autoPause = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await autoPause.clock.install({ time: new Date('2026-09-21T12:00:00Z') });

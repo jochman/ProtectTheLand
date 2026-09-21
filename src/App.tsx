@@ -5,6 +5,7 @@ import { MobileFrame } from './components/MobileFrame';
 import { HeaderBar } from './components/HeaderBar';
 import { TopStatusPill } from './components/TopStatusPill';
 import { NewsAlertTicker } from './components/NewsAlertTicker';
+import { NewsFeedModal } from './components/NewsFeedModal';
 import { HexMapCanvas } from './components/HexMapCanvas';
 import { BottomActionDeck } from './components/BottomActionDeck';
 import { SoulSparksOverlay } from './components/SoulSparksOverlay';
@@ -97,10 +98,10 @@ export default function App() {
       <HeaderBar state={state} dispatch={dispatch} />
 
       {/* Top Status Counters & Defense Meter */}
-      <TopStatusPill state={state} />
+      <TopStatusPill state={state} dispatch={dispatch} />
 
-      {/* Read-only breaking news ticker */}
-      <NewsAlertTicker state={state} />
+      {/* Breaking news ticker opens the optional news center */}
+      <NewsAlertTicker state={state} dispatch={dispatch} />
       <ThreatStatus state={state} dispatch={dispatch} />
 
       {/* Floating Operational Emergency Alert (0px layout footprint, never resizes map) */}
@@ -153,6 +154,7 @@ export default function App() {
       {/* Modals */}
       <October7DefeatModal state={state} dispatch={dispatch} />
       <RationalVictoryModal state={state} dispatch={dispatch} />
+      <NewsFeedModal state={state} dispatch={dispatch} />
       <EntranceInstructionModal state={state} dispatch={dispatch} />
       <StrategyToolkitModal state={state} dispatch={dispatch} />
       <ModalAccessibility state={state} dispatch={dispatch} />
