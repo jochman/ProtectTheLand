@@ -170,14 +170,14 @@ try {
     const initialFill = await page.getByTestId('miracle-fill').evaluate(el => el.style.width);
     const milestoneMessages = locale === 'en'
       ? {
-          three: 'We have promised that this will be enough, but God needs more support',
-          eight: 'The land takeover is progressing, but not enough',
-          all: 'We conquered all of the land, but the settlements are not guarded enough',
+          three: 'Just 5 more outposts. Then Jehovah will come and bring us salvation—this time it will be enough.',
+          eight: `Just ${totalSettlementSites - 8} more outposts. Then Jehovah will come and bring us salvation—this time it will be enough.`,
+          all: `Just ${totalSettlementSites} more settlements to guard. Then Jehovah will come and bring us salvation—this time it will be enough.`,
         }
       : {
-          three: 'הבטחנו שזה יספיק, אבל אלוהים זקוק לתמיכה נוספת',
-          eight: 'ההשתלטות על הארץ מתקדמת, אבל זה לא מספיק',
-          all: 'כבשנו את כל הארץ, אבל המאחזים אינם מאובטחים מספיק',
+          three: 'רק עוד 5 מאחזים. אז יהוה יבוא ויביא לנו ישועה — הפעם זה יספיק.',
+          eight: `רק עוד ${totalSettlementSites - 8} מאחזים. אז יהוה יבוא ויביא לנו ישועה — הפעם זה יספיק.`,
+          all: `רק עוד ${totalSettlementSites} מאחזים לאייש. אז יהוה יבוא ויביא לנו ישועה — הפעם זה יספיק.`,
         };
     for (let i = 1; i <= totalSettlementSites; i++) {
       await buildOutpost(page, locale, 20000);

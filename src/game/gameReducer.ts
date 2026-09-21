@@ -3,7 +3,7 @@ import { GameState, GameAction, NewsItem, GreenSideAttack, FinancialPenalty } fr
 import { INITIAL_TILES, SETTLEMENT_CANDIDATE_IDS } from './hexGridData';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
-import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, isLordOfHostsOperational, totalSettlementSites } from './rules';
+import { RULES, AVAILABLE_TROOP_SOURCE, troopSource, incomeFor, availableTroops, simulationNow, randomStream, isGamePaused, isLordOfHostsOperational, lordOfHostsPromise, totalSettlementSites } from './rules';
 import { sounds } from '../audio/soundEngine';
 import { getProgressiveNews, getNextJuicyNews, STORY_ARCS, STANDALONE_QUOTES } from './newsContent';
 import { pruneThreats, reinforceThreat, tickThreats } from './threats';
@@ -804,17 +804,12 @@ function reduceGame(state: GameState, action: GameAction): GameState {
       }
 
       sounds.playLordOfHostsClick();
-      const established = SETTLEMENT_CANDIDATE_IDS.filter(id => state.tiles[id]?.hasSettlement).length;
-      const message = established >= totalSettlementSites ? strings.lordOfHosts.allBuiltNeedsGuards
-        : established >= RULES.settlementMilestoneTwo ? strings.lordOfHosts.milestoneEight
-        : established >= RULES.settlementMilestoneOne ? strings.lordOfHosts.milestoneThree
-        : strings.lordOfHosts.needThree;
 
       return {
         ...state,
         lordOfHosts: {
           ...state.lordOfHosts,
-          piousToast: message,
+          piousToast: lordOfHostsPromise(state, 'toast'),
         },
       };
     }

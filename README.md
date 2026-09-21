@@ -11,7 +11,7 @@ The game is a client-side React application; it has no backend or external game 
 3. Restore checkpoint coverage with reserves, available troops, or a recall.
 4. After the tutorial, keep expanding toward every settlement site while responding to an endless sequence of tactical threats.
 
-There is no victory state: even establishing and staffing all 17 settlement sites does not end the war. The "יהוה צבאות" satire button advances at 3 settlements, 8 settlements and full-map conquest, and becomes fully operational only when every settlement is guarded. Five operational taps end the campaign in catastrophe. Israel begins with 100,000 citizens alive, every successful hit kills citizens permanently, and reaching zero also ends in catastrophe. The compact header provides pause, language and a game menu containing the remaining settings and guidance.
+There is no victory state: even establishing and staffing all 17 settlement sites does not end the war. The "יהוה צבאות" satire button always promises that just one or a few more outposts will make Jehovah bring salvation, moving its target from 3 to 8 to all 17 sites and then to guarding them all. It becomes fully operational only when every settlement is guarded; five operational taps end the campaign in catastrophe. Israel begins with 100,000 citizens alive, every successful hit kills citizens permanently, and reaching zero also ends in catastrophe. The compact header provides pause, language and a game menu containing the remaining settings and guidance.
 
 ## Requirements
 

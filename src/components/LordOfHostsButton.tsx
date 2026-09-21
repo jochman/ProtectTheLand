@@ -5,7 +5,7 @@ import { GameState, GameAction } from '../types';
 import { he } from '../locales/he';
 import { en } from '../locales/en';
 import { haptics } from '../utils/haptics';
-import { RULES, staffedSettlementSites, totalSettlementSites } from '../game/rules';
+import { lordOfHostsPromise, RULES } from '../game/rules';
 
 interface LordOfHostsButtonProps {
   state: GameState;
@@ -19,7 +19,6 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
   const isPanic = lordOfHosts.isPanicMashMode;
   const isCracked = lordOfHosts.isCracked;
   const tapCount = lordOfHosts.mashCount;
-  const staffed = staffedSettlementSites(state).length;
   const feedback = tapCount > 0
     ? strings.lordOfHosts.tapFeedback[Math.min(tapCount - 1, RULES.miracleTaps - 2)]
     : strings.lordOfHosts.panicMashPrompt;
@@ -104,7 +103,7 @@ export const LordOfHostsButton: React.FC<LordOfHostsButtonProps> = ({ state, dis
                 </span>
               </>
             ) : (
-              <span className="text-[10px] font-bold leading-tight">{translate(state.locale, 'lord.progress', [state.settlementsCount, totalSettlementSites, staffed])}</span>
+              <span className="text-[10px] font-black leading-tight">{lordOfHostsPromise(state)}</span>
             )}
           </div>
         )}

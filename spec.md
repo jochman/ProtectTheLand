@@ -4,7 +4,7 @@
 > **Target Platform:** Client-Side Web Application (Mobile-First 390px, Responsive Desktop Bezel, Zero-Backend)  
 > **Primary Locale:** Hebrew (`he`, RTL) | **Secondary Locale:** English (`en`, LTR)  
 > **Repository:** `/home/jochman/dev/octGame`
-> **Last Synchronized:** 2026-09-21 13:58:06 UTC (Branch: `main`, Iteration #66)
+> **Last Synchronized:** 2026-09-21 19:49:06 UTC (Branch: `main`, Iteration #67)
 
 ---
 
@@ -281,20 +281,18 @@ The game’s psychological core relies on subverting messianic rhetoric using mo
 ### 7.1 Full-Button Progress and Readiness
 - Constructed outposts retain the golden soul-spark animation toward the button and celestial audio feedback.
 - The entire pill-shaped button fills horizontally with gold, from the logical start edge (right in Hebrew, left in English). Its pale unfilled portion, dark text, and 54px minimum height keep progress and the action readable on mobile without scrolling.
-- While charging, the button shows explicit compact progress: settlements built out of 17 and settlements staffed. There is no fake countdown and no mention of an explicit “redemption promise” in the explanatory material; the promise remains implicit in the button's escalating responses.
+- While charging, the button itself makes a short, explicit moving promise: **“N more outposts → Jehovah brings salvation”** / **“עוד N מאחזים ← יהוה יביא ישועה”**. The number counts down on every completed settlement, so the control always claims salvation is only one or a few actions away. The explanatory/onboarding material still contains no separate “redemption promise” note; the deception lives on the button where the player acts.
 - Progress is normalized after every gameplay action:
   - Below 3 settlements: proportional fill from 0–30%.
   - 3–7 settlements: starts at 35% and rises toward the next milestone.
   - 8–16 settlements: starts at 65% and rises toward 90%.
   - All 17 built but not all staffed: 96%.
   - All 17 built and all 17 staffed: 100% and fully operational.
-- Clicking at each milestone produces the required response:
-  - Before 3: “Establish 3 settlements before asking for the promise.”
-  - From 3 through 7: “We have promised that this will be enough, but God needs more support”.
-  - From 8 through 16: “The land takeover is progressing, but not enough”.
-  - All 17 built but not fully staffed: “We conquered all of the land, but the settlements are not guarded enough”.
-- The corresponding Hebrew copy is first-class and carries the same meaning. Clicking at a milestone only shows its toast; it does not pause, win or alter resources.
-- Ready presentation: full gold fill, brighter pulsing halo, flame icon, and **“מבצעי לחלוטין · לחצו להפעלה!” / “Fully operational · Tap to activate!”**. Once tapping begins, readiness stays latched until the sequence ends or the run ends.
+- The moving target is 3, then 8, then all 17 sites. Reaching one target immediately replaces it with the next promise rather than acknowledging completion: at 2/7/16 settlements the button says only one more is needed; at 3 it promises salvation after five more, and at 8 after nine more.
+- Clicking while unready expands the claim into: **“Just N more outposts. Then Jehovah will come and bring us salvation—this time it will be enough.”** The Hebrew equivalent is **“רק עוד N מאחזים. אז יהוה יבוא ויביא לנו ישועה — הפעם זה יספיק.”** Singular grammar is used when only one remains.
+- After all 17 are built, the counter changes from construction to remaining unstaffed settlements and repeats the same salvation promise. Clicking gives the full promise with the remaining guard count.
+- Clicking only shows its toast; it does not pause, win or alter resources.
+- Ready presentation: full gold fill, brighter pulsing halo, flame icon, and **“הישועה כאן · לחצו לקבלתה!” / “Salvation is here · Tap to receive it!”**. Once tapping begins, readiness stays latched until the sequence ends or the run ends.
 
 ### 7.2 Five-Tap Climax and Feedback
 - Every ready-state tap adds one of five persistent lit marks beneath the action text, flashes the button, triggers warning haptics where supported, and plays a thud with increasing starting pitch (`140 + tap * 35` Hz).
@@ -303,7 +301,7 @@ The game’s psychological core relies on subverting messianic rhetoric using mo
 - The first tap starts **eight simulation ticks of grace**, normally eight seconds. During grace, `TICK_TIMER` decrements only `graceSecondsRemaining` and clears screen shake: citizen deaths, attacks, threat deadlines, income, construction, and simulation time do not advance. Reading/manual pauses also pause grace. Subsequent taps never renew it. After expiry, ordinary simulation and deaths resume.
 - The **fifth tap** plays the shatter sound, fractures the button, removes its gold fill/glow, locks it to **“אין סומכין על הנס” / “Miracles don't defend borders”**, clears grace and screen shake, and opens the catastrophe modal. It restores neither troops nor citizens.
 - Restart clears taps, grace, readiness and cracks. Readiness normalization is centralized in the reducer so deployments, support transfers, reserves and recalls behave consistently. Both click action variants count each tap once in the run report.
-- Verification: reducer coverage includes exact 3/8/all milestone messages, dynamic 17-site completion, all-settlement staffing, finite grace, threat freeze/resumption, invalid early taps, latching and restart. Browser checks reach the effect through real construction/deployment controls in both languages, prove that full conquest opens no victory modal, exercise keyboard input and all five taps, and verify the 320×568 layout; the broader viewport suite retains zero-scroll coverage.
+- Verification: reducer coverage includes plural and singular promises immediately before and after the 3/8/17 moving targets, the staffing promise, all-settlement readiness, finite grace, threat freeze/resumption, invalid early taps, latching and restart. Browser checks reach the effect through real construction/deployment controls in both languages, prove that full conquest opens no victory modal, exercise keyboard input and all five taps, and verify the 320×568 layout; the broader viewport suite retains zero-scroll coverage.
 
 ---
 

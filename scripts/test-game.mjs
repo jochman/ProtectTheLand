@@ -6,7 +6,7 @@ const server = await createServer({ server: { middlewareMode: true, hmr: false, 
 after(() => server.close());
 const { gameReducer: reduce, INITIAL_STATE } = await server.ssrLoadModule('/src/game/gameReducer.ts');
 const { SETTLEMENT_CANDIDATE_IDS: outposts, tileName } = await server.ssrLoadModule('/src/game/hexGridData.ts');
-const { incomeFor, availableTroops, RULES, troopSource, totalSettlementSites, isLordOfHostsOperational } = await server.ssrLoadModule('/src/game/rules.ts');
+const { incomeFor, availableTroops, RULES, troopSource, totalSettlementSites, isLordOfHostsOperational, lordOfHostsPromise } = await server.ssrLoadModule('/src/game/rules.ts');
 const { threatDefense, incomingSupport, dangerStatus } = await server.ssrLoadModule('/src/game/threats.ts');
 const start = () => reduce(structuredClone(INITIAL_STATE), { type: 'RESTART_GAME' });
 const tick = (state, count = 1) => { for (let i = 0; i < count; i++) state = reduce(state, { type: 'TICK_TIMER' }); return state; };
@@ -122,22 +122,30 @@ const conquestState = (builtCount, staffedCount = 0) => {
   return reduce(s, { type: 'COLLECT_COIN', id: 'missing' });
 };
 
-test('Lord of Hosts advances at 3, 8 and all settlements, then requires every guard', () => {
+test('Lord of Hosts keeps promising salvation one or a few settlements beyond each moving target', () => {
   assert.equal(start().lordOfHosts.chargePercent, 0);
+  assert.equal(lordOfHostsPromise(start()), 'עוד 3 מאחזים ← יהוה יביא ישועה');
+  assert.match(lordOfHostsPromise(conquestState(2), 'toast'), /רק עוד מאחז אחד.*יהוה יבוא.*ישועה/);
   let s = conquestState(3);
   assert.equal(s.lordOfHosts.chargePercent, 35);
+  assert.equal(lordOfHostsPromise(s), 'עוד 5 מאחזים ← יהוה יביא ישועה');
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
-  assert.equal(s.lordOfHosts.piousToast, 'הבטחנו שזה יספיק, אבל אלוהים זקוק לתמיכה נוספת');
+  assert.equal(s.lordOfHosts.piousToast, 'רק עוד 5 מאחזים. אז יהוה יבוא ויביא לנו ישועה — הפעם זה יספיק.');
+  assert.match(lordOfHostsPromise(conquestState(7), 'toast'), /רק עוד מאחז אחד.*הפעם זה יספיק/);
   s = reduce(conquestState(8), { type: 'SET_LOCALE', locale: 'en' });
+  assert.equal(lordOfHostsPromise(s), '9 more outposts → Jehovah brings salvation');
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
   assert.equal(s.lordOfHosts.chargePercent, 65);
-  assert.equal(s.lordOfHosts.piousToast, 'The land takeover is progressing, but not enough');
+  assert.equal(s.lordOfHosts.piousToast, 'Just 9 more outposts. Then Jehovah will come and bring us salvation—this time it will be enough.');
+  assert.match(lordOfHostsPromise(reduce(conquestState(totalSettlementSites - 1), { type: 'SET_LOCALE', locale: 'en' }), 'toast'), /Just one more outpost.*Jehovah.*salvation/);
   s = reduce(conquestState(totalSettlementSites), { type: 'SET_LOCALE', locale: 'en' });
   s = reduce(s, { type: 'CLICK_LORD_OF_HOSTS' });
   assert.equal(s.lordOfHosts.chargePercent, 96);
-  assert.equal(s.lordOfHosts.piousToast, 'We conquered all of the land, but the settlements are not guarded enough');
+  assert.equal(s.lordOfHosts.piousToast, `Just ${totalSettlementSites} more settlements to guard. Then Jehovah will come and bring us salvation—this time it will be enough.`);
+  assert.match(lordOfHostsPromise(reduce(conquestState(totalSettlementSites, totalSettlementSites - 1), { type: 'SET_LOCALE', locale: 'en' }), 'toast'), /Just one more settlement to guard.*salvation/);
   s = conquestState(totalSettlementSites, totalSettlementSites);
   assert.equal(isLordOfHostsOperational(s), true);
+  assert.equal(lordOfHostsPromise(s), 'הישועה כאן · לחצו לקבלתה!');
   assert.equal(s.lordOfHosts.isPanicMashMode, true);
   assert.equal(s.lordOfHosts.chargePercent, 100);
   assert.equal(s.gameStatus, 'playing');

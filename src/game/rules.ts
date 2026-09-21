@@ -25,6 +25,20 @@ export const isLordOfHostsOperational = (state: GameState) => {
   return built.length === totalSettlementSites && built.every(id => state.tiles[id].garrisonCount > 0);
 };
 
+export function lordOfHostsPromise(state: GameState, format: 'button' | 'toast' = 'button'): string {
+  const built = builtSettlementSites(state).length;
+  const staffed = staffedSettlementSites(state).length;
+  if (built === totalSettlementSites) {
+    const remaining = totalSettlementSites - staffed;
+    if (remaining <= 0) return translate(state.locale, 'lord.promise.ready');
+    return translate(state.locale, `lord.promise.guards.${format}.${remaining === 1 ? 'one' : 'many'}`, [remaining]);
+  }
+  const target = built < RULES.settlementMilestoneOne ? RULES.settlementMilestoneOne
+    : built < RULES.settlementMilestoneTwo ? RULES.settlementMilestoneTwo : totalSettlementSites;
+  const remaining = target - built;
+  return translate(state.locale, `lord.promise.outposts.${format}.${remaining === 1 ? 'one' : 'many'}`, [remaining]);
+}
+
 export const simulationNow = (state: GameState) => state.elapsedSeconds * 1000;
 export const incomeFor = (state: GameState) => Math.max(1, RULES.civilianIncome - (3 - state.reservesBatchesLeft))
   + Object.values(state.tiles).filter(t => t.hasSettlement && t.garrisonCount > 0).length * RULES.guardedIncome;
